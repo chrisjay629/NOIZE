@@ -209,13 +209,23 @@ def render_hashtag_cards(velocity_data):
         category = h.get("category") or "Uncategorized"
         posts = h.get("posts") or "—"
         rank = h.get("current_rank") or "—"
-        url = h.get("url") or f"https://www.tiktok.com/tag/{h['name']}"
+        name = h['name']
+        web_url = f"https://www.tiktok.com/tag/{name}"
+        app_url = f"tiktok://tag/{name}"
+        onclick = (
+            f"(function(e){{"
+            f"var m=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);"
+            f"if(m){{e.preventDefault();"
+            f"window.location.href='{app_url}';"
+            f"setTimeout(function(){{window.location.href='{web_url}';}},1500);}}"
+            f"}})(event)"
+        )
         st.markdown(f"""
-        <a href="{url}" target="_blank" style="text-decoration:none">
+        <a href="{web_url}" target="_blank" style="text-decoration:none" onclick="{onclick}">
         <div class="ht-card {card_class}" style="cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fe2c55'" onmouseout="this.style.borderColor=''">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div>
-              <span style="font-size:16px;font-weight:600">#{h['name']}</span>
+              <span style="font-size:16px;font-weight:600">#{name}</span>
               {badge}
               <div style="font-size:12px;color:#aaa;margin-top:4px">{posts} posts · {category}</div>
             </div>
