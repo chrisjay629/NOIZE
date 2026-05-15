@@ -1,4 +1,6 @@
 import sqlite3
+import threading
+import time
 import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime
@@ -6,6 +8,19 @@ from datetime import datetime
 from agent import run_agent
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH
 from scraper import scrape_hashtags
+
+def _background_scheduler():
+    while True:
+        try:
+            scrape_hashtags()
+        except Exception:
+            pass
+        time.sleep(3600)  # 1 hour
+
+if "scheduler_started" not in st.session_state:
+    st.session_state.scheduler_started = True
+    t = threading.Thread(target=_background_scheduler, daemon=True)
+    t.start()
 
 # ── Page config ────────────────────────────────────────────────
 st.set_page_config(
