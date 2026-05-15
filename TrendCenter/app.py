@@ -220,6 +220,21 @@ with col_status:
         except Exception:
             pass
 
+st.markdown("""
+<div style="background:#1e1e2e;border:0.5px solid #3a3a4a;border-radius:12px;padding:18px 22px;margin-bottom:1rem">
+  <div style="font-size:15px;font-weight:600;color:#e0e0e0;margin-bottom:6px">Built for TikTok content creators</div>
+  <div style="font-size:13px;color:#aaa;line-height:1.7">
+    TrendCenter tracks the top 20 trending hashtags on TikTok in real time and shows you which ones are climbing fastest —
+    so you know exactly what to post and when to post it.<br><br>
+    <b style="color:#ccc">How to use it:</b><br>
+    &nbsp;&nbsp;1. Hit <b style="color:#ccc">Refresh</b> to pull the latest trending hashtags from TikTok.<br>
+    &nbsp;&nbsp;2. Type your niche (fitness, fashion, food, etc.) and hit <b style="color:#ccc">Analyze</b> — the AI filters the trends for you and generates content ideas.<br>
+    &nbsp;&nbsp;3. Check the <b style="color:#ccc">velocity leaderboard</b> to see which hashtags are climbing right now. <b style="color:#185fa5">Strike now</b> = post today before it peaks.<br>
+    &nbsp;&nbsp;4. Use the <b style="color:#ccc">Ask the Agent</b> tab to chat directly — ask what's trending, what to post, or what to avoid.
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
 st.divider()
 
 
