@@ -32,6 +32,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap');
   html, body, [class*="css"] { font-family: -apple-system, system-ui, sans-serif; }
   .block-container { padding: 1.5rem 2rem; max-width: 1100px; }
   [data-testid="metric-container"] {
@@ -201,24 +202,35 @@ if "chat_history" not in st.session_state:
 
 
 # ── Header ─────────────────────────────────────────────────────
-col_logo, col_status = st.columns([3, 1])
-with col_logo:
-    st.markdown("## 📈 TrendCenter")
-with col_status:
-    hashtags = get_latest_hashtags()
-    if hashtags:
-        last_scraped = hashtags[0].get("scraped_at", "")
-        try:
-            ts = datetime.fromisoformat(last_scraped)
-            mins_ago = int((datetime.now() - ts).total_seconds() / 60)
-            st.markdown(
-                f'<div style="text-align:right;padding-top:1rem">'
-                f'<span class="status-dot"></span>'
-                f'<span style="font-size:13px;color:#777">Updated {mins_ago}m ago</span></div>',
-                unsafe_allow_html=True
-            )
-        except Exception:
-            pass
+hashtags = get_latest_hashtags()
+mins_ago_str = ""
+if hashtags:
+    last_scraped = hashtags[0].get("scraped_at", "")
+    try:
+        ts = datetime.fromisoformat(last_scraped)
+        mins_ago = int((datetime.now() - ts).total_seconds() / 60)
+        mins_ago_str = f'<span class="status-dot"></span><span style="font-size:13px;color:#777">Updated {mins_ago}m ago</span>'
+    except Exception:
+        pass
+
+st.markdown(f"""
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0 0.25rem 0">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="position:relative;width:44px;height:44px">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="44" height="44" rx="10" fill="#010101"/>
+        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="white"/>
+        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#fe2c55" opacity="0.5" transform="translate(1,1)"/>
+        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#25f4ee" opacity="0.5" transform="translate(-1,-1)"/>
+      </svg>
+    </div>
+    <span style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#fff">
+      Trend<span style="color:#fe2c55">Center</span>
+    </span>
+  </div>
+  <div style="text-align:right">{mins_ago_str}</div>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <div style="background:#1e1e2e;border:0.5px solid #3a3a4a;border-radius:12px;padding:18px 22px;margin-bottom:1rem">
