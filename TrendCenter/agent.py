@@ -68,6 +68,28 @@ def tool_generate_content_ideas(hashtag, niche):
     return response.choices[0].message.content
 
 
+def research_niche_hashtags(topic):
+    """Uses GPT to suggest relevant TikTok hashtags for any topic with context."""
+    prompt = (
+        f'You are a TikTok hashtag research expert. A creator wants to make content about: "{topic}"\n\n'
+        "Suggest 15 relevant TikTok hashtags they should consider. For each provide:\n"
+        "- name: the hashtag without the # symbol\n"
+        "- description: one sentence on who uses it and what content performs well\n"
+        "- competition: Low, Medium, or High (based on how saturated it is)\n"
+        "- content_type: the format that works best (Tutorial, Storytime, Trend, Educational, Entertainment, etc.)\n\n"
+        "Return ONLY a valid JSON array, no other text:\n"
+        '[{"name":"...","description":"...","competition":"...","content_type":"..."}]'
+    )
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    try:
+        return json.loads(response.choices[0].message.content)
+    except Exception:
+        return []
+
+
 def generate_blueprint(hashtag_names, niche="content creator"):
     """Generates a full production blueprint for a list of hashtags."""
     hashtag_list = ", ".join([f"#{n}" for n in hashtag_names])

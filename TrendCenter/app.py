@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime
 
-from agent import run_agent, generate_blueprint
+from agent import run_agent, generate_blueprint, research_niche_hashtags
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH
 from scraper import scrape_hashtags
 
@@ -296,7 +296,7 @@ st.divider()
 
 
 # ── Tabs ───────────────────────────────────────────────────────
-tab_dash, tab_blueprint, tab_chat = st.tabs(["📊 Dashboard", "🎬 Blueprint Generator", "💬 Ask the Agent"])
+tab_dash, tab_blueprint, tab_niche, tab_chat = st.tabs(["📊 Dashboard", "🎬 Blueprint Generator", "🔍 Niche Research", "💬 Ask the Agent"])
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -388,6 +388,70 @@ with tab_blueprint:
             niche_label = bp_niche.strip() if bp_niche.strip() else "content creator"
             with st.spinner(f"Building blueprints for {len(selected)} hashtag(s)..."):
                 blueprint = generate_blueprint(selected, niche_label)
+            st.markdown("---")
+            st.markdown(blueprint)
+
+
+# ═══════════════════════════════════════════════════════════════
+# NICHE RESEARCH TAB
+# ═══════════════════════════════════════════════════════════════
+with tab_niche:
+    st.markdown("**Search any topic to find relevant TikTok hashtags — even if they're not in the top 20.**")
+    st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:1rem'>Type a niche or topic, see which hashtags fit it, then generate a full content blueprint for the ones you want.</div>", unsafe_allow_html=True)
+
+    nr_col1, nr_col2 = st.columns([4, 1])
+    with nr_col1:
+        nr_topic = st.text_input("Topic", placeholder="e.g. pickleball, van life, budget cooking, nail art...", label_visibility="collapsed", key="nr_topic")
+    with nr_col2:
+        nr_search = st.button("🔍 Search", type="primary", use_container_width=True)
+
+    if nr_search and nr_topic.strip():
+        with st.spinner(f"Researching hashtags for '{nr_topic}'..."):
+            st.session_state["nr_results"] = research_niche_hashtags(nr_topic.strip())
+            st.session_state["nr_topic_label"] = nr_topic.strip()
+
+    nr_results = st.session_state.get("nr_results", [])
+    nr_topic_label = st.session_state.get("nr_topic_label", "")
+
+    if nr_results:
+        st.markdown("---")
+        st.markdown(f"**{len(nr_results)} hashtags found for: *{nr_topic_label}***")
+        st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:0.75rem'>Check the ones you want to create content for, then hit Generate Blueprint.</div>", unsafe_allow_html=True)
+
+        nr_selected = []
+        for h in nr_results:
+            competition = h.get("competition", "Medium")
+            comp_color = {"Low": "#0f6e56", "Medium": "#7a5c00", "High": "#993c1d"}.get(competition, "#555")
+            comp_bg = {"Low": "#e1f5ee", "Medium": "#fef9e7", "High": "#faece7"}.get(competition, "#333")
+            content_type = h.get("content_type", "")
+            description = h.get("description", "")
+            name = h.get("name", "")
+
+            col_check, col_card = st.columns([0.5, 9.5])
+            with col_check:
+                checked = st.checkbox("", key=f"nr_{name}", label_visibility="collapsed")
+                if checked:
+                    nr_selected.append(name)
+            with col_card:
+                st.markdown(f"""
+                <div class="ht-card" style="margin-bottom:6px">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                    <div>
+                      <span style="font-size:15px;font-weight:600">#{name}</span>
+                      <span class="badge" style="background:{comp_bg};color:{comp_color};margin-left:8px">{competition} competition</span>
+                      <span class="badge badge-blue" style="margin-left:4px">{content_type}</span>
+                      <div style="font-size:12px;color:#aaa;margin-top:4px">{description}</div>
+                    </div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("---")
+        nr_generate = st.button("🎬 Generate Blueprint", type="primary", use_container_width=True, disabled=len(nr_selected) == 0, key="nr_gen_btn")
+
+        if nr_generate and nr_selected:
+            with st.spinner(f"Building blueprints for {len(nr_selected)} hashtag(s)..."):
+                blueprint = generate_blueprint(nr_selected, nr_topic_label)
             st.markdown("---")
             st.markdown(blueprint)
 
