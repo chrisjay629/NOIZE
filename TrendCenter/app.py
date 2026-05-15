@@ -34,13 +34,41 @@ st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap');
   html, body, [class*="css"] { font-family: -apple-system, system-ui, sans-serif; }
-  .block-container { padding: 1.5rem 2rem; max-width: 1100px; }
-  [data-testid="metric-container"] {
-    background: #f5f4ef;
-    border-radius: 10px;
-    padding: 12px 16px;
-    border: 0.5px solid #e0ddd5;
+
+  /* Force dark mode always */
+  .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    background-color: #0f0f15 !important;
   }
+  [data-testid="stSidebar"] { background-color: #15151f !important; }
+  .block-container { padding: 1.5rem 2rem; max-width: 1100px; }
+
+  /* All text defaults to light */
+  html, body, p, span, div, label, h1, h2, h3 { color: #e0e0e0; }
+
+  /* Metric cards */
+  [data-testid="metric-container"] {
+    background: #1e1e2e !important;
+    border-radius: 12px !important;
+    padding: 16px 20px !important;
+    border: 0.5px solid #3a3a4a !important;
+  }
+  [data-testid="metric-container"] label { color: #aaa !important; font-size: 13px !important; }
+  [data-testid="metric-container"] [data-testid="stMetricValue"] { color: #fff !important; font-size: 28px !important; font-weight: 700 !important; }
+
+  /* Tabs */
+  [data-testid="stTabs"] button { color: #aaa !important; }
+  [data-testid="stTabs"] button[aria-selected="true"] { color: #fe2c55 !important; border-bottom-color: #fe2c55 !important; }
+
+  /* Input box */
+  [data-testid="stTextInput"] input {
+    background: #1e1e2e !important;
+    border: 0.5px solid #3a3a4a !important;
+    color: #e0e0e0 !important;
+    border-radius: 8px !important;
+  }
+
+  /* Dividers */
+  hr { border-color: #2a2a3a !important; }
   .ht-card {
     background: #1e1e2e;
     border: 0.5px solid #3a3a4a;
