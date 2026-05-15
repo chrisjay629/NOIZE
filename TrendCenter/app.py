@@ -209,17 +209,23 @@ def render_hashtag_cards(velocity_data):
         category = h.get("category") or "Uncategorized"
         posts = h.get("posts") or "—"
         rank = h.get("current_rank") or "—"
+        url = h.get("url") or f"https://www.tiktok.com/tag/{h['name']}"
         st.markdown(f"""
-        <div class="ht-card {card_class}">
+        <a href="{url}" target="_blank" style="text-decoration:none">
+        <div class="ht-card {card_class}" style="cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fe2c55'" onmouseout="this.style.borderColor=''">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div>
               <span style="font-size:16px;font-weight:600">#{h['name']}</span>
               {badge}
               <div style="font-size:12px;color:#aaa;margin-top:4px">{posts} posts · {category}</div>
             </div>
-            <div style="font-size:13px;font-weight:500;color:#aaa">#{rank}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:#fe2c55">↗ TikTok</span>
+              <span style="font-size:13px;font-weight:500;color:#aaa">#{rank}</span>
+            </div>
           </div>
         </div>
+        </a>
         """, unsafe_allow_html=True)
 
 
