@@ -277,36 +277,49 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="background:#1e1e2e;border:0.5px solid #3a3a4a;border-radius:12px;padding:20px 24px;margin-bottom:1rem">
-  <div style="font-size:13px;font-weight:700;letter-spacing:0.08em;color:#fe2c55;text-transform:uppercase;margin-bottom:4px">Built for TikTok content creators</div>
-  <div style="font-size:15px;color:#ccc;margin-bottom:18px;line-height:1.5">
+<div style="background:#1e1e2e;border:0.5px solid #3a3a4a;border-radius:12px;padding:20px 24px;margin-bottom:0.5rem">
+  <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;color:#fe2c55;text-transform:uppercase;margin-bottom:4px">Built for TikTok content creators</div>
+  <div style="font-size:14px;color:#ccc;line-height:1.6">
     TrendCenter tracks what's trending on TikTok in real time, tells you which hashtags are climbing fastest, and builds you a full content plan — so you always know what to post and how to make it.
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-
-    <div style="background:#15151f;border:0.5px solid #3a3a4a;border-radius:10px;padding:14px 16px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#fe2c55;text-transform:uppercase;margin-bottom:6px">📊 Dashboard</div>
-      <div style="font-size:13px;color:#aaa;line-height:1.6">Hit <b style="color:#e0e0e0">Refresh</b> to pull the latest top 20 trending hashtags. Type your niche and hit <b style="color:#e0e0e0">Analyze</b> to get AI-filtered results. Watch the <b style="color:#e0e0e0">velocity leaderboard</b> — <span style="color:#185fa5;font-weight:600">Strike now</span> means post today before it peaks. Tap any hashtag to view it live on TikTok.</div>
-    </div>
-
-    <div style="background:#15151f;border:0.5px solid #3a3a4a;border-radius:10px;padding:14px 16px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#fe2c55;text-transform:uppercase;margin-bottom:6px">🎬 Blueprint Generator</div>
-      <div style="font-size:13px;color:#aaa;line-height:1.6">Pick hashtags from the top 20 using checkboxes, hit <b style="color:#e0e0e0">Generate Blueprint</b>, and get a full production plan for each one — hook, script outline, visual style, ready-to-paste caption, best time to post, and which tool to use.</div>
-    </div>
-
-    <div style="background:#15151f;border:0.5px solid #3a3a4a;border-radius:10px;padding:14px 16px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#fe2c55;text-transform:uppercase;margin-bottom:6px">🔍 Niche Research</div>
-      <div style="font-size:13px;color:#aaa;line-height:1.6">Not seeing your niche in the top 20? Type any topic — pickleball, van life, budget cooking — and the AI finds 15 relevant hashtags with competition level and best content format. Select the ones you like and generate a blueprint instantly.</div>
-    </div>
-
-    <div style="background:#15151f;border:0.5px solid #3a3a4a;border-radius:10px;padding:14px 16px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#fe2c55;text-transform:uppercase;margin-bottom:6px">💬 Ask the Agent</div>
-      <div style="font-size:13px;color:#aaa;line-height:1.6">Chat directly with the AI in plain English. Ask what's blowing up right now, what hashtags to avoid, or get content strategy advice for your specific niche. No forms, just talk.</div>
-    </div>
-
   </div>
 </div>
 """, unsafe_allow_html=True)
+
+card_style = "background:#1e1e2e;border:0.5px solid #3a3a4a;border-radius:10px;padding:14px 16px;height:100%"
+label_style = "font-size:11px;font-weight:700;letter-spacing:0.1em;color:#fe2c55;text-transform:uppercase;margin-bottom:6px"
+body_style = "font-size:13px;color:#aaa;line-height:1.6"
+
+oc1, oc2 = st.columns(2)
+with oc1:
+    st.markdown(f"""
+    <div style="{card_style}">
+      <div style="{label_style}">📊 Dashboard</div>
+      <div style="{body_style}">Hit <b style="color:#e0e0e0">Refresh</b> to load the latest top 20 trending hashtags. Type your niche and hit <b style="color:#e0e0e0">Analyze</b> for AI-filtered results. Watch the velocity leaderboard — <b style="color:#185fa5">Strike now</b> means post today before it peaks. Tap any card to view it live on TikTok.</div>
+    </div>
+    """, unsafe_allow_html=True)
+with oc2:
+    st.markdown(f"""
+    <div style="{card_style}">
+      <div style="{label_style}">🎬 Blueprint Generator</div>
+      <div style="{body_style}">Pick hashtags from the top 20 using checkboxes, hit <b style="color:#e0e0e0">Generate Blueprint</b>, and get a full production plan — hook, script outline, visual style, ready-to-paste caption, best time to post, and which tool to use.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+oc3, oc4 = st.columns(2)
+with oc3:
+    st.markdown(f"""
+    <div style="{card_style}">
+      <div style="{label_style}">🔍 Niche Research</div>
+      <div style="{body_style}">Not in the top 20? Type any topic — pickleball, van life, budget cooking — and the AI finds 15 relevant hashtags with competition level and best content format. Select what you want and generate a blueprint instantly.</div>
+    </div>
+    """, unsafe_allow_html=True)
+with oc4:
+    st.markdown(f"""
+    <div style="{card_style}">
+      <div style="{label_style}">💬 Ask the Agent</div>
+      <div style="{body_style}">Chat with the AI in plain English. Ask what's blowing up right now, which hashtags to avoid, or get content strategy advice for your specific niche. No forms — just talk.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.divider()
 
