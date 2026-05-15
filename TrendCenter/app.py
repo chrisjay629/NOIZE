@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime
 
-from agent import run_agent
+from agent import run_agent, generate_blueprint
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH
 from scraper import scrape_hashtags
 
@@ -295,7 +295,7 @@ st.divider()
 
 
 # ── Tabs ───────────────────────────────────────────────────────
-tab_dash, tab_chat = st.tabs(["📊 Dashboard", "💬 Ask the Agent"])
+tab_dash, tab_blueprint, tab_chat = st.tabs(["📊 Dashboard", "🎬 Blueprint Generator", "💬 Ask the Agent"])
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -354,6 +354,41 @@ with tab_dash:
     else:
         st.markdown("**Trending now — velocity leaderboard**")
         render_hashtag_cards(velocity_data[:10] if velocity_data else all_hashtags[:10])
+
+
+# ═══════════════════════════════════════════════════════════════
+# BLUEPRINT TAB
+# ═══════════════════════════════════════════════════════════════
+with tab_blueprint:
+    st.markdown("**Select the hashtags you want a content blueprint for:**")
+
+    bp_hashtags = get_latest_hashtags()
+    if not bp_hashtags:
+        st.info("No hashtags yet — hit Refresh on the Dashboard first.")
+    else:
+        bp_niche = st.text_input(
+            "Your niche (optional)",
+            placeholder="e.g. fitness, fashion, food...",
+            key="bp_niche"
+        )
+
+        selected = []
+        cols = st.columns(2)
+        for i, h in enumerate(bp_hashtags):
+            with cols[i % 2]:
+                checked = st.checkbox(f"#{h['name']}", key=f"bp_{h['name']}")
+                if checked:
+                    selected.append(h['name'])
+
+        st.markdown("---")
+        generate_btn = st.button("🎬 Generate Blueprint", type="primary", use_container_width=True, disabled=len(selected) == 0)
+
+        if generate_btn and selected:
+            niche_label = bp_niche.strip() if bp_niche.strip() else "content creator"
+            with st.spinner(f"Building blueprints for {len(selected)} hashtag(s)..."):
+                blueprint = generate_blueprint(selected, niche_label)
+            st.markdown("---")
+            st.markdown(blueprint)
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -67,6 +67,55 @@ def tool_generate_content_ideas(hashtag, niche):
     )
     return response.choices[0].message.content
 
+
+def generate_blueprint(hashtag_names, niche="content creator"):
+    """Generates a full production blueprint for a list of hashtags."""
+    sections = []
+    for name in hashtag_names:
+        sections.append(f"#{name}")
+    hashtag_list = ", ".join(sections)
+
+    prompt = f"""You are an expert TikTok content strategist. A {niche} creator wants to post today using these trending hashtags: {hashtag_list}
+
+For EACH hashtag, write a complete production blueprint using exactly this format:
+
+---
+## #{name_placeholder}
+
+**Hook (first 3 seconds)**
+[What to say or show in the opening 3 seconds to stop the scroll — be specific]
+
+**Script Outline**
+[4-5 bullet points of what to cover in order — keep it under 60 seconds total]
+
+**Visual Style**
+[Describe the setting, camera angle, text overlays, pacing, and vibe]
+
+**Caption + Hashtags**
+[A ready-to-paste caption with the trending hashtag plus 4-5 supporting hashtags]
+
+**Best Time to Post**
+[Specific recommendation based on when this trend is peaking]
+
+**Recommended Tool**
+[Pick one: Phone camera / CapCut / HeyGen (AI avatar) / Runway (AI video) — and explain in one sentence why this format fits the trend]
+---
+
+Replace #{name_placeholder} with the actual hashtag name. Write a blueprint for every hashtag listed. Be specific, actionable, and punchy — this creator is ready to make content today."""
+
+    # Replace placeholder with actual first hashtag name for the format example
+    prompt = prompt.replace("#{name_placeholder}", "#{hashtag_name}")
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": f"You are a TikTok content strategist creating production blueprints for a {niche} creator. Be specific and actionable."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=2000
+    )
+    return response.choices[0].message.content
+
 def tool_get_velocity():
     """Returns hashtags sorted by rank movement — biggest climbers first."""
     velocity = get_hashtag_velocity()
