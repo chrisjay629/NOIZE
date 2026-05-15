@@ -1,0 +1,1 @@
+web: python3 -m streamlit run TrendCenter/app.py --server.port  --server.address 0.0.0.0
