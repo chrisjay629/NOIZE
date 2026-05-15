@@ -70,41 +70,29 @@ def tool_generate_content_ideas(hashtag, niche):
 
 def generate_blueprint(hashtag_names, niche="content creator"):
     """Generates a full production blueprint for a list of hashtags."""
-    sections = []
-    for name in hashtag_names:
-        sections.append(f"#{name}")
-    hashtag_list = ", ".join(sections)
+    hashtag_list = ", ".join([f"#{n}" for n in hashtag_names])
 
-    prompt = f"""You are an expert TikTok content strategist. A {niche} creator wants to post today using these trending hashtags: {hashtag_list}
-
-For EACH hashtag, write a complete production blueprint using exactly this format:
-
----
-## #{name_placeholder}
-
-**Hook (first 3 seconds)**
-[What to say or show in the opening 3 seconds to stop the scroll — be specific]
-
-**Script Outline**
-[4-5 bullet points of what to cover in order — keep it under 60 seconds total]
-
-**Visual Style**
-[Describe the setting, camera angle, text overlays, pacing, and vibe]
-
-**Caption + Hashtags**
-[A ready-to-paste caption with the trending hashtag plus 4-5 supporting hashtags]
-
-**Best Time to Post**
-[Specific recommendation based on when this trend is peaking]
-
-**Recommended Tool**
-[Pick one: Phone camera / CapCut / HeyGen (AI avatar) / Runway (AI video) — and explain in one sentence why this format fits the trend]
----
-
-Replace #{name_placeholder} with the actual hashtag name. Write a blueprint for every hashtag listed. Be specific, actionable, and punchy — this creator is ready to make content today."""
-
-    # Replace placeholder with actual first hashtag name for the format example
-    prompt = prompt.replace("#{name_placeholder}", "#{hashtag_name}")
+    prompt = (
+        f"You are an expert TikTok content strategist. A {niche} creator wants to post today "
+        f"using these trending hashtags: {hashtag_list}\n\n"
+        "For EACH hashtag, write a complete production blueprint using exactly this format:\n\n"
+        "---\n"
+        "## #[hashtag name]\n\n"
+        "**Hook (first 3 seconds)**\n"
+        "[What to say or show in the opening 3 seconds to stop the scroll — be specific]\n\n"
+        "**Script Outline**\n"
+        "[4-5 bullet points of what to cover in order — keep it under 60 seconds total]\n\n"
+        "**Visual Style**\n"
+        "[Describe the setting, camera angle, text overlays, pacing, and vibe]\n\n"
+        "**Caption + Hashtags**\n"
+        "[A ready-to-paste caption with the trending hashtag plus 4-5 supporting hashtags]\n\n"
+        "**Best Time to Post**\n"
+        "[Specific recommendation based on when this trend is peaking]\n\n"
+        "**Recommended Tool**\n"
+        "[Pick one: Phone camera / CapCut / HeyGen (AI avatar) / Runway (AI video) — and explain in one sentence why this format fits the trend]\n"
+        "---\n\n"
+        "Write a blueprint for every hashtag listed. Be specific, actionable, and punchy — this creator is ready to make content today."
+    )
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
