@@ -11,6 +11,7 @@ HEADERS = {
 }
 
 def scrape_hashtags():
+    print("[SCRAPER] Starting TikTok scrape", flush=True)
     response = requests.get(URL, headers=HEADERS)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
@@ -19,7 +20,7 @@ def scrape_hashtags():
 
     # Each hashtag card is an <a> tag with id="hashtagItemContainer"
     cards = soup.find_all("a", id="hashtagItemContainer")
-    print(f"Found {len(cards)} hashtag cards")
+    print(f"[SCRAPER] Found {len(cards)} hashtag cards", flush=True)
 
     for card in cards:
         try:
@@ -66,7 +67,7 @@ def scrape_hashtags():
     with open("hashtags.json", "w", encoding="utf-8") as f:
         json.dump(hashtags, f, indent=2, ensure_ascii=False)
 
-    print(f"\nSaved {len(hashtags)} hashtags to hashtags.json")
+    print(f"[SCRAPER] Parsed {len(hashtags)} hashtags — saving to DB now", flush=True)
     save_snapshot(hashtags)
     cleanup_old_snapshots(hours=48)
     print("\nFirst 5 results:")

@@ -10,15 +10,20 @@ from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH
 from scraper import scrape_hashtags
 
 def _background_scheduler():
+    print("[SCHEDULER] Background scheduler thread started", flush=True)
     while True:
+        print("[SCHEDULER] Beginning scrape...", flush=True)
         try:
             scrape_hashtags()
-        except Exception:
-            pass
+            print("[SCHEDULER] Scrape completed successfully", flush=True)
+        except Exception as e:
+            print(f"[SCHEDULER] Scrape FAILED: {e}", flush=True)
+        print("[SCHEDULER] Sleeping for 1 hour", flush=True)
         time.sleep(3600)  # 1 hour
 
 if "scheduler_started" not in st.session_state:
     st.session_state.scheduler_started = True
+    print("[SCHEDULER] Spawning background scheduler thread", flush=True)
     t = threading.Thread(target=_background_scheduler, daemon=True)
     t.start()
 
@@ -344,8 +349,10 @@ with tab_dash:
         analyze = st.button("Analyze", type="primary", use_container_width=True)
     with col_scrape:
         if st.button("🔄 Refresh", use_container_width=True):
+            print("[REFRESH] Manual refresh triggered", flush=True)
             with st.spinner("Scraping TikTok Creative Center..."):
                 scrape_hashtags()
+            print("[REFRESH] Manual refresh completed", flush=True)
             st.success("Data refreshed!")
             st.rerun()
 
