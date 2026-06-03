@@ -61,6 +61,7 @@ def load_img_b64(path: str, max_width: int = 1400, quality: int = 68) -> str:
         return ""
 
 PUGSON_B64           = load_img_b64("static/pugson.png",             max_width=220,  quality=90)
+BG_STREET_B64        = load_img_b64("static/bg_street.png",         max_width=1600, quality=70)
 BG_DAY_CITY_B64      = load_img_b64("static/bg_day_city.png",       max_width=1600, quality=70)
 BG_CITY_B64          = load_img_b64("static/bg_city.png",           max_width=1600, quality=65)
 NEWSPAPER_B64        = load_img_b64("static/newspaper_bg.png",      max_width=1200, quality=65)
@@ -68,7 +69,6 @@ CASE_FOLDER_DARK_B64 = load_img_b64("static/case_folders_dark.png", max_width=30
 CASE_FOLDER_LIGHT_B64= load_img_b64("static/case_folders_light.png",max_width=300,  quality=85)
 RADAR_BG_B64         = load_img_b64("static/radar_bg.jpg",          max_width=600,  quality=75)
 HUD_BG_B64           = load_img_b64("static/hud_bg.jpg",            max_width=800,  quality=72)
-BG_BODY_B64          = load_img_b64("static/bg_body.jpg",           max_width=1600, quality=70)
 
 # ── Page config ───────────────────────────────────────────────────
 st.set_page_config(
@@ -97,21 +97,6 @@ for k, v in {
         st.session_state[k] = v
 
 theme = st.session_state.theme
-
-# ── Body background texture injection ────────────────────────────
-if BG_BODY_B64:
-    st.markdown(f"""
-    <style>
-    .stApp {{
-      background-image:
-        linear-gradient(rgba(7,11,16,0.50), rgba(7,11,16,0.50)),
-        url('data:image/jpeg;base64,{BG_BODY_B64}') !important;
-      background-size: cover, cover !important;
-      background-attachment: fixed, fixed !important;
-      background-position: center, center !important;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
 
 # ── CSS — Bloomberg Terminal × Palantir × Intelligence Agency ────────
 st.markdown("""
@@ -169,6 +154,7 @@ html, body, [class*="css"] {
 
 .stApp {
   background-color: var(--bg) !important;
+  background-image: var(--app-grid) !important;
 }
 
 .block-container { padding: 0.75rem 1.2rem 2rem 1.2rem !important; max-width: 100% !important; }
@@ -572,7 +558,7 @@ def render_signal_guide():
         unsafe_allow_html=True
     )
 
-def render_detective_briefing(articles, panel_bg_override=None):
+def render_detective_briefing(articles):
     hour     = datetime.now().hour
     greeting = "Good morning" if hour<12 else ("Good afternoon" if hour<18 else "Good evening")
     cat_icons = {"News":"📰","Music & Film":"🎬","Gaming":"🎮"}
@@ -601,12 +587,8 @@ def render_detective_briefing(articles, panel_bg_override=None):
         leads_html = '<div style="color:var(--tx4);font-size:12px;padding:10px">Loading intelligence...</div>'
     view_btn = '<a href="#" style="display:block;text-align:center;margin-top:10px;padding:8px;background:var(--lime-bg);border:1px solid var(--lime-border);border-radius:8px;font-size:10px;font-weight:700;color:var(--lime-t);text-decoration:none;letter-spacing:0.06em">VIEW FULL BRIEFING →</a>'
     ts_str      = datetime.now().strftime("%H:%M · %b %d")
-    if panel_bg_override:
-        panel_bg   = panel_bg_override
-        panel_shad = ""
-    else:
-        panel_bg   = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)" if theme == "night" else "background:var(--surface-alt)"
-        panel_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else ""
+    panel_bg    = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)" if theme == "night" else "background:var(--surface-alt)"
+    panel_shad  = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else ""
     st.markdown(
         f'<div style="{panel_bg};border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px{panel_shad}">'
         f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
@@ -813,13 +795,6 @@ with st.sidebar:
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Theme toggle inside sidebar
-    tog_label = "☀️  DAY MODE" if theme == "night" else "🌙  NIGHT MODE"
-    tog_tip   = "Switch to Day" if theme=="night" else "Switch to Night"
-    if st.button(tog_label, key="theme_toggle", help=tog_tip, use_container_width=True, type="secondary"):
-        st.session_state.theme = "day" if theme=="night" else "night"
-        st.rerun()
-
     _upg_btn_bg  = "#2a5200" if theme == "day" else "#A3FF12"
     _upg_btn_col = "#ffffff" if theme == "day" else "#080e14"
     _upg_lbl_col = "#2a5200" if theme == "day" else "#A3FF12"
@@ -843,12 +818,21 @@ with st.sidebar:
 active_platform = st.session_state.active_platform
 active_nav      = st.session_state.active_nav
 
-# Hero background — day uses golden city, night uses dark city
+# Theme toggle — top right above hero
+tog_l, tog_r = st.columns([11, 1])
+with tog_r:
+    tog_label = "☀️" if theme == "night" else "🌙"
+    tog_tip   = "Switch to Day" if theme=="night" else "Switch to Night"
+    if st.button(tog_label, key="theme_toggle", help=tog_tip, type="secondary"):
+        st.session_state.theme = "day" if theme=="night" else "night"
+        st.rerun()
+
+# Hero background — day uses golden city, night uses noir rainy street
 if theme == "night":
-    hero_b64 = BG_DAY_CITY_B64
+    hero_b64 = BG_STREET_B64 or BG_DAY_CITY_B64
     hero_overlay = "linear-gradient(to right,rgba(7,9,13,0.97) 0%,rgba(7,9,13,0.90) 38%,rgba(7,9,13,0.60) 65%,rgba(7,9,13,0.18) 100%)"
 else:
-    hero_b64 = BG_DAY_CITY_B64
+    hero_b64 = BG_DAY_CITY_B64 or BG_STREET_B64
     hero_overlay = "linear-gradient(to right,rgba(15,22,45,0.88) 0%,rgba(15,22,45,0.60) 50%,rgba(15,22,45,0.15) 100%)"
 
 bg_style = (f"background-image:url('data:image/jpeg;base64,{hero_b64}');background-size:cover;background-position:65% 20%;"
@@ -897,22 +881,50 @@ articles = st.session_state.trend_articles
 
 _bottom_fade_color = "7,11,16" if theme == "night" else "26,37,56"
 
-_hero_img_style = (
-    f"position:relative;z-index:2;"
-    f"background-image:{hero_overlay},url('data:image/jpeg;base64,{hero_b64}');"
-    "background-size:cover;background-position:65% center;"
-) if hero_b64 else "position:relative;z-index:2;"
-
-_briefing_panel_bg = (
-    f"background-image:{hero_overlay},url('data:image/jpeg;base64,{hero_b64}');"
-    "background-size:cover;background-position:right center;"
-) if hero_b64 else None
+# ── Full-width hero background spanning BOTH columns ─────────────
+_hero_overlay_css = hero_overlay
+st.markdown(f"""
+<style>
+/* Hero spans center + right column — creates shared atmosphere */
+[data-testid="stHorizontalBlock"]:first-of-type {{
+  background-image: {_hero_overlay_css}, url('data:image/jpeg;base64,{hero_b64 or ""}');
+  background-size: cover;
+  background-position: 65% 20%;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  position: relative;
+}}
+[data-testid="stHorizontalBlock"]:first-of-type::after {{
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 120px;
+  background: linear-gradient(180deg, transparent 0%, #070B10 100%);
+  pointer-events: none;
+  z-index: 0;
+}}
+</style>
+<script>
+(function() {{
+  var tgt = null;
+  function init() {{
+    tgt = document.querySelector('[data-testid="stHorizontalBlock"]');
+  }}
+  document.addEventListener('mousemove', function(e) {{
+    if (!tgt) init();
+    if (!tgt) return;
+    var x = (e.clientX / window.innerWidth  - 0.5) * -8;
+    var y = (e.clientY / window.innerHeight - 0.5) * -6;
+    tgt.style.backgroundPosition = 'calc(65% + '+x+'px) calc(20% + '+y+'px), calc(65% + '+x+'px) calc(20% + '+y+'px)';
+  }});
+}})();
+</script>
+""", unsafe_allow_html=True)
 
 main_col, right_col = st.columns([7, 3], gap="medium")
 
 # ── RIGHT PANEL ───────────────────────────────────────────────────
 with right_col:
-    render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
+    render_detective_briefing(articles)
     radar_vel = get_hashtag_velocity(platform=active_platform or "tiktok")
     render_trend_radar(radar_vel, platform=active_platform or "tiktok")
     _wl_style = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.45)" if theme == "night" else "background:var(--surface-alt);border:1px solid var(--border)"
@@ -934,9 +946,9 @@ with right_col:
 # ── MAIN CONTENT ──────────────────────────────────────────────────
 with main_col:
 
-    # ── HERO content ──
+    # ── HERO content — background comes from shared wrapper CSS ──
     st.markdown(
-        f'<div style="position:relative;z-index:2;padding:20px 28px 16px 28px;border-radius:12px;{_hero_img_style}">'
+        f'<div style="position:relative;z-index:2;padding:28px 32px 200px 32px">'
         f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'
         f'<svg width="38" height="38" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="rgba(13,21,32,0.7)"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/></svg>'
         f'<div><div style="font-family:Inter,sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.6)">ze</span></div>'
