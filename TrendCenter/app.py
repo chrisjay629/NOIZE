@@ -192,6 +192,25 @@ html, body, [class*="css"] {
 .st-key-noizetopnav [data-testid="stColumn"] button {
   white-space: nowrap !important;
 }
+/* Hero search: keep the INVESTIGATE button on one line. */
+.st-key-herosearch button {
+  white-space: nowrap !important;
+}
+/* Popular chips: horizontal scroll on small screens instead of wrapping text. */
+.st-key-herochips [data-testid="stHorizontalBlock"] {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  gap: 6px !important;
+  padding-bottom: 4px !important;
+}
+.st-key-herochips [data-testid="stColumn"] {
+  min-width: fit-content !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+.st-key-herochips [data-testid="stColumn"] button {
+  white-space: nowrap !important;
+}
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
 .stApp {
@@ -799,7 +818,6 @@ def render_niche_pulse(results, query):
 # ═════════════════════════════════════════════════════════════════
 
 NAV_ITEMS = [
-    ("🔍","INVESTIGATIONS","Cross-platform topic search"),
     ("📁","CASE FILES",    "Live trend case cards"),
     ("📡","TREND RADAR",   "Velocity & momentum"),
     ("📊","DEEP DIVE",     "Blueprint generator"),
@@ -894,10 +912,6 @@ src_pills = "".join([
 ])
 
 popular_topics = ["AI Tools", "Taylor Swift", "Bitcoin", "Climate Change", "OpenAI", "Gaming"]
-popular_chips  = "".join([
-    f'<span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);padding:4px 12px;border-radius:14px;cursor:pointer;white-space:nowrap">{t}</span>'
-    for t in popular_topics
-])
 
 # ═════════════════════════════════════════════════════════════════
 # AUTO BRIEFING ARTICLES  (compute before rendering)
@@ -956,28 +970,60 @@ with right_col:
 # ── MAIN CONTENT ──────────────────────────────────────────────────
 with main_col:
 
-    # ── HERO content ──
+    # ── HERO content ── (logo + tagline; search below is a real widget)
     st.markdown(
-        f'<div style="position:relative;z-index:2;padding:20px 28px 16px 28px;border-radius:12px;{_hero_img_style}">'
+        f'<div style="position:relative;z-index:2;padding:20px 28px 14px 28px;border-radius:12px 12px 0 0;{_hero_img_style}">'
         f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'
         f'<svg width="38" height="38" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="rgba(13,21,32,0.7)"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/></svg>'
         f'<div><div style="font-family:Inter,sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.6)">ze</span></div>'
         f'<div style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.22em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
         f'</div></div>'
-        f'<div style="font-size:11px;color:rgba(255,255,255,0.40);line-height:1.8;margin-bottom:14px;font-family:Inter,sans-serif">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
-        f'<div style="background:rgba(0,0,0,0.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px">'
-        f'<span style="font-size:14px;opacity:0.35">🔍</span>'
-        f'<span style="font-size:12px;color:rgba(255,255,255,0.25);font-family:Inter,sans-serif">Investigate any topic, keyword or trend...</span>'
-        f'<div style="margin-left:auto;background:#A3FF12;color:#070B10;font-size:10px;font-weight:800;padding:5px 12px;border-radius:6px;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0;box-shadow:0 0 20px rgba(163,255,18,0.40)">INVESTIGATE →</div>'
-        f'</div>'
-        f'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">'
-        f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.15);text-transform:uppercase;letter-spacing:0.12em;white-space:nowrap">Popular:</span>'
-        f'{popular_chips}'
-        f'</div>'
+        f'<div style="font-size:11px;color:rgba(255,255,255,0.40);line-height:1.8;font-family:Inter,sans-serif">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
         f'{chips_html}'
         f'</div>',
         unsafe_allow_html=True
     )
+
+    # ── HERO search — real, working cross-platform investigation ──
+    with st.container(key="herosearch"):
+        hcol1, hcol2 = st.columns([4, 1.6], vertical_alignment="center")
+        with hcol1:
+            hero_topic = st.text_input(
+                "hero_topic", placeholder="Investigate any topic, keyword or trend...",
+                label_visibility="collapsed", key="hero_topic")
+        with hcol2:
+            hero_go = st.button("🔍 INVESTIGATE", type="primary", use_container_width=True, key="hero_go")
+
+    st.markdown("<div style='font-size:9px;font-weight:700;color:var(--tx4);text-transform:uppercase;letter-spacing:0.12em;margin:6px 0 4px'>Popular</div>", unsafe_allow_html=True)
+    with st.container(key="herochips"):
+        chip_clicked = None
+        pc_cols = st.columns(len(popular_topics))
+        for i, t in enumerate(popular_topics):
+            with pc_cols[i]:
+                if st.button(t, key=f"pop_{i}", use_container_width=True, type="secondary"):
+                    chip_clicked = t
+
+    # Resolve the query from the search box or a popular chip, run the search.
+    _hero_query = None
+    if hero_go and hero_topic.strip():
+        _hero_query = hero_topic.strip()
+    elif chip_clicked:
+        _hero_query = chip_clicked
+    if _hero_query:
+        with st.spinner(f'Scanning all platforms for "{_hero_query}"...'):
+            st.session_state.pulse_results = niche_pulse(_hero_query)
+            st.session_state.pulse_query   = _hero_query
+        st.rerun()
+
+    # Show investigation results right under the hero, on any tab.
+    if st.session_state.pulse_results and st.session_state.pulse_query:
+        st.markdown("---")
+        render_niche_pulse(st.session_state.pulse_results, st.session_state.pulse_query)
+        if st.button("✕ Clear results", key="hero_clear"):
+            st.session_state.pulse_results = None
+            st.session_state.pulse_query   = ""
+            st.rerun()
+        st.markdown("---")
 
     # ── CASE FILES ───────────────────────────────────────────────
     if active_nav == "CASE FILES":
@@ -1110,27 +1156,6 @@ with main_col:
                 f'</div>',
                 unsafe_allow_html=True
             )
-
-    # ── INVESTIGATIONS ───────────────────────────────────────────
-    elif active_nav == "INVESTIGATIONS":
-        st.markdown("<div style='font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px'>Cross-Platform Investigations</div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:12px;color:var(--tx3);margin-bottom:12px;line-height:1.7'>Type any topic to see the top 3 trending stories from all 4 platforms. Falls back to AI if live data is unavailable.</div>", unsafe_allow_html=True)
-        inv_c1, inv_c2 = st.columns([5,1])
-        with inv_c1:
-            inv_topic = st.text_input("topic",placeholder="e.g. bitcoin, taylor swift, AI tools...",label_visibility="collapsed",key="inv_topic")
-        with inv_c2:
-            inv_go = st.button("INVESTIGATE",type="primary",use_container_width=True,key="inv_go")
-        if inv_go and inv_topic.strip():
-            with st.spinner(f"Scanning all platforms for \"{inv_topic.strip()}\"..."):
-                st.session_state.pulse_results = niche_pulse(inv_topic.strip())
-                st.session_state.pulse_query   = inv_topic.strip()
-        if st.session_state.pulse_results and st.session_state.pulse_query:
-            st.markdown("---")
-            render_niche_pulse(st.session_state.pulse_results, st.session_state.pulse_query)
-            if st.button("✕ Clear",key="inv_clear"):
-                st.session_state.pulse_results=None; st.session_state.pulse_query=""; st.rerun()
-        elif not st.session_state.pulse_results:
-            st.markdown('<div style="text-align:center;padding:40px 20px"><div style="font-size:36px;margin-bottom:10px">🔍</div><div style="font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:6px;font-family:Poppins,sans-serif">Start an investigation</div><div style="font-size:12px;color:var(--tx4)">Enter any topic above and hit INVESTIGATE.</div></div>', unsafe_allow_html=True)
 
     # ── TREND RADAR ──────────────────────────────────────────────
     elif active_nav == "TREND RADAR":
