@@ -93,7 +93,6 @@ for k, v in {
     "articles_ts":     None,
     "active_nav":      "CASE FILES",
     "theme":           "night",
-    "sidebar_open":    True,
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -166,16 +165,33 @@ html, body, [class*="css"] {
   font-family: var(--body-font) !important;
   background: var(--bg) !important;
 }
-[data-testid="stHeader"] { display: none !important; }
+/* Hide the app header chrome but keep it in the layout so the sidebar
+   re-open (»») control it contains stays reachable. */
+[data-testid="stHeader"] {
+  background: transparent !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+[data-testid="stHeader"] [data-testid="stSidebarCollapsedControl"] {
+  pointer-events: auto !important;
+}
+/* Hide the toolbar/decoration but NOT the sidebar control */
+[data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] {
+  display: none !important;
+}
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
-/* Sidebar — always on screen, never hidden by Streamlit */
-section[data-testid="stSidebar"] {
-  transform: translateX(0) !important;
-  transition: width 0.25s ease !important;
+/* Keep Streamlit's native collapse («) and re-open (»») controls usable.
+   The app header is hidden, so force the collapsed re-open control visible. */
+[data-testid="stSidebarCollapseButton"] { display: flex !important; }
+[data-testid="stSidebarCollapsedControl"] {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 1000 !important;
 }
-[data-testid="stSidebarCollapseButton"],
-[data-testid="stSidebarCollapsedControl"] { display: none !important; }
 
 .stApp {
   background-color: var(--bg) !important;
@@ -831,13 +847,6 @@ with st.sidebar:
         st.session_state.theme = "day" if theme=="night" else "night"
         st.rerun()
 
-    # Collapse / expand toggle
-    sb_open = st.session_state.sidebar_open
-    sb_lbl  = "◀  COLLAPSE" if sb_open else "▶  EXPAND"
-    if st.button(sb_lbl, key="sb_toggle", use_container_width=True, type="secondary"):
-        st.session_state.sidebar_open = not sb_open
-        st.rerun()
-
     _upg_btn_bg  = "#2a5200" if theme == "day" else "#A3FF12"
     _upg_btn_col = "#ffffff" if theme == "day" else "#080e14"
     _upg_lbl_col = "#2a5200" if theme == "day" else "#A3FF12"
@@ -860,17 +869,6 @@ with st.sidebar:
 
 active_platform = st.session_state.active_platform
 active_nav      = st.session_state.active_nav
-
-# Sidebar collapse state — hide sidebar or show expand button in main area
-if not st.session_state.sidebar_open:
-    st.markdown("""
-    <style>
-    section[data-testid="stSidebar"] { width:0px !important; min-width:0px !important; overflow:hidden !important; }
-    </style>
-    """, unsafe_allow_html=True)
-    if st.button("☰", key="sb_expand", help="Open sidebar"):
-        st.session_state.sidebar_open = True
-        st.rerun()
 
 # Hero background — day uses golden city, night uses dark city
 if theme == "night":
