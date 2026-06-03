@@ -170,7 +170,6 @@ html, body, [class*="css"] {
 
 /* Sidebar — collapsible, native Streamlit controls re-enabled */
 section[data-testid="stSidebar"] {
-  min-width: 244px;
   transition: all 0.25s ease !important;
 }
 /* Collapse button (inside sidebar) */
