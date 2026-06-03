@@ -224,3 +224,66 @@ def scrape_reddit():
     except Exception as e:
         print(f"[REDDIT] Scrape failed: {e}", flush=True)
         return _gpt_fallback("reddit")
+
+
+# ── STRANGE SIGNALS ── real weird/unexplained posts from Reddit JSON ──
+
+# Subreddit → signal "type" used for radar colour/sector.
+STRANGE_SUBS = {
+    "HighStrangeness":    "Strange",
+    "UFOs":               "UFO",
+    "aliens":             "UFO",
+    "Paranormal":         "Paranormal",
+    "Ghosts":             "Paranormal",
+    "UnresolvedMysteries":"Unsolved",
+    "Glitch_in_the_Matrix":"Glitch",
+    "cryptids":           "Cryptid",
+    "Thetruthishere":     "Paranormal",
+}
+
+
+def scrape_strange_signals(limit=12):
+    """Pull real hot posts from high-strangeness subreddits via Reddit's RSS
+    feed (the JSON endpoint is blocked for bots). Returns dicts with real
+    titles, subreddits and direct permalinks, in hot order (rank 1 = hottest)."""
+    subs = "+".join(STRANGE_SUBS.keys())
+    url = f"https://www.reddit.com/r/{subs}/hot.rss?limit=60"
+    ns = "http://www.w3.org/2005/Atom"
+    try:
+        r = requests.get(url, headers={"User-Agent": "TrendCenterBot/1.0"}, timeout=15)
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        items, seen = [], set()
+        for e in root.findall(f"{{{ns}}}entry"):
+            t = e.find(f"{{{ns}}}title")
+            l = e.find(f"{{{ns}}}link")
+            c = e.find(f"{{{ns}}}category")
+            cont = e.find(f"{{{ns}}}content")
+            title = (t.text or "").strip() if t is not None else ""
+            key = title.lower()
+            if not title or key in seen:
+                continue
+            seen.add(key)
+            sub = c.get("term") if c is not None else ""
+            link = l.get("href") if l is not None else ""
+            body = ""
+            if cont is not None and cont.text:
+                body = re.sub(r"<[^>]+>", " ", cont.text)          # strip HTML
+                body = re.split(r"submitted by", body)[0]           # drop RSS boilerplate
+                body = re.sub(r"\s+", " ", body).strip()
+            items.append({
+                "title": title[:160],
+                "subreddit": f"r/{sub}",
+                "type": STRANGE_SUBS.get(sub, "Strange"),
+                "rank": len(items) + 1,
+                "permalink": link,
+                "selftext": body[:400],
+                "platform": "reddit",
+            })
+            if len(items) >= limit:
+                break
+        print(f"[STRANGE] Got {len(items)} strange posts", flush=True)
+        return items
+    except Exception as e:
+        print(f"[STRANGE] Fetch failed: {e}", flush=True)
+        return []

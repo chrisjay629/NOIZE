@@ -383,6 +383,50 @@ def generate_trend_articles() -> list:
         return []
 
 
+# ── STRANGE SIGNALS ─────────────────────────────────────────────
+
+def generate_strange_signals(limit=5):
+    """Real weird/unexplained Reddit posts + a short noir-detective summary
+    for each. Returns up to `limit` signals (hottest first)."""
+    from platforms import scrape_strange_signals
+    signals = scrape_strange_signals(limit=limit)
+    if not signals:
+        return []
+
+    # One batched GPT call to write a punchy detective-style line per post.
+    numbered = []
+    for i, s in enumerate(signals):
+        body = s.get("selftext", "")[:300].replace("\n", " ")
+        numbered.append(f'{i + 1}. [{s["subreddit"]}] {s["title"]} :: {body}')
+    prompt = (
+        "You are Pugson, a noir detective cataloguing strange signals from the "
+        "internet's weirdest corners. For each Reddit post below, write ONE "
+        "intriguing sentence (max 24 words) that captures the mystery in a "
+        "slightly ominous detective tone. Do NOT invent facts beyond the "
+        "title/body — just frame what's there.\n\n"
+        + "\n".join(numbered)
+        + f"\n\nReturn ONLY a JSON array of exactly {len(signals)} strings, in order."
+    )
+    summaries = []
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        summaries = _parse_json_safe(resp.choices[0].message.content) or []
+    except Exception as e:
+        print(f"[STRANGE] Summary GPT failed: {e}", flush=True)
+
+    for i, s in enumerate(signals):
+        if i < len(summaries) and isinstance(summaries[i], str) and summaries[i].strip():
+            s["summary"] = summaries[i].strip()
+        elif s.get("selftext"):
+            s["summary"] = s["selftext"][:160] + ("…" if len(s["selftext"]) > 160 else "")
+        else:
+            s["summary"] = s["title"]
+    return signals
+
+
 # ---------- CLI ----------
 
 if __name__ == "__main__":
