@@ -98,64 +98,71 @@ for k, v in {
 
 theme = st.session_state.theme
 
-# ── CSS — Bloomberg Terminal × Detective Agency ───────────────────
+# ── CSS — Bloomberg Terminal × Palantir × Intelligence Agency ────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-/* ══════════════════════════════════════════════════
-   NIGHT MODE  —  default CSS custom properties
-   ══════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   NIGHT MODE  —  Bloomberg Terminal × Intelligence Platform
+   Background: #0B0F14 · Panels: #111827 · Cards: #151C25
+   Green: #A3FF12  · White: #F5F7FA  · Muted: #8B93A7
+   ══════════════════════════════════════════════════════════════ */
 :root {
-  --bg:           #050508;
-  --surface:      #08080f;
-  --surface-alt:  #0a0a14;
-  --surface-2:    #0d0d1a;
-  --border:       #131326;
-  --border-2:     #0f0f22;
-  --tx1:          #e2e2ee;
-  --tx2:          #8080a0;
-  --tx3:          #484868;
-  --tx4:          #252540;
-  --sb-bg:        #030307;
-  --sb-border:    #0d0d1e;
-  --lime-t:       #AAFF00;
-  --lime-bg:      rgba(170,255,0,0.07);
-  --lime-border:  rgba(170,255,0,0.20);
+  --bg:           #0B0F14;
+  --surface:      #111827;
+  --surface-alt:  #0f1a28;
+  --surface-2:    #0d1520;
+  --border:       #1e2d40;
+  --border-2:     #192535;
+  --tx1:          #F5F7FA;
+  --tx2:          #8B93A7;
+  --tx3:          #4a5568;
+  --tx4:          #2d3748;
+  --sb-bg:        #070b10;
+  --sb-border:    #111d2a;
+  --lime-t:       #A3FF12;
+  --lime-bg:      rgba(163,255,18,0.07);
+  --lime-border:  rgba(163,255,18,0.20);
   --amber:        #c8a96e;
   --amber-bg:     rgba(200,169,110,0.08);
   --amber-border: rgba(200,169,110,0.22);
   --radar-green:  #00ff88;
-  --input-bg:     #0b0b18;
-  --input-bd:     #1e1e32;
-  --pill-bg:      #0b0b18;
-  --pill-bd:      #181830;
-  --card-hover:   rgba(170,255,0,0.03);
+  --input-bg:     #0d1520;
+  --input-bd:     #1e2d40;
+  --pill-bg:      #0d1520;
+  --pill-bd:      #1e2d40;
+  --card-hover:   rgba(163,255,18,0.03);
   --data-font:    'JetBrains Mono', 'Courier New', monospace;
+  --body-font:    'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --shadow-card:  0 4px 24px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset, 0 0 0 1px rgba(255,255,255,0.03);
+  --shadow-panel: 0 8px 40px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04) inset;
+  --glow-edge:    0 0 0 1px rgba(163,255,18,0.18), 0 4px 20px rgba(163,255,18,0.08);
 }
 
 /* ── Base layout ── */
 html, body, [class*="css"] {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-family: var(--body-font) !important;
   background: var(--bg) !important;
 }
 [data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
-/* Subtle grid texture on main canvas */
+/* Deep navy intelligence grid */
 .stApp {
   background-color: var(--bg) !important;
   background-image:
-    repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(170,255,0,0.012) 48px),
-    repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(170,255,0,0.012) 48px) !important;
+    repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(163,255,18,0.014) 48px),
+    repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(163,255,18,0.014) 48px) !important;
 }
 
 .block-container { padding: 1.2rem 1.6rem 3rem 1.6rem !important; max-width: 100% !important; }
 
-/* ── Sidebar ── */
+/* ── Sidebar — Command Center ── */
 [data-testid="stSidebar"] {
   background: var(--sb-bg) !important;
   border-right: 1px solid var(--sb-border) !important;
+  box-shadow: 4px 0 32px rgba(0,0,0,0.6) !important;
 }
 [data-testid="stSidebar"] > div { padding: 0 !important; }
 [data-testid="stSidebarContent"] { padding: 0 !important; }
@@ -173,13 +180,15 @@ html, body, [class*="css"] {
   text-align: left !important;
   padding: 10px 18px !important;
   width: 100% !important;
-  transition: all 0.12s !important;
+  transition: all 0.15s !important;
   text-transform: uppercase !important;
+  font-family: var(--data-font) !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
   background: var(--lime-bg) !important;
   color: var(--lime-t) !important;
-  border-left-color: #AAFF00 !important;
+  border-left-color: var(--lime-t) !important;
+  text-shadow: 0 0 12px rgba(163,255,18,0.35) !important;
 }
 
 /* ── Tabs ── */
@@ -189,8 +198,9 @@ html, body, [class*="css"] {
   color: var(--tx3) !important; font-size: 10px !important; font-weight: 700 !important;
   letter-spacing: 0.08em !important; text-transform: uppercase !important;
   background: transparent !important; padding: 10px 16px !important;
+  font-family: var(--data-font) !important;
 }
-[data-testid="stTabs"] button[aria-selected="true"] { color: var(--lime-t) !important; border-bottom: 2px solid #AAFF00 !important; }
+[data-testid="stTabs"] button[aria-selected="true"] { color: var(--lime-t) !important; border-bottom: 2px solid var(--lime-t) !important; }
 
 /* ── Inputs ── */
 [data-testid="stTextInput"] input {
@@ -198,22 +208,42 @@ html, body, [class*="css"] {
   color: var(--tx1) !important; border-radius: 8px !important; font-size: 13px !important;
   font-family: var(--data-font) !important;
 }
-[data-testid="stTextInput"] input:focus { border-color: #AAFF00 !important; box-shadow: 0 0 0 2px rgba(170,255,0,0.10) !important; }
+[data-testid="stTextInput"] input:focus {
+  border-color: var(--lime-t) !important;
+  box-shadow: 0 0 0 2px rgba(163,255,18,0.12), 0 0 16px rgba(163,255,18,0.06) !important;
+}
 [data-testid="stTextInput"] input::placeholder { color: var(--tx4) !important; }
 [data-testid="stTextInput"] label { color: var(--tx3) !important; font-size: 11px !important; font-weight: 700 !important; letter-spacing: 0.06em !important; }
 
 /* ── Buttons ── */
-.stButton > button { border-radius: 7px !important; font-size: 11px !important; font-weight: 700 !important; letter-spacing: 0.06em !important; transition: all 0.12s !important; text-transform: uppercase !important; }
-.stButton > button[kind="primary"] { background: #AAFF00 !important; color: #050510 !important; border: none !important; box-shadow: 0 2px 16px rgba(170,255,0,0.22) !important; }
-.stButton > button[kind="primary"]:hover { background: #c2ff33 !important; box-shadow: 0 4px 22px rgba(170,255,0,0.35) !important; transform: translateY(-1px) !important; }
-.stButton > button[kind="secondary"] { background: var(--surface) !important; border: 1px solid var(--border) !important; color: var(--tx3) !important; }
-.stButton > button[kind="secondary"]:hover { border-color: rgba(170,255,0,0.4) !important; color: var(--lime-t) !important; background: var(--lime-bg) !important; }
+.stButton > button {
+  border-radius: 7px !important; font-size: 11px !important; font-weight: 700 !important;
+  letter-spacing: 0.06em !important; transition: all 0.15s !important;
+  text-transform: uppercase !important; font-family: var(--body-font) !important;
+}
+.stButton > button[kind="primary"] {
+  background: var(--lime-t) !important; color: #080e14 !important; border: none !important;
+  box-shadow: 0 2px 16px rgba(163,255,18,0.28), 0 0 0 1px rgba(163,255,18,0.25) !important;
+}
+.stButton > button[kind="primary"]:hover {
+  background: #b8ff3a !important;
+  box-shadow: 0 4px 28px rgba(163,255,18,0.45), 0 0 0 1px rgba(163,255,18,0.4) !important;
+  transform: translateY(-1px) !important;
+}
+.stButton > button[kind="secondary"] {
+  background: var(--surface) !important; border: 1px solid var(--border) !important; color: var(--tx3) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+}
+.stButton > button[kind="secondary"]:hover {
+  border-color: rgba(163,255,18,0.35) !important; color: var(--lime-t) !important;
+  background: var(--lime-bg) !important; box-shadow: var(--glow-edge) !important;
+}
 
 /* ── Utility classes ── */
 hr { border-color: var(--border) !important; }
 [data-testid="stCheckbox"] label { color: var(--tx2) !important; font-size: 12px !important; }
 p, li { color: var(--tx2) !important; }
-h1, h2, h3, h4 { color: var(--tx1) !important; font-family: 'Poppins', sans-serif !important; }
+h1, h2, h3, h4 { color: var(--tx1) !important; font-family: var(--body-font) !important; font-weight: 800 !important; }
 
 /* Data values — monospace */
 .data-val { font-family: var(--data-font); font-size: 11px; font-weight: 600; color: var(--lime-t); }
@@ -221,8 +251,13 @@ h1, h2, h3, h4 { color: var(--tx1) !important; font-family: 'Poppins', sans-seri
 .amber-label { font-family: var(--data-font); font-size: 9px; font-weight: 600; color: var(--amber); letter-spacing: 0.08em; }
 
 /* Status pills */
-.status-pill { display:inline-flex; align-items:center; gap:5px; font-size:9px; color:var(--tx3); padding:3px 9px; background:var(--pill-bg); border:1px solid var(--pill-bd); border-radius:4px; font-weight:700; letter-spacing:0.06em; font-family:var(--data-font); }
-.dot-live { width:5px; height:5px; border-radius:50%; background:#AAFF00; display:inline-block; box-shadow:0 0 4px #AAFF00; }
+.status-pill {
+  display:inline-flex; align-items:center; gap:5px; font-size:9px; color:var(--tx3);
+  padding:3px 9px; background:var(--pill-bg); border:1px solid var(--pill-bd);
+  border-radius:4px; font-weight:700; letter-spacing:0.06em; font-family:var(--data-font);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.dot-live { width:5px; height:5px; border-radius:50%; background:var(--lime-t); display:inline-block; box-shadow:0 0 6px var(--lime-t); }
 .dot-gpt  { width:5px; height:5px; border-radius:50%; background:#ff9500; display:inline-block; }
 
 /* Badges */
@@ -230,7 +265,7 @@ h1, h2, h3, h4 { color: var(--tx1) !important; font-family: 'Poppins', sans-seri
 .badge-green  { background:rgba(61,214,140,0.10);  color:#3dd68c; border:1px solid rgba(61,214,140,0.2); }
 .badge-blue   { background:rgba(77,168,255,0.10);  color:#4da8ff; border:1px solid rgba(77,168,255,0.2); }
 .badge-red    { background:rgba(255,59,59,0.10);   color:#ff5555; border:1px solid rgba(255,59,59,0.2); }
-.badge-lime   { background:rgba(170,255,0,0.10);   color:#AAFF00; border:1px solid rgba(170,255,0,0.2); }
+.badge-lime   { background:rgba(163,255,18,0.10);  color:var(--lime-t); border:1px solid rgba(163,255,18,0.2); }
 .badge-amber  { background:rgba(200,169,110,0.10); color:#c8a96e; border:1px solid rgba(200,169,110,0.2); }
 .badge-orange { background:rgba(255,149,0,0.10);   color:#ff9500; border:1px solid rgba(255,149,0,0.2); }
 
@@ -238,13 +273,16 @@ h1, h2, h3, h4 { color: var(--tx1) !important; font-family: 'Poppins', sans-seri
 .js-plotly-plot { background: transparent !important; }
 
 /* Metrics */
-[data-testid="metric-container"] { background:var(--surface) !important; border-radius:8px !important; border:1px solid var(--border) !important; }
+[data-testid="metric-container"] {
+  background:var(--surface) !important; border-radius:8px !important;
+  border:1px solid var(--border) !important; box-shadow: var(--shadow-card) !important;
+}
 [data-testid="metric-container"] label { color:var(--tx3) !important; font-size:10px !important; font-weight:700 !important; letter-spacing:0.08em !important; text-transform:uppercase !important; }
 [data-testid="metric-container"] [data-testid="stMetricValue"] { color:var(--tx1) !important; font-size:22px !important; font-weight:800 !important; font-family:var(--data-font) !important; }
 
 /* ── ht-card ── */
-.ht-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
-.ht-card:hover { border-color: rgba(170,255,0,0.25); }
+.ht-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; box-shadow: var(--shadow-card); }
+.ht-card:hover { border-color: rgba(163,255,18,0.22); box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(163,255,18,0.08); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -341,8 +379,8 @@ if theme == "day":
     .ht-card:hover { border-color: rgba(42,82,0,0.18) !important; }
 
     /* UPGRADE CTA button in sidebar */
-    [data-testid="stSidebar"] [style*="background:#AAFF00"],
-    [data-testid="stSidebar"] [style*="background: #AAFF00"] {
+    [data-testid="stSidebar"] [style*="background:#A3FF12"],
+    [data-testid="stSidebar"] [style*="background: #A3FF12"] {
       background: var(--lime-t) !important;
       color: #ffffff !important;
     }
@@ -372,10 +410,10 @@ def case_status(h):
     is_new  = h.get("is_new", False)
     try:    rank_int = int(str(h.get("current_rank") or h.get("rank") or 10))
     except: rank_int = 10
-    # Use readable greens for day mode; neon lime for night
-    _lime   = "#2a5200" if theme == "day" else "#AAFF00"
-    _lime_b = "rgba(42,82,0,0.10)"  if theme == "day" else "rgba(170,255,0,0.12)"
-    _lime_s = "rgba(42,82,0,0.08)"  if theme == "day" else "rgba(170,255,0,0.08)"
+    # Use readable greens for day mode; signal green for night
+    _lime   = "#2a5200"             if theme == "day" else "#A3FF12"
+    _lime_b = "rgba(42,82,0,0.10)"  if theme == "day" else "rgba(163,255,18,0.12)"
+    _lime_s = "rgba(42,82,0,0.08)"  if theme == "day" else "rgba(163,255,18,0.08)"
     if rank_int == 1:                                return "DOMINATING", _lime,    _lime_b
     if change < -4 or (is_new and rank_int <= 5):   return "BREAKING",   "#ff3b3b", "rgba(255,59,59,0.12)"
     if change < -1 or is_new:                        return "ESCALATING", "#ff9500", "rgba(255,149,0,0.12)"
@@ -481,23 +519,25 @@ def render_case_cards(data, platform="tiktok"):
         st.markdown('<div style="text-align:center;padding:40px 0;color:var(--tx4)"><div style="font-size:32px;margin-bottom:8px">📁</div><div style="font-size:13px">No cases yet — select a source above.</div></div>', unsafe_allow_html=True)
         return
     cfg    = PLATFORM_CONFIG.get(platform, {})
-    color  = cfg.get("color", "#AAFF00")
+    color  = cfg.get("color", "var(--lime-t)")
     prefix = "#" if platform == "tiktok" else ""
-    # Thumbnail image (case folder placeholder)
+    # Thumbnail image (intelligence dossier folder)
     thumb_b64 = CASE_FOLDER_LIGHT_B64 if theme == "day" else CASE_FOLDER_DARK_B64
     thumb_src = f"data:image/jpeg;base64,{thumb_b64}" if thumb_b64 else ""
+    # Premium card shadow: deeper in night mode
+    card_shadow = "0 4px 24px rgba(0,0,0,0.55),0 1px 0 rgba(255,255,255,0.04) inset" if theme == "night" else "0 2px 12px rgba(0,0,0,0.10)"
     for row_start in range(0, min(len(data), 9), 3):
         row  = data[row_start:row_start+3]
         cols = st.columns(3, gap="small")
         for i, h in enumerate(row):
             with cols[i]:
-                name     = h.get("name","")
-                posts    = h.get("posts") or "—"
-                category = h.get("category") or "—"
-                url      = h.get("url") or f"https://www.google.com/search?q={name}"
-                rank_raw = h.get("current_rank") or h.get("rank") or 10
-                change   = h.get("rank_change",0)
-                is_new   = h.get("is_new",False)
+                name      = h.get("name","")
+                posts     = h.get("posts") or "—"
+                category  = h.get("category") or "—"
+                url       = h.get("url") or f"https://www.google.com/search?q={name}"
+                rank_raw  = h.get("current_rank") or h.get("rank") or 10
+                change    = h.get("rank_change",0)
+                is_new    = h.get("is_new",False)
                 posts_lbl = f"{posts} posts" if platform=="tiktok" else posts
                 try:    rank_int = int(str(rank_raw))
                 except: rank_int = 10
@@ -507,37 +547,36 @@ def render_case_cards(data, platform="tiktok"):
                 sparkline          = mini_sparkline(change, is_new, sc, name)
                 spread             = platform_spread_icons(rank_int, platform)
                 vel_str, vel_col   = velocity_pct_str(change, is_new, rank_int, name)
-                # Thumbnail with rank overlay
+                # Intelligence dossier thumbnail with rank stamp
                 if thumb_src:
-                    thumb_html = (f'<div style="width:78px;height:62px;border-radius:8px;overflow:hidden;flex-shrink:0;position:relative;border:1px solid {sc}33">'
-                                  f'<img src="{thumb_src}" style="width:100%;height:100%;object-fit:cover;opacity:0.55">'
-                                  f'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,{sc}55)"></div>'
-                                  f'<div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-family:Poppins,sans-serif;font-weight:900;font-size:18px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8)">{rank_int}</div>'
+                    thumb_html = (f'<div style="width:78px;height:62px;border-radius:8px;overflow:hidden;flex-shrink:0;position:relative;border:1px solid {sc}44;box-shadow:0 2px 8px rgba(0,0,0,0.4)">'
+                                  f'<img src="{thumb_src}" style="width:100%;height:100%;object-fit:cover;opacity:0.6">'
+                                  f'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 20%,{sc}44)"></div>'
+                                  f'<div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-family:Inter,sans-serif;font-weight:900;font-size:18px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.9)">{rank_int}</div>'
                                   f'</div>')
                 else:
-                    thumb_html = f'<div style="width:36px;height:36px;border-radius:8px;flex-shrink:0;background:var(--surface-alt);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Poppins,sans-serif;font-weight:800;font-size:14px;color:{sc}">{rank_int}</div>'
-                # Paper clip SVG (colored by status)
+                    thumb_html = f'<div style="width:36px;height:36px;border-radius:8px;flex-shrink:0;background:var(--surface-alt);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-weight:800;font-size:14px;color:{sc}">{rank_int}</div>'
+                # Paper clip SVG
                 clip_html = (f'<div style="position:absolute;top:-9px;left:20px">'
                              f'<svg width="14" height="22" viewBox="0 0 14 22" fill="none">'
                              f'<path d="M7 1 C3.5 1 1 3.5 1 7 L1 17 C1 19.2 2.8 21 5 21 C7.2 21 9 19.2 9 17 L9 7 C9 5.8 8.2 5 7 5 C5.8 5 5 5.8 5 7 L5 16" '
                              f'stroke="{sc}" stroke-width="2.5" stroke-linecap="round" fill="none"/>'
                              f'</svg></div>')
                 # HUD corner brackets
-                br = 'var(--border)'
-                corner_tl = f'<div style="position:absolute;top:6px;left:6px;width:14px;height:14px;border-left:1.5px solid {sc};border-top:1.5px solid {sc};opacity:0.5"></div>'
-                corner_tr = f'<div style="position:absolute;top:6px;right:6px;width:14px;height:14px;border-right:1.5px solid {sc};border-top:1.5px solid {sc};opacity:0.5"></div>'
+                corner_tl = f'<div style="position:absolute;top:6px;left:6px;width:14px;height:14px;border-left:1.5px solid {sc};border-top:1.5px solid {sc};opacity:0.45"></div>'
+                corner_tr = f'<div style="position:absolute;top:6px;right:6px;width:14px;height:14px;border-right:1.5px solid {sc};border-top:1.5px solid {sc};opacity:0.45"></div>'
                 st.markdown(
                     f'<a href="{url}" target="_blank" style="text-decoration:none">'
-                    f'<div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {sc};border-radius:10px;padding:14px 14px 12px;margin-bottom:12px;cursor:pointer;position:relative">'
+                    f'<div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {sc};border-radius:10px;padding:14px 14px 12px;margin-bottom:12px;cursor:pointer;position:relative;box-shadow:{card_shadow};transition:all 0.15s">'
                     f'{clip_html}{corner_tl}{corner_tr}'
                     f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
                     f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:600;color:var(--amber);letter-spacing:0.10em">{case_num}</span>'
-                    f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:800;padding:2px 8px;border-radius:3px;letter-spacing:0.10em;background:{sb};color:{sc}">{status_lbl}</span>'
+                    f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:800;padding:2px 8px;border-radius:3px;letter-spacing:0.10em;background:{sb};color:{sc};border:1px solid {sc}44">{status_lbl}</span>'
                     f'</div>'
                     f'<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">'
                     f'{thumb_html}'
                     f'<div style="flex:1;min-width:0">'
-                    f'<div style="font-family:Poppins,sans-serif;font-weight:700;font-size:13px;color:var(--tx1);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{prefix}{name}</div>'
+                    f'<div style="font-family:Inter,sans-serif;font-weight:700;font-size:13px;color:var(--tx1);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{prefix}{name}</div>'
                     f'<div style="font-size:9px;color:var(--tx3);margin-top:2px;font-family:JetBrains Mono,monospace;letter-spacing:0.04em">{category.upper()}</div>'
                     f'</div></div>'
                     f'<div style="border-top:1px solid var(--border);padding-top:9px;display:grid;grid-template-columns:1fr 1fr;gap:7px 8px;margin-bottom:10px">'
@@ -549,13 +588,13 @@ def render_case_cards(data, platform="tiktok"):
                     f'<div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px">'
                     f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace;margin-bottom:3px">Velocity</div>'
                     f'<div style="display:flex;align-items:center;gap:5px">{sparkline}<span style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:{vel_col}">{vel_str}</span></div></div>'
-                    f'<span style="font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:{sc};letter-spacing:0.08em">OPEN FILE ›</span>'
+                    f'<span style="font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:{sc};letter-spacing:0.08em">VIEW CASE FILE →</span>'
                     f'</div></div></a>',
                     unsafe_allow_html=True
                 )
 
 def render_signal_guide():
-    _dom_col = "#2a5200" if theme == "day" else "#AAFF00"
+    _dom_col = "#2a5200" if theme == "day" else "#A3FF12"
     levels = [
         ("#555",    "QUIET",     "Early whispers",     1),
         ("#3dd68c", "GROWING",   "Gaining traction",   2),
@@ -612,14 +651,16 @@ def render_detective_briefing(articles):
     if not leads_html:
         leads_html = '<div style="color:var(--tx4);font-size:12px;padding:10px">Loading intelligence...</div>'
     view_btn = '<a href="#" style="display:block;text-align:center;margin-top:10px;padding:8px;background:var(--lime-bg);border:1px solid var(--lime-border);border-radius:8px;font-size:10px;font-weight:700;color:var(--lime-t);text-decoration:none;letter-spacing:0.06em">VIEW FULL BRIEFING →</a>'
-    ts_str = datetime.now().strftime("%H:%M · %b %d")
+    ts_str      = datetime.now().strftime("%H:%M · %b %d")
+    panel_bg    = "background:rgba(15,26,40,0.80);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if theme == "night" else "background:var(--surface-alt)"
+    panel_shad  = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else ""
     st.markdown(
-        f'<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:16px;margin-bottom:12px">'
+        f'<div style="{panel_bg};border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px{panel_shad}">'
         f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
         f'<div style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--amber);letter-spacing:0.16em;text-transform:uppercase">▸ INTEL REPORT</div>'
         f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--tx4);letter-spacing:0.06em">{ts_str}</span>'
         f'</div>'
-        f'<div style="font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:1px;font-family:Poppins,sans-serif">{greeting}, Detective.</div>'
+        f'<div style="font-size:14px;font-weight:800;color:var(--tx1);margin-bottom:1px;font-family:Inter,sans-serif">{greeting}, Detective.</div>'
         f'<div style="font-size:10px;color:var(--tx3);margin-bottom:12px;font-family:JetBrains Mono,monospace">3 LEADS ACTIVE · PRIORITY CLEARANCE</div>'
         f'{leads_html}'
         f'{view_btn}'
@@ -629,7 +670,7 @@ def render_detective_briefing(articles):
 
 def render_trend_radar(velocity_data, platform="tiktok"):
     categories = ["DOMINATING","BREAKING","TRENDING","EMERGING","QUIET"]
-    _rd_lime   = "#2a5200" if theme == "day" else "#AAFF00"
+    _rd_lime   = "#2a5200" if theme == "day" else "#A3FF12"
     cat_colors = [_rd_lime,"#ff3b3b","#4da8ff","#fbbf24","#555"]
     counts = [0,0,0,0,0]
     for h in velocity_data:
@@ -648,12 +689,12 @@ def render_trend_radar(velocity_data, platform="tiktok"):
             xref="paper", yref="paper",
             x=0.5, y=0.5, xanchor="center", yanchor="middle",
             sizex=1.1, sizey=1.1,
-            sizing="contain", opacity=0.13, layer="below"
+            sizing="contain", opacity=0.18 if theme=="night" else 0.10, layer="below"
         )])
     is_night  = (theme == "night")
-    _r_lime   = "#AAFF00"             if is_night else "#2a5200"
-    _r_fill   = "rgba(170,255,0,0.09)" if is_night else "rgba(42,82,0,0.10)"
-    _r_mkline = "#050508"             if is_night else "#fdfaf4"
+    _r_lime   = "#A3FF12"              if is_night else "#2a5200"
+    _r_fill   = "rgba(163,255,18,0.09)" if is_night else "rgba(42,82,0,0.10)"
+    _r_mkline = "#0B0F14"             if is_night else "#fdfaf4"
     fig.add_trace(go.Scatterpolar(
         r=counts+[counts[0]], theta=categories+[categories[0]],
         fill="toself",
@@ -663,8 +704,8 @@ def render_trend_radar(velocity_data, platform="tiktok"):
                     line=dict(color=_r_mkline, width=1.5)),
         name="Signal",
     ))
-    grid_c   = "rgba(170,255,0,0.12)" if is_night else "rgba(100,80,40,0.15)"
-    tick_c   = "rgba(170,255,0,0.5)"  if is_night else "#777"
+    grid_c   = "rgba(163,255,18,0.12)" if is_night else "rgba(100,80,40,0.15)"
+    tick_c   = "rgba(163,255,18,0.5)"  if is_night else "#777"
     fig.update_layout(
         polar=dict(
             bgcolor="rgba(0,0,0,0)",
@@ -678,12 +719,15 @@ def render_trend_radar(velocity_data, platform="tiktok"):
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
     )
-    # Radar panel header
+    # Radar panel header — glass treatment in night mode
+    _radar_bg   = "background:rgba(15,26,40,0.80);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if is_night else "background:var(--surface-alt)"
+    _radar_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if is_night else ""
+    _live_glow  = f";text-shadow:0 0 10px {_r_lime}" if is_night else ""
     st.markdown(
-        '<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:14px 14px 10px;margin-bottom:12px">'
+        f'<div style="{_radar_bg};border:1px solid var(--border-2);border-radius:14px;padding:14px 14px 10px;margin-bottom:12px{_radar_shad}">'
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
-        '<div style="font-size:9px;font-weight:700;color:var(--lime-t);letter-spacing:0.14em;text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ TREND RADAR</div>'
-        '<span style="font-size:8px;color:var(--lime-t);font-weight:700;font-family:JetBrains Mono,monospace;letter-spacing:0.1em">LIVE</span>'
+        f'<div style="font-size:9px;font-weight:700;color:var(--lime-t);letter-spacing:0.14em;text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ TREND RADAR</div>'
+        f'<span style="font-size:8px;color:var(--lime-t);font-weight:700;font-family:JetBrains Mono,monospace;letter-spacing:0.1em{_live_glow}">LIVE</span>'
         '</div>',
         unsafe_allow_html=True
     )
@@ -786,8 +830,8 @@ NAV_ITEMS = [
 
 with st.sidebar:
     pugson_src  = f"data:image/jpeg;base64,{PUGSON_B64}" if PUGSON_B64 else ""
-    _sb_lime    = "#2a5200" if theme == "day" else "#AAFF00"
-    _sb_img_bd  = "rgba(42,82,0,0.35)" if theme == "day" else "rgba(170,255,0,0.3)"
+    _sb_lime    = "#2a5200" if theme == "day" else "#A3FF12"
+    _sb_img_bd  = "rgba(42,82,0,0.35)" if theme == "day" else "rgba(163,255,18,0.30)"
     _sb_glow    = "none" if theme == "day" else f"0 0 6px {_sb_lime}"
     img_tag     = (f'<img src="{pugson_src}" style="width:68px;height:68px;border-radius:50%;border:2px solid {_sb_img_bd};object-fit:cover">'
                    if pugson_src else
@@ -798,7 +842,7 @@ with st.sidebar:
         {img_tag}
         <div>
           <div style="font-size:9px;color:var(--tx4);font-weight:700;letter-spacing:0.1em;text-transform:uppercase">Chief Detective</div>
-          <div style="font-size:15px;font-weight:900;color:var(--tx1);font-family:'Poppins',sans-serif;letter-spacing:-0.3px">PUGSON</div>
+          <div style="font-size:15px;font-weight:900;color:var(--tx1);font-family:Inter,sans-serif;letter-spacing:-0.3px">PUGSON</div>
           <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
             <span style="width:6px;height:6px;border-radius:50%;background:{_sb_lime};display:inline-block;box-shadow:{_sb_glow}"></span>
             <span style="font-size:9px;color:{_sb_lime};font-weight:700;letter-spacing:0.06em">ONLINE</span>
@@ -815,9 +859,9 @@ with st.sidebar:
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    _upg_btn_bg  = "#2a5200" if theme == "day" else "#AAFF00"
-    _upg_btn_col = "#ffffff" if theme == "day" else "#080810"
-    _upg_lbl_col = "#2a5200" if theme == "day" else "#AAFF00"
+    _upg_btn_bg  = "#2a5200" if theme == "day" else "#A3FF12"
+    _upg_btn_col = "#ffffff" if theme == "day" else "#080e14"
+    _upg_lbl_col = "#2a5200" if theme == "day" else "#A3FF12"
     st.markdown(f"""
     <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 14px;
                 border-top:1px solid var(--sb-border);background:var(--sb-bg)">
@@ -847,13 +891,13 @@ with tog_r:
         st.session_state.theme = "day" if theme=="night" else "night"
         st.rerun()
 
-# Hero background — switches with theme
+# Hero background — always the golden waterfront city; overlay depth varies by theme
+hero_b64 = BG_DAY_CITY_B64 or BG_STREET_B64  # fallback if day city not loaded
 if theme == "night":
-    hero_b64     = BG_STREET_B64
-    hero_overlay = "linear-gradient(to right,rgba(5,5,12,0.95) 0%,rgba(5,5,12,0.75) 45%,rgba(5,5,12,0.35) 100%)"
+    # Deep command-center overlay: very dark left, lets golden city glow through on right
+    hero_overlay = "linear-gradient(to right,rgba(7,9,13,0.97) 0%,rgba(7,9,13,0.90) 38%,rgba(7,9,13,0.60) 65%,rgba(7,9,13,0.18) 100%)"
 else:
-    hero_b64     = BG_DAY_CITY_B64
-    hero_overlay = "linear-gradient(to right,rgba(10,15,35,0.90) 0%,rgba(10,15,35,0.65) 45%,rgba(10,15,35,0.25) 100%)"
+    hero_overlay = "linear-gradient(to right,rgba(10,15,35,0.92) 0%,rgba(10,15,35,0.68) 45%,rgba(10,15,35,0.28) 100%)"
 
 bg_style = (f"background-image:url('data:image/jpeg;base64,{hero_b64}');background-size:cover;background-position:center 45%;"
             if hero_b64 else "background:var(--surface-alt);")
@@ -864,7 +908,7 @@ chips_html = ""
 if _chip_data:
     pfx  = "#" if active_platform=="tiktok" else ""
     chps = "".join([
-        f'<a href="{h.get("url","#")}" target="_blank" style="display:inline-block;background:rgba(170,255,0,0.1);border:1px solid rgba(170,255,0,0.25);border-radius:16px;padding:3px 12px;font-size:11px;color:rgba(170,255,0,0.85);text-decoration:none;font-weight:600">{pfx}{h["name"]}</a>'
+        f'<a href="{h.get("url","#")}" target="_blank" style="display:inline-block;background:rgba(163,255,18,0.10);border:1px solid rgba(163,255,18,0.25);border-radius:16px;padding:3px 12px;font-size:11px;color:rgba(163,255,18,0.90);text-decoration:none;font-weight:600;font-family:Inter,sans-serif">{pfx}{h["name"]}</a>'
         for h in _chip_data
     ])
     chips_html = (f'<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:14px">'
@@ -886,18 +930,18 @@ st.markdown(
     f'<div style="position:absolute;inset:0;background:{hero_overlay};border-radius:16px"></div>'
     f'<div style="position:relative;padding:30px 32px 26px 32px">'
     f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
-    f'<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#111118"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#AAFF00"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#AAFF00"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#AAFF00"/><rect x="7" y="18" width="6" height="3" rx="1.5" fill="#d4ff66" opacity="0.55"/><rect x="17" y="9" width="6" height="3" rx="1.5" fill="#d4ff66" opacity="0.55"/><rect x="27" y="13" width="6" height="3" rx="1.5" fill="#d4ff66" opacity="0.55"/></svg>'
-    f'<div><div style="font-family:Poppins,sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#AAFF00">ze</span></div>'
+    f'<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#0d1520"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/><rect x="7" y="18" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="17" y="9" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="27" y="13" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/></svg>'
+    f'<div><div style="font-family:Inter,sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.5)">ze</span></div>'
     f'<div style="font-size:9px;color:rgba(255,255,255,0.32);letter-spacing:0.2em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
     f'</div></div>'
-    f'<div style="font-size:12px;color:rgba(255,255,255,0.42);line-height:1.8;margin-bottom:18px">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
-    f'<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px;max-width:560px">'
-    f'<span style="font-size:14px;opacity:0.5">🔍</span>'
-    f'<span style="font-size:13px;color:rgba(255,255,255,0.35)">Investigate any topic, keyword or trend...</span>'
-    f'<div style="margin-left:auto;background:#AAFF00;color:#080810;font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0">INVESTIGATE →</div>'
+    f'<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.9;margin-bottom:18px;font-family:Inter,sans-serif">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
+    f'<div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px;max-width:560px">'
+    f'<span style="font-size:14px;opacity:0.45">🔍</span>'
+    f'<span style="font-size:13px;color:rgba(255,255,255,0.30);font-family:Inter,sans-serif">Investigate any topic, keyword or trend...</span>'
+    f'<div style="margin-left:auto;background:#A3FF12;color:#080e14;font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 12px rgba(163,255,18,0.35)">INVESTIGATE →</div>'
     f'</div>'
     f'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
-    f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap">Popular:</span>'
+    f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.18);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap;font-family:Inter,sans-serif">Popular:</span>'
     f'{popular_chips}'
     f'</div>'
     f'{chips_html}'
@@ -930,16 +974,18 @@ with right_col:
     render_detective_briefing(articles)
     radar_vel = get_hashtag_velocity(platform=active_platform or "tiktok")
     render_trend_radar(radar_vel, platform=active_platform or "tiktok")
+    _wl_bg   = "background:rgba(15,26,40,0.80);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if theme == "night" else "background:var(--surface-alt)"
+    _wl_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else ""
     st.markdown(
-        '<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:14px">'
+        f'<div style="{_wl_bg};border:1px solid var(--border-2);border-radius:14px;padding:14px{_wl_shad}">'
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-        '<div style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--tx3);letter-spacing:0.14em;text-transform:uppercase">WATCHLIST</div>'
-        '<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em">MANAGE</span>'
+        '<div style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--tx3);letter-spacing:0.14em;text-transform:uppercase">⭐ WATCHLIST</div>'
+        '<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em">MANAGE →</span>'
         '</div>'
         '<div style="text-align:center;padding:14px 0">'
-        '<div style="font-size:22px;margin-bottom:6px;opacity:0.3">◎</div>'
-        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4);margin-bottom:8px;letter-spacing:0.04em">No signals tracked yet</div>'
-        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em">+ ADD SIGNAL</div>'
+        '<div style="font-size:22px;margin-bottom:6px;opacity:0.25">◎</div>'
+        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4);margin-bottom:10px;letter-spacing:0.04em;line-height:1.6">No signals tracked yet.<br>Add a topic to monitor.</div>'
+        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em;background:var(--lime-bg);border:1px solid var(--lime-border);padding:5px 10px;border-radius:6px;display:inline-block">+ ADD SIGNAL</div>'
         '</div>'
         '</div>',
         unsafe_allow_html=True
@@ -972,7 +1018,7 @@ with main_col:
             </div>""", unsafe_allow_html=True)
             if articles:
                 art_cols = st.columns(3, gap="small")
-                _gaming_col = "#2a5200" if theme == "day" else "#AAFF00"
+                _gaming_col = "#2a5200" if theme == "day" else "#A3FF12"
                 cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":_gaming_col}
                 for i,art in enumerate(articles[:3]):
                     cat   = art.get("category","News")
@@ -1126,14 +1172,14 @@ with main_col:
                 f'border-radius:16px;position:relative;overflow:hidden;margin-bottom:20px;min-height:130px;border:1px solid var(--border)">'
                 f'<div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(5,5,12,0.97) 0%,rgba(5,5,12,0.80) 50%,rgba(0,0,0,0.2) 100%);border-radius:16px"></div>'
                 f'<div style="position:relative;padding:26px 30px">'
-                f'<div style="font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px">● Daily Intelligence Report</div>'
+                f'<div style="font-size:9px;font-weight:700;color:#A3FF12;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px">● Daily Intelligence Report</div>'
                 f'<div style="font-size:26px;font-weight:900;color:#fff;font-family:Poppins,sans-serif;letter-spacing:-0.5px">DAILY BRIEFING</div>'
                 f'<div style="font-size:10px;color:rgba(255,255,255,0.32);margin-top:5px;letter-spacing:0.12em">SIGNALS · TRENDS · CLUES · {date_str}</div>'
                 f'</div></div>',
                 unsafe_allow_html=True
             )
         # Article cards
-        _gaming_col_b = "#2a5200" if theme == "day" else "#AAFF00"
+        _gaming_col_b = "#2a5200" if theme == "day" else "#A3FF12"
         cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":_gaming_col_b}
         cat_icons_b = {"News":"📰","Music & Film":"🎬","Gaming":"🎮"}
         for i, art in enumerate(articles):
@@ -1170,7 +1216,7 @@ with main_col:
             age   = get_data_age_minutes(platform=key)
             count = len(get_latest_hashtags(platform=key))
             age_str = f"{int(age)}m ago" if age is not None else "No data"
-            _src_lime = "#2a5200" if theme == "day" else "#AAFF00"
+            _src_lime = "#2a5200" if theme == "day" else "#A3FF12"
             sc    = _src_lime if (age is not None and age<cfg["refresh_minutes"]) else "#ff9500"
             st.markdown(f"""
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px">
