@@ -55,66 +55,92 @@ st.markdown("""
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&display=swap');
   html, body, [class*="css"] { font-family: -apple-system, system-ui, sans-serif; }
 
-  .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-    background-color: #111118 !important;
-  }
-  [data-testid="stSidebar"] { background-color: #16161f !important; }
-  .block-container { padding: 1rem 2rem 2rem 2rem; max-width: 1200px; }
+  /* ── Light page background ── */
+  .stApp, [data-testid="stAppViewContainer"] { background: #f0f0f7 !important; }
+  [data-testid="stHeader"] { display: none !important; }
+  [data-testid="stSidebar"] { background: #fff !important; }
+  .block-container { padding: 1.5rem 2rem 3rem 2rem !important; max-width: 1200px; }
 
-  html, body, p, span, div, label, h1, h2, h3 { color: #e0e0e0; }
+  /* ── Text: dark on light bg ── */
+  html, body { color: #1a1a2e; }
+  [data-testid="stMarkdown"] { color: #1a1a2e; }
+  p, label, h1, h2, h3, h4 { color: #1a1a2e !important; }
 
-  /* Tabs */
-  [data-testid="stTabs"] button { color: #666 !important; font-size: 13px !important; font-weight: 600 !important; }
+  /* ── Tabs ── */
+  [data-testid="stTabs"] { background: transparent !important; }
+  [data-testid="stTabs"] [role="tablist"] { border-bottom: 2px solid #e4e4f0 !important; }
+  [data-testid="stTabs"] button { color: #999 !important; font-size: 13px !important; font-weight: 700 !important; background: transparent !important; }
   [data-testid="stTabs"] button[aria-selected="true"] { color: #fe2c55 !important; border-bottom-color: #fe2c55 !important; }
 
-  /* Inputs */
+  /* ── Inputs ── */
   [data-testid="stTextInput"] input {
-    background: #13131e !important;
-    border: 1px solid #2a2a3a !important;
-    color: #e0e0e0 !important;
-    border-radius: 10px !important;
+    background: #fff !important;
+    border: 1.5px solid #e0e0ec !important;
+    color: #1a1a2e !important;
+    border-radius: 12px !important;
     font-size: 14px !important;
-    padding: 10px 14px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
   }
   [data-testid="stTextInput"] input:focus {
     border-color: #fe2c55 !important;
-    box-shadow: 0 0 0 2px rgba(254,44,85,0.15) !important;
+    box-shadow: 0 0 0 3px rgba(254,44,85,0.1) !important;
+  }
+  [data-testid="stTextInput"] input::placeholder { color: #bbb !important; }
+
+  /* ── Dividers ── */
+  hr { border-color: #e4e4f0 !important; }
+
+  /* ── Buttons ── */
+  .stButton > button {
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    transition: all 0.15s !important;
+  }
+  .stButton > button[kind="secondary"] {
+    background: #fff !important;
+    border: 1.5px solid #e0e0ec !important;
+    color: #444 !important;
+  }
+  .stButton > button[kind="secondary"]:hover {
+    border-color: #fe2c55 !important;
+    color: #fe2c55 !important;
   }
 
-  hr { border-color: #1e1e2e !important; }
-
-  /* Old cards (kept for blueprint/niche tabs) */
+  /* ── Cards (Blueprint / Niche tabs) ── */
   .ht-card {
-    background: #1c1c2a;
-    border: 0.5px solid #2e2e42;
-    border-radius: 10px;
-    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid #eaecf4;
+    border-radius: 12px;
+    padding: 12px 16px;
     margin-bottom: 8px;
     cursor: pointer;
-    transition: border-color 0.15s;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    transition: all 0.15s;
+    color: #1a1a2e;
   }
-  .ht-card:hover { border-color: #fe2c55; }
-  .ht-card * { color: inherit; }
+  .ht-card * { color: #1a1a2e !important; }
+  .ht-card:hover { border-color: #fe2c55; box-shadow: 0 4px 16px rgba(254,44,85,0.1); transform: translateY(-1px); }
   .ht-card.featured { border: 1.5px solid #185fa5; }
   .ht-card.faded { opacity: 0.5; }
 
-  /* Badges */
+  /* ── Badges ── */
   .badge {
     display: inline-block;
     font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 5px;
+    padding: 2px 8px;
+    border-radius: 6px;
     margin-left: 5px;
     vertical-align: middle;
     font-weight: 700;
     letter-spacing: 0.02em;
   }
-  .badge-green  { background: #0f3d2e; color: #3dd68c; }
-  .badge-blue   { background: #0d2a4a; color: #60a5fa; }
-  .badge-red    { background: #3d1010; color: #f87171; }
+  .badge-green  { background: #e8f8f0; color: #0a6b42; }
+  .badge-blue   { background: #e8f0ff; color: #1a4db5; }
+  .badge-red    { background: #fff0f2; color: #c0203d; }
   .badge-strike { background: #185fa5; color: #fff; }
 
-  /* Status pills */
+  /* ── Status pills ── */
   .status-pill {
     display: inline-flex;
     align-items: center;
@@ -122,46 +148,51 @@ st.markdown("""
     font-size: 11px;
     color: #666;
     padding: 3px 10px;
-    background: #1c1c2a;
-    border: 0.5px solid #2e2e42;
+    background: #fff;
+    border: 1px solid #e4e4f0;
     border-radius: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
-  .dot-live { width:6px;height:6px;border-radius:50%;background:#1d9e75;display:inline-block; }
-  .dot-gpt  { width:6px;height:6px;border-radius:50%;background:#f5a623;display:inline-block; }
+  .dot-live { width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block; }
+  .dot-gpt  { width:6px;height:6px;border-radius:50%;background:#ea8c00;display:inline-block; }
 
-  /* Buttons */
-  .stButton > button {
-    border-radius: 10px !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.01em !important;
-    transition: all 0.15s !important;
-  }
-
-  /* Trend chip pills (for quick-select trending topics) */
+  /* ── Trend chips ── */
   .trend-chip {
     display: inline-block;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3);
     border-radius: 20px;
-    padding: 4px 12px;
+    padding: 4px 14px;
     font-size: 12px;
-    color: #aaa;
+    color: rgba(255,255,255,0.9);
     cursor: pointer;
     transition: all 0.15s;
     text-decoration: none;
   }
-  .trend-chip:hover { background: rgba(254,44,85,0.15); border-color: rgba(254,44,85,0.4); color: #fe2c55; }
+  .trend-chip:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.6); color: #fff; }
 
   /* Section labels */
   .section-label {
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: #444;
+    color: #aaa;
     text-transform: uppercase;
     margin-bottom: 8px;
   }
+
+  /* Metric containers */
+  [data-testid="metric-container"] {
+    background: #fff !important;
+    border-radius: 12px !important;
+    border: 1px solid #eaecf4 !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05) !important;
+  }
+  [data-testid="metric-container"] label { color: #888 !important; font-size: 12px !important; }
+  [data-testid="metric-container"] [data-testid="stMetricValue"] { color: #1a1a2e !important; font-size: 26px !important; font-weight: 800 !important; }
+
+  /* Plotly chart bg */
+  .js-plotly-plot { background: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -245,11 +276,11 @@ def render_velocity_chart(velocity_data, platform="tiktok"):
             st.markdown("<div style='color:#555;font-size:13px;padding:20px 0;text-align:center'>Not enough data for velocity chart yet.</div>", unsafe_allow_html=True)
             return
         fig.update_layout(
-            yaxis=dict(autorange="reversed", title="Rank", gridcolor="#1e1e2e", color="#555", tickfont=dict(size=10)),
-            xaxis=dict(gridcolor="#1e1e2e", color="#555", tickfont=dict(size=9)),
+            yaxis=dict(autorange="reversed", title="Rank", gridcolor="#eaecf4", color="#999", tickfont=dict(size=10)),
+            xaxis=dict(gridcolor="#eaecf4", color="#999", tickfont=dict(size=9)),
             height=240,
             margin=dict(l=0, r=0, t=4, b=0),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=10), bgcolor="rgba(0,0,0,0)"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=10, color="#666"), bgcolor="rgba(0,0,0,0)"),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
         )
@@ -307,13 +338,13 @@ def render_cards(data, platform="tiktok"):
             circle_color  = "#fff"
             circle_border = color
         elif rank_int <= 10:
-            circle_bg     = f"{color}22"
+            circle_bg     = f"{color}14"
             circle_color  = color
-            circle_border = f"{color}66"
+            circle_border = f"{color}50"
         else:
-            circle_bg     = "#22223a"
-            circle_color  = "#666"
-            circle_border = "#383848"
+            circle_bg     = "#f4f4fa"
+            circle_color  = "#aaa"
+            circle_border = "#e0e0ec"
 
         # Card opacity for falling trends
         card_opacity = "0.55" if change > 5 else "1"
@@ -322,13 +353,17 @@ def render_cards(data, platform="tiktok"):
 
         st.markdown(f"""
         <a href="{url}" target="_blank" style="text-decoration:none">
-        <div style="background:#1c1c2a;border:{card_border};border-radius:14px;
+        <div style="background:#fff;
+                    border:1px solid {'#e0eeff' if change < -3 else '#eaecf4'};
+                    border-left:{'4px solid ' + color if change < -3 else '1px solid #eaecf4'};
+                    border-radius:14px;
                     padding:14px 16px;margin-bottom:9px;
                     display:flex;align-items:center;gap:14px;
                     cursor:pointer;opacity:{card_opacity};
-                    transition:all 0.15s"
-             onmouseover="this.style.borderColor='{color}';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 20px {color}22'"
-             onmouseout="this.style.borderColor='';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                    box-shadow:0 1px 6px rgba(0,0,0,0.05);
+                    transition:all 0.2s"
+             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.1)';this.style.borderColor='{color}40'"
+             onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 1px 6px rgba(0,0,0,0.05)';this.style.borderColor=''">
 
           <!-- Rank circle -->
           <div style="width:42px;height:42px;border-radius:50%;
@@ -341,26 +376,26 @@ def render_cards(data, platform="tiktok"):
 
           <!-- Main content -->
           <div style="flex:1;min-width:0">
-            <div style="font-size:15px;font-weight:700;color:#f0f0f0;
+            <div style="font-size:15px;font-weight:700;color:#0d0d1a;
                         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
                         margin-bottom:2px;font-family:'Poppins',sans-serif">
               {prefix}{name}
             </div>
-            <div style="font-size:11px;color:#555;margin-bottom:7px">
+            <div style="font-size:11px;color:#999;margin-bottom:8px">
               {posts_label} &nbsp;·&nbsp; {category}
             </div>
-            <!-- Prominence bar (like YouGov's Fame bar) -->
-            <div style="height:3px;background:#25253a;border-radius:3px">
-              <div style="height:3px;width:{bar_pct}%;
-                          background:linear-gradient(90deg,{color},{color}55);
-                          border-radius:3px"></div>
+            <!-- Prominence bar -->
+            <div style="height:4px;background:#f0f0f7;border-radius:4px">
+              <div style="height:4px;width:{bar_pct}%;
+                          background:linear-gradient(90deg,{color},{color}88);
+                          border-radius:4px"></div>
             </div>
           </div>
 
           <!-- Right: badge + link -->
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;padding-left:6px">
             <div>{badge}</div>
-            <span style="font-size:11px;color:{color};font-weight:600">{link_lbl}</span>
+            <span style="font-size:11px;color:{color};font-weight:700">{link_lbl}</span>
           </div>
 
         </div>
@@ -410,16 +445,17 @@ def render_niche_pulse(results: dict, query: str):
 
                 st.markdown(f"""
                 <a href="{url}" target="_blank" style="text-decoration:none">
-                <div style="background:#1c1c28;border:0.5px solid #2e2e42;border-radius:10px;
-                            padding:10px 12px;margin-bottom:6px;transition:all 0.15s"
-                     onmouseover="this.style.borderColor='{color}';this.style.transform='translateY(-1px)'"
-                     onmouseout="this.style.borderColor='#252535';this.style.transform='translateY(0)'">
-                  <div style="font-size:13px;font-weight:700;color:#eee;
+                <div style="background:#fff;border:1px solid #eaecf4;border-radius:10px;
+                            padding:10px 12px;margin-bottom:6px;
+                            box-shadow:0 1px 4px rgba(0,0,0,0.05);transition:all 0.15s"
+                     onmouseover="this.style.borderColor='{color}';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'"
+                     onmouseout="this.style.borderColor='#eaecf4';this.style.transform='translateY(0)';this.style.boxShadow='0 1px 4px rgba(0,0,0,0.05)'">
+                  <div style="font-size:13px;font-weight:700;color:#0d0d1a;
                               white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
                               font-family:'Poppins',sans-serif">{prefix}{disp_name}</div>
-                  <div style="font-size:10px;color:#444;margin:3px 0 6px 0">{posts}</div>
-                  <div style="height:2px;background:#1e1e2a;border-radius:2px">
-                    <div style="height:2px;width:{bar_pct}%;background:{color};border-radius:2px;opacity:0.7"></div>
+                  <div style="font-size:10px;color:#aaa;margin:3px 0 6px 0">{posts}</div>
+                  <div style="height:3px;background:#f0f0f7;border-radius:3px">
+                    <div style="height:3px;width:{bar_pct}%;background:{color};border-radius:3px"></div>
                   </div>
                 </div>
                 </a>
@@ -460,8 +496,8 @@ def render_niche_pulse(results: dict, query: str):
             customdata=[item["rank"] for item in chart_items],
         ))
         fig.update_layout(
-            xaxis=dict(title="Prominence (higher = better ranked)", gridcolor="#1e1e2e", color="#444", tickfont=dict(size=9), range=[0, 24]),
-            yaxis=dict(color="#aaa", tickfont=dict(size=10), autorange="reversed"),
+            xaxis=dict(title="Prominence (higher = better ranked)", gridcolor="#eaecf4", color="#999", tickfont=dict(size=9), range=[0, 24]),
+            yaxis=dict(color="#666", tickfont=dict(size=10), autorange="reversed"),
             height=max(200, len(chart_items) * 26 + 40),
             margin=dict(l=0, r=40, t=6, b=0),
             paper_bgcolor="rgba(0,0,0,0)",
@@ -493,18 +529,19 @@ if _chip_data:
     chip_html = f'<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:11px;color:#444;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Trending</span>{chips}</div>'
 
 st.markdown(f"""
-<div style="background:linear-gradient(135deg,#2a1045 0%,#1a1030 50%,#111118 100%);
-            border-radius:16px;
-            padding:22px 24px 20px 24px;
-            margin-bottom:16px;
-            position:relative;overflow:hidden">
+<div style="background:linear-gradient(135deg,#7c3aed 0%,#db2777 55%,#fe2c55 80%,#ff6b35 100%);
+            border-radius:20px;
+            padding:28px 28px 24px 28px;
+            margin-bottom:18px;
+            position:relative;overflow:hidden;
+            box-shadow:0 8px 32px rgba(219,39,119,0.25)">
 
   <!-- Decorative glow blobs -->
-  <div style="position:absolute;top:-40px;right:60px;width:200px;height:200px;
-              background:radial-gradient(circle,rgba(254,44,85,0.12) 0%,transparent 70%);
+  <div style="position:absolute;top:-50px;right:80px;width:220px;height:220px;
+              background:radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 70%);
               pointer-events:none"></div>
-  <div style="position:absolute;bottom:-60px;left:100px;width:160px;height:160px;
-              background:radial-gradient(circle,rgba(37,244,238,0.07) 0%,transparent 70%);
+  <div style="position:absolute;bottom:-40px;left:60px;width:180px;height:180px;
+              background:radial-gradient(circle,rgba(255,255,255,0.07) 0%,transparent 70%);
               pointer-events:none"></div>
 
   <div style="display:flex;align-items:center;gap:14px;position:relative">
