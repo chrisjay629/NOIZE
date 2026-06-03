@@ -8,7 +8,7 @@ import os
 import json
 import re
 import requests
-from bs4 import BeautifulSoup
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -92,19 +92,18 @@ def scrape_google():
             timeout=15
         )
         r.raise_for_status()
-        soup = BeautifulSoup(r.text, "xml")
-        items = soup.find_all("item")
+        root = ET.fromstring(r.text)
+        ns = {"ht": "https://trends.google.com/trending/rss"}
+        items = root.findall(".//item")
         if not items:
             raise ValueError("No items in RSS feed")
 
         results = []
         for i, item in enumerate(items[:20]):
-            title = item.find("title")
-            traffic = item.find("approx_traffic") or item.find("ht:approx_traffic")
-            link = item.find("link")
-            name = title.get_text(strip=True) if title else ""
-            traffic_str = traffic.get_text(strip=True) + " searches" if traffic else "Trending"
-            url = link.get_text(strip=True) if link else f"https://www.google.com/search?q={name.replace(' ', '+')}"
+            title_el = item.find("title")
+            traffic_el = item.find("ht:approx_traffic", ns)
+            name = title_el.text.strip() if title_el is not None and title_el.text else ""
+            traffic_str = (traffic_el.text.strip() + " searches") if traffic_el is not None else "Trending"
             results.append({
                 "rank": str(i + 1),
                 "name": name,
@@ -194,22 +193,22 @@ def scrape_reddit():
             timeout=15
         )
         r.raise_for_status()
-        soup = BeautifulSoup(r.text, "xml")
-        entries = soup.find_all("entry")
+        root = ET.fromstring(r.text)
+        atom_ns = "http://www.w3.org/2005/Atom"
+        entries = root.findall(f"{{{atom_ns}}}entry")
         if not entries:
             raise ValueError("No entries in RSS")
 
         results = []
         for i, entry in enumerate(entries[:20]):
-            title = entry.find("title")
-            link = entry.find("link")
-            category = entry.find("category")
-            name = title.get_text(strip=True) if title else ""
-            # Truncate long post titles
+            title_el = entry.find(f"{{{atom_ns}}}title")
+            link_el = entry.find(f"{{{atom_ns}}}link")
+            category_el = entry.find(f"{{{atom_ns}}}category")
+            name = title_el.text.strip() if title_el is not None and title_el.text else ""
             if len(name) > 80:
                 name = name[:77] + "..."
-            url = link.get("href", "") if link else ""
-            subreddit = category.get("term", "r/all") if category else "r/all"
+            url = link_el.get("href", "") if link_el is not None else ""
+            subreddit = category_el.get("term", "r/all") if category_el is not None else "r/all"
             results.append({
                 "rank": str(i + 1),
                 "name": name,
