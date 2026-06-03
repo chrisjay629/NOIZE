@@ -6,23 +6,31 @@ import plotly.graph_objects as go
 from datetime import datetime
 
 from agent import run_agent, generate_blueprint, research_niche_hashtags
-from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots
+from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit
 
 PLATFORM_CONFIG = {
-    "tiktok":  {"label": "TikTok",         "icon": "🎵", "scraper": scrape_hashtags,  "link_label": "↗ TikTok"},
-    "google":  {"label": "Google Trends",  "icon": "📈", "scraper": scrape_google,    "link_label": "↗ Google"},
-    "youtube": {"label": "YouTube",        "icon": "📺", "scraper": scrape_youtube,   "link_label": "↗ YouTube"},
-    "reddit":  {"label": "Reddit",         "icon": "🔴", "scraper": scrape_reddit,    "link_label": "↗ Reddit"},
+    "tiktok":  {"label": "TikTok",         "icon": "🎵", "scraper": scrape_hashtags,  "link_label": "↗ TikTok",  "refresh_minutes": 60},
+    "google":  {"label": "Google Trends",  "icon": "📈", "scraper": scrape_google,    "link_label": "↗ Google",  "refresh_minutes": 60},
+    "youtube": {"label": "YouTube",        "icon": "📺", "scraper": scrape_youtube,   "link_label": "↗ YouTube", "refresh_minutes": 240},
+    "reddit":  {"label": "Reddit",         "icon": "🔴", "scraper": scrape_reddit,    "link_label": "↗ Reddit",  "refresh_minutes": 60},
 }
+
+# Process-level flag — only ONE scheduler thread per Railway instance
+_scheduler_started = threading.Event()
 
 def _background_scheduler():
     print("[SCHEDULER] Background scheduler thread started", flush=True)
     while True:
-        print("[SCHEDULER] Beginning scrape all platforms...", flush=True)
+        print("[SCHEDULER] Beginning scrape cycle...", flush=True)
         for key, cfg in PLATFORM_CONFIG.items():
             try:
+                age = get_data_age_minutes(platform=key)
+                limit = cfg["refresh_minutes"]
+                if age is not None and age < limit:
+                    print(f"[SCHEDULER] {key} data is {age:.0f}m old (limit {limit}m) — skipping", flush=True)
+                    continue
                 results = cfg["scraper"]()
                 if results:
                     save_snapshot(results, platform=key)
@@ -30,11 +38,11 @@ def _background_scheduler():
                 print(f"[SCHEDULER] {key} scrape done", flush=True)
             except Exception as e:
                 print(f"[SCHEDULER] {key} scrape FAILED: {e}", flush=True)
-        print("[SCHEDULER] Sleeping for 1 hour", flush=True)
-        time.sleep(3600)
+        print("[SCHEDULER] Sleeping for 30 minutes", flush=True)
+        time.sleep(1800)
 
-if "scheduler_started" not in st.session_state:
-    st.session_state.scheduler_started = True
+if not _scheduler_started.is_set():
+    _scheduler_started.set()
     print("[SCHEDULER] Spawning background scheduler thread", flush=True)
     t = threading.Thread(target=_background_scheduler, daemon=True)
     t.start()
@@ -490,7 +498,7 @@ with tab_blueprint:
         cols = st.columns(2)
         for i, h in enumerate(bp_hashtags):
             with cols[i % 2]:
-                checked = st.checkbox(f"#{h['name']}", key=f"bp_{h['name']}")
+                checked = st.checkbox(f"#{h['name']}", key=f"bp_{active_platform}_{i}")
                 if checked:
                     selected.append(h['name'])
 

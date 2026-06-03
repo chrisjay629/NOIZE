@@ -51,6 +51,22 @@ def save_snapshot(hashtags, platform="tiktok"):
     conn.close()
     print(f"Saved {len(hashtags)} snapshots to database (platform: {platform}).")
 
+def get_data_age_minutes(platform="tiktok"):
+    """Returns how many minutes old the latest snapshot is, or None if no data."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT MAX(scraped_at) FROM hashtag_snapshots WHERE platform = ?", (platform,))
+    row = c.fetchone()
+    conn.close()
+    if not row or not row[0]:
+        return None
+    try:
+        latest = datetime.fromisoformat(row[0])
+        delta = datetime.now() - latest
+        return delta.total_seconds() / 60
+    except Exception:
+        return None
+
 def get_latest_hashtags(platform="tiktok"):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
