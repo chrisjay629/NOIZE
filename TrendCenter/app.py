@@ -167,15 +167,37 @@ html, body, [class*="css"] {
 [data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
-/* Always keep sidebar open — hide collapse button, force position */
+/* Sidebar — resizable + collapsible */
 section[data-testid="stSidebar"] {
-  transform: translateX(0) !important;
-  min-width: 244px !important;
-  display: block !important;
+  min-width: 200px !important;
+  max-width: 400px !important;
+  transition: width 0.2s ease !important;
 }
-[data-testid="stSidebarCollapseButton"],
-[data-testid="stSidebarCollapsedControl"] {
-  display: none !important;
+/* Style the native collapse button */
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="stSidebarCollapsedControl"] button {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--tx2) !important;
+  border-radius: 6px !important;
+}
+[data-testid="stSidebarCollapseButton"] button:hover,
+[data-testid="stSidebarCollapsedControl"] button:hover {
+  background: var(--lime-bg) !important;
+  color: var(--lime-t) !important;
+  border-color: var(--lime-border) !important;
+}
+/* Resize handle */
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0; right: -4px;
+  width: 8px; height: 100%;
+  cursor: col-resize;
+  z-index: 9999;
+  background: transparent;
+}
+.sidebar-resize-handle:hover {
+  background: rgba(163,255,18,0.15);
 }
 
 .stApp {
@@ -815,6 +837,41 @@ with st.sidebar:
         </div>
       </div>
     </div>""", unsafe_allow_html=True)
+
+    # Resize handle + JS
+    st.markdown("""
+    <div class="sidebar-resize-handle" id="sb-resize-handle"></div>
+    <script>
+    (function() {
+      var handle = document.getElementById('sb-resize-handle');
+      if (!handle) return;
+      var sidebar = handle.closest('section[data-testid="stSidebar"]');
+      if (!sidebar) sidebar = document.querySelector('section[data-testid="stSidebar"]');
+      if (!sidebar) return;
+      sidebar.style.position = 'relative';
+      // Restore saved width
+      var saved = localStorage.getItem('noize_sidebar_width');
+      if (saved) sidebar.style.width = saved;
+      var dragging = false;
+      handle.addEventListener('mousedown', function(e) {
+        dragging = true;
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var rect = sidebar.getBoundingClientRect();
+        var w = Math.min(400, Math.max(200, e.clientX - rect.left));
+        sidebar.style.width = w + 'px';
+      });
+      document.addEventListener('mouseup', function() {
+        if (dragging) {
+          dragging = false;
+          localStorage.setItem('noize_sidebar_width', sidebar.style.width);
+        }
+      });
+    })();
+    </script>
+    """, unsafe_allow_html=True)
 
     active_nav = st.session_state.active_nav
     st.markdown('<div style="padding:8px 0">', unsafe_allow_html=True)
