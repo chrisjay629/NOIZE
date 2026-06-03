@@ -61,7 +61,6 @@ def load_img_b64(path: str, max_width: int = 1400, quality: int = 68) -> str:
         return ""
 
 PUGSON_B64           = load_img_b64("static/pugson.png",             max_width=220,  quality=90)
-BG_STREET_B64        = load_img_b64("static/bg_street.png",         max_width=1600, quality=70)
 BG_DAY_CITY_B64      = load_img_b64("static/bg_day_city.png",       max_width=1600, quality=70)
 BG_CITY_B64          = load_img_b64("static/bg_city.png",           max_width=1600, quality=65)
 NEWSPAPER_B64        = load_img_b64("static/newspaper_bg.png",      max_width=1200, quality=65)
@@ -840,12 +839,12 @@ with st.sidebar:
 active_platform = st.session_state.active_platform
 active_nav      = st.session_state.active_nav
 
-# Hero background — day uses golden city, night uses noir rainy street
+# Hero background — day uses golden city, night uses dark city
 if theme == "night":
-    hero_b64 = BG_STREET_B64 or BG_DAY_CITY_B64
+    hero_b64 = BG_DAY_CITY_B64
     hero_overlay = "linear-gradient(to right,rgba(7,9,13,0.97) 0%,rgba(7,9,13,0.90) 38%,rgba(7,9,13,0.60) 65%,rgba(7,9,13,0.18) 100%)"
 else:
-    hero_b64 = BG_DAY_CITY_B64 or BG_STREET_B64
+    hero_b64 = BG_DAY_CITY_B64
     hero_overlay = "linear-gradient(to right,rgba(15,22,45,0.88) 0%,rgba(15,22,45,0.60) 50%,rgba(15,22,45,0.15) 100%)"
 
 bg_style = (f"background-image:url('data:image/jpeg;base64,{hero_b64}');background-size:cover;background-position:65% 20%;"
