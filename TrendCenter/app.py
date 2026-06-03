@@ -167,37 +167,53 @@ html, body, [class*="css"] {
 [data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
-/* Sidebar — resizable + collapsible */
+/* Sidebar — always visible, resizable, custom collapse */
 section[data-testid="stSidebar"] {
-  min-width: 200px !important;
+  transform: translateX(0) !important;
+  min-width: 60px !important;
   max-width: 400px !important;
-  transition: width 0.2s ease !important;
+  width: 244px;
+  transition: width 0.25s ease !important;
+  overflow: hidden !important;
 }
-/* Style the native collapse button */
-[data-testid="stSidebarCollapseButton"] button,
-[data-testid="stSidebarCollapsedControl"] button {
-  background: var(--surface) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--tx2) !important;
-  border-radius: 6px !important;
-}
-[data-testid="stSidebarCollapseButton"] button:hover,
-[data-testid="stSidebarCollapsedControl"] button:hover {
-  background: var(--lime-bg) !important;
-  color: var(--lime-t) !important;
-  border-color: var(--lime-border) !important;
+/* Hide Streamlit's own collapse controls — we use our own */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapsedControl"] {
+  display: none !important;
 }
 /* Resize handle */
 .sidebar-resize-handle {
   position: absolute;
-  top: 0; right: -4px;
-  width: 8px; height: 100%;
+  top: 0; right: 0;
+  width: 5px; height: 100%;
   cursor: col-resize;
   z-index: 9999;
   background: transparent;
+  border-right: 1px solid rgba(163,255,18,0.0);
+  transition: border-color 0.2s;
 }
 .sidebar-resize-handle:hover {
-  background: rgba(163,255,18,0.15);
+  border-right: 1px solid rgba(163,255,18,0.4);
+}
+/* Custom collapse toggle button */
+.sb-toggle-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 12px;
+  z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--tx2);
+  transition: background 0.15s, color 0.15s;
+}
+.sb-toggle-btn:hover {
+  background: var(--lime-bg);
+  color: var(--lime-t);
+  border-color: var(--lime-border);
 }
 
 .stApp {
@@ -838,35 +854,58 @@ with st.sidebar:
       </div>
     </div>""", unsafe_allow_html=True)
 
-    # Resize handle + JS
+    # Resize handle + collapse toggle JS
     st.markdown("""
     <div class="sidebar-resize-handle" id="sb-resize-handle"></div>
+    <button class="sb-toggle-btn" id="sb-toggle-btn" title="Collapse/Expand sidebar">◀</button>
     <script>
     (function() {
-      var handle = document.getElementById('sb-resize-handle');
-      if (!handle) return;
-      var sidebar = handle.closest('section[data-testid="stSidebar"]');
-      if (!sidebar) sidebar = document.querySelector('section[data-testid="stSidebar"]');
+      var sidebar = document.querySelector('section[data-testid="stSidebar"]');
       if (!sidebar) return;
       sidebar.style.position = 'relative';
-      // Restore saved width
-      var saved = localStorage.getItem('noize_sidebar_width');
-      if (saved) sidebar.style.width = saved;
+
+      var EXPANDED_W = parseInt(localStorage.getItem('noize_sidebar_width')) || 244;
+      var collapsed = localStorage.getItem('noize_sidebar_collapsed') === 'true';
+
+      function applyState() {
+        if (collapsed) {
+          sidebar.style.width = '60px';
+          btn.textContent = '▶';
+        } else {
+          sidebar.style.width = EXPANDED_W + 'px';
+          btn.textContent = '◀';
+        }
+      }
+
+      // Toggle button
+      var btn = document.getElementById('sb-toggle-btn');
+      if (btn) {
+        btn.addEventListener('click', function() {
+          collapsed = !collapsed;
+          localStorage.setItem('noize_sidebar_collapsed', collapsed);
+          applyState();
+        });
+      }
+
+      applyState();
+
+      // Resize drag
+      var handle = document.getElementById('sb-resize-handle');
       var dragging = false;
-      handle.addEventListener('mousedown', function(e) {
-        dragging = true;
-        e.preventDefault();
-      });
+      if (handle) {
+        handle.addEventListener('mousedown', function(e) { dragging = true; e.preventDefault(); });
+      }
       document.addEventListener('mousemove', function(e) {
-        if (!dragging) return;
+        if (!dragging || collapsed) return;
         var rect = sidebar.getBoundingClientRect();
         var w = Math.min(400, Math.max(200, e.clientX - rect.left));
         sidebar.style.width = w + 'px';
+        EXPANDED_W = w;
       });
       document.addEventListener('mouseup', function() {
         if (dragging) {
           dragging = false;
-          localStorage.setItem('noize_sidebar_width', sidebar.style.width);
+          localStorage.setItem('noize_sidebar_width', EXPANDED_W);
         }
       });
     })();
