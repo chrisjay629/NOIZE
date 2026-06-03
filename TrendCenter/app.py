@@ -11,39 +11,34 @@ from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit
 
 PLATFORM_CONFIG = {
-    "tiktok":  {"label": "TikTok",         "icon": "🎵", "scraper": scrape_hashtags,  "link_label": "↗ TikTok",  "refresh_minutes": 60},
-    "google":  {"label": "Google Trends",  "icon": "📈", "scraper": scrape_google,    "link_label": "↗ Google",  "refresh_minutes": 60},
-    "youtube": {"label": "YouTube",        "icon": "📺", "scraper": scrape_youtube,   "link_label": "↗ YouTube", "refresh_minutes": 240},
-    "reddit":  {"label": "Reddit",         "icon": "🔴", "scraper": scrape_reddit,    "link_label": "↗ Reddit",  "refresh_minutes": 60},
+    "tiktok":  {"label": "TikTok",        "icon": "🎵", "scraper": scrape_hashtags, "link_label": "↗ TikTok",  "refresh_minutes": 60,  "color": "#fe2c55"},
+    "google":  {"label": "Google Trends", "icon": "📈", "scraper": scrape_google,   "link_label": "↗ Google",  "refresh_minutes": 60,  "color": "#4285f4"},
+    "youtube": {"label": "YouTube",       "icon": "📺", "scraper": scrape_youtube,  "link_label": "↗ YouTube", "refresh_minutes": 240, "color": "#ff4444"},
+    "reddit":  {"label": "Reddit",        "icon": "🔴", "scraper": scrape_reddit,   "link_label": "↗ Reddit",  "refresh_minutes": 60,  "color": "#ff5700"},
 }
 
-# Process-level flag — only ONE scheduler thread per Railway instance
+# ── Process-level scheduler (one thread per Railway instance) ───
 _scheduler_started = threading.Event()
 
 def _background_scheduler():
     print("[SCHEDULER] Background scheduler thread started", flush=True)
     while True:
-        print("[SCHEDULER] Beginning scrape cycle...", flush=True)
         for key, cfg in PLATFORM_CONFIG.items():
             try:
                 age = get_data_age_minutes(platform=key)
                 limit = cfg["refresh_minutes"]
                 if age is not None and age < limit:
-                    print(f"[SCHEDULER] {key} data is {age:.0f}m old (limit {limit}m) — skipping", flush=True)
                     continue
                 results = cfg["scraper"]()
                 if results:
                     save_snapshot(results, platform=key)
                     cleanup_old_snapshots(hours=48)
-                print(f"[SCHEDULER] {key} scrape done", flush=True)
             except Exception as e:
-                print(f"[SCHEDULER] {key} scrape FAILED: {e}", flush=True)
-        print("[SCHEDULER] Sleeping for 30 minutes", flush=True)
+                print(f"[SCHEDULER] {key} failed: {e}", flush=True)
         time.sleep(1800)
 
 if not _scheduler_started.is_set():
     _scheduler_started.set()
-    print("[SCHEDULER] Spawning background scheduler thread", flush=True)
     t = threading.Thread(target=_background_scheduler, daemon=True)
     t.start()
 
@@ -60,98 +55,120 @@ st.markdown("""
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap');
   html, body, [class*="css"] { font-family: -apple-system, system-ui, sans-serif; }
 
-  /* Force dark mode always */
   .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
     background-color: #0f0f15 !important;
   }
   [data-testid="stSidebar"] { background-color: #15151f !important; }
-  .block-container { padding: 1.5rem 2rem; max-width: 1100px; }
+  .block-container { padding: 1.25rem 2rem 2rem 2rem; max-width: 1200px; }
 
-  /* All text defaults to light */
   html, body, p, span, div, label, h1, h2, h3 { color: #e0e0e0; }
 
-  /* Metric cards */
-  [data-testid="metric-container"] {
-    background: #1e1e2e !important;
-    border-radius: 12px !important;
-    padding: 16px 20px !important;
-    border: 0.5px solid #3a3a4a !important;
-  }
-  [data-testid="metric-container"] label { color: #aaa !important; font-size: 13px !important; }
-  [data-testid="metric-container"] [data-testid="stMetricValue"] { color: #fff !important; font-size: 28px !important; font-weight: 700 !important; }
-
-  /* Tabs */
-  [data-testid="stTabs"] button { color: #aaa !important; }
+  [data-testid="stTabs"] button { color: #aaa !important; font-size: 13px !important; }
   [data-testid="stTabs"] button[aria-selected="true"] { color: #fe2c55 !important; border-bottom-color: #fe2c55 !important; }
 
-  /* Input box */
   [data-testid="stTextInput"] input {
     background: #1e1e2e !important;
     border: 0.5px solid #3a3a4a !important;
     color: #e0e0e0 !important;
     border-radius: 8px !important;
+    font-size: 13px !important;
   }
 
-  /* Dividers */
   hr { border-color: #2a2a3a !important; }
+
   .ht-card {
-    background: #1e1e2e;
-    border: 0.5px solid #3a3a4a;
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 10px;
-    color: #e0e0e0 !important;
+    background: #1a1a28;
+    border: 0.5px solid #2e2e42;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s;
   }
+  .ht-card:hover { border-color: #fe2c55; }
   .ht-card * { color: inherit; }
-  .ht-card.featured { border: 2px solid #185fa5; }
-  .ht-card.faded { opacity: 0.6; }
+  .ht-card.featured { border: 1.5px solid #185fa5; }
+  .ht-card.faded { opacity: 0.55; }
+
   .badge {
     display: inline-block;
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 6px;
-    margin-left: 6px;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    margin-left: 5px;
     vertical-align: middle;
+    font-weight: 600;
   }
-  .badge-green  { background: #e1f5ee; color: #0f6e56; }
-  .badge-blue   { background: #e6f1fb; color: #0c447c; }
-  .badge-red    { background: #faece7; color: #993c1d; }
+  .badge-green  { background: #0f3d2e; color: #3dd68c; }
+  .badge-blue   { background: #0d2a4a; color: #60a5fa; }
+  .badge-red    { background: #3d1010; color: #f87171; }
   .badge-strike { background: #185fa5; color: #fff; }
-  .bubble-user {
-    background: #e6f1fb;
-    color: #0c447c;
-    padding: 10px 14px;
-    border-radius: 12px;
-    max-width: 70%;
-    margin-left: auto;
-    margin-bottom: 8px;
-    font-size: 14px;
+
+  .plat-btn-active {
+    background: linear-gradient(135deg, #fe2c55, #c0203d) !important;
+    color: #fff !important;
+    border: none !important;
   }
-  .bubble-agent {
-    background: #1e1e1e;
-    border: 0.5px solid #444;
-    color: #e0e0e0;
-    padding: 10px 14px;
-    border-radius: 12px;
-    max-width: 80%;
-    margin-bottom: 8px;
-    font-size: 14px;
-    white-space: pre-wrap;
+
+  .welcome-state {
+    text-align: center;
+    padding: 50px 20px;
   }
-  .status-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #1d9e75;
-    margin-right: 6px;
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #666;
+    padding: 3px 10px;
+    background: #1a1a28;
+    border: 0.5px solid #2e2e42;
+    border-radius: 20px;
+  }
+  .dot-live { width:7px;height:7px;border-radius:50%;background:#1d9e75;display:inline-block; }
+  .dot-gpt  { width:7px;height:7px;border-radius:50%;background:#f5a623;display:inline-block; }
+
+  .stButton > button {
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    transition: all 0.15s !important;
   }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Helpers ────────────────────────────────────────────────────
+# ── Session state init ─────────────────────────────────────────
+init_db()
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "active_platform" not in st.session_state:
+    st.session_state.active_platform = None   # No auto-select on load
+if "do_fetch" not in st.session_state:
+    st.session_state.do_fetch = False
+if "nr_results" not in st.session_state:
+    st.session_state.nr_results = []
+if "nr_topic_label" not in st.session_state:
+    st.session_state.nr_topic_label = ""
 
+
+# ── Fetch on platform click ────────────────────────────────────
+if st.session_state.do_fetch and st.session_state.active_platform:
+    st.session_state.do_fetch = False
+    ap = st.session_state.active_platform
+    cfg_f = PLATFORM_CONFIG[ap]
+    with st.spinner(f"Loading {cfg_f['icon']} {cfg_f['label']} trends..."):
+        try:
+            results = cfg_f["scraper"]()
+            if results:
+                save_snapshot(results, platform=ap)
+                cleanup_old_snapshots(hours=48)
+        except Exception as e:
+            st.error(f"Could not load {cfg_f['label']}: {e}")
+
+
+# ── Helpers ────────────────────────────────────────────────────
 def get_snapshot_count():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -164,46 +181,48 @@ def get_snapshot_count():
         return 0
 
 
-def render_velocity_chart(velocity_data):
+def render_velocity_chart(velocity_data, platform="tiktok"):
     if not velocity_data:
-        st.info("No velocity data yet — run the scheduler for at least 2 scrapes.")
+        st.markdown("<div style='color:#555;font-size:13px;padding:20px 0;text-align:center'>Not enough data for velocity chart yet.<br>Check back after a second scrape.</div>", unsafe_allow_html=True)
         return
-
-    # Build per-hashtag rank history from DB
     try:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
-        # Top 5 hashtags from velocity (new ones + climbers first)
         top_names = [h["name"] for h in velocity_data[:5]]
         fig = go.Figure()
+        has_data = False
         for name in top_names:
             c.execute("""
                 SELECT scraped_at, rank FROM hashtag_snapshots
-                WHERE name = ?
+                WHERE name = ? AND platform = ?
                 ORDER BY scraped_at ASC
-            """, (name,))
+            """, (name, platform))
             rows = c.fetchall()
             if len(rows) < 2:
                 continue
-            times = [r[0] for r in rows]
-            ranks = [r[1] for r in rows]
+            has_data = True
             fig.add_trace(go.Scatter(
-                x=times, y=ranks,
+                x=[r[0] for r in rows],
+                y=[r[1] for r in rows],
                 mode="lines+markers",
                 name=f"#{name}",
                 line=dict(width=2),
+                marker=dict(size=5),
             ))
         conn.close()
+        if not has_data:
+            st.markdown("<div style='color:#555;font-size:13px;padding:20px 0;text-align:center'>Not enough data for velocity chart yet.</div>", unsafe_allow_html=True)
+            return
         fig.update_layout(
-            yaxis=dict(autorange="reversed", title="Rank (lower = better)"),
-            xaxis=dict(title="Time"),
-            height=280,
-            margin=dict(l=0, r=0, t=10, b=0),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+            yaxis=dict(autorange="reversed", title="Rank", gridcolor="#1e1e2e", color="#555", tickfont=dict(size=10)),
+            xaxis=dict(gridcolor="#1e1e2e", color="#555", tickfont=dict(size=9)),
+            height=240,
+            margin=dict(l=0, r=0, t=4, b=0),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=10), bgcolor="rgba(0,0,0,0)"),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
         )
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     except Exception as e:
         st.warning(f"Chart unavailable: {e}")
 
@@ -214,63 +233,44 @@ def velocity_badge(h):
     if is_new:
         return '<span class="badge badge-blue">★ New</span>'
     if change < -3:
-        return f'<span class="badge badge-green">↑ {abs(change)} ranks</span><span class="badge badge-strike">Strike now</span>'
+        return f'<span class="badge badge-green">↑{abs(change)}</span><span class="badge badge-strike">Strike now</span>'
     if change < 0:
-        return f'<span class="badge badge-green">↑ {abs(change)} ranks</span>'
+        return f'<span class="badge badge-green">↑{abs(change)}</span>'
     if change > 3:
-        return f'<span class="badge badge-red">↓ {change} ranks</span>'
+        return f'<span class="badge badge-red">↓{change}</span>'
     return '<span class="badge badge-blue">— stable</span>'
 
 
-def render_hashtag_cards(velocity_data):
-    if not velocity_data:
-        st.info("No data yet. Hit **Refresh** to scrape TikTok.")
+def render_cards(data, platform="tiktok"):
+    if not data:
+        st.markdown("<div style='color:#555;font-size:13px;padding:20px 0;text-align:center'>No data yet — click the platform button above to load trends.</div>", unsafe_allow_html=True)
         return
-    for i, h in enumerate(velocity_data):
-        change = h.get("rank_change", 0)
-        is_new = h.get("is_new", False)
-        card_class = "featured" if (change < -3) else ("faded" if change > 5 else "")
-        badge = velocity_badge(h)
-        category = h.get("category") or "Uncategorized"
-        posts = h.get("posts") or "—"
-        rank = h.get("current_rank") or "—"
-        name = h['name']
-        card_url = h.get("url") or f"https://www.tiktok.com/tag/{name}"
-        platform = h.get("platform", "tiktok")
-        link_label = PLATFORM_CONFIG.get(platform, {}).get("link_label", "↗ View")
+    link_label = PLATFORM_CONFIG.get(platform, {}).get("link_label", "↗ View")
+    for h in data:
+        change   = h.get("rank_change", 0)
+        is_new   = h.get("is_new", False)
+        card_cls = "featured" if change < -3 else ("faded" if change > 5 else "")
+        badge    = velocity_badge(h)
+        category = h.get("category") or "—"
+        posts    = h.get("posts") or "—"
+        rank     = h.get("current_rank") or h.get("rank") or "—"
+        name     = h.get("name", "")
+        url      = h.get("url") or f"https://www.google.com/search?q={name}"
+        prefix   = "#" if platform == "tiktok" else ""
 
-        # TikTok gets deep-link treatment; others open directly
-        if platform == "tiktok":
-            app_url = f"tiktok://tag/{name}"
-            onclick = (
-                f"(function(e){{"
-                f"var m=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);"
-                f"if(m){{e.preventDefault();"
-                f"window.location.href='{app_url}';"
-                f"setTimeout(function(){{window.location.href='{card_url}';}},1500);}}"
-                f"}})(event)"
-            )
-            name_prefix = "#"
-        else:
-            onclick = ""
-            name_prefix = ""
-
-        posts_label = f"{posts}" if posts else "—"
-        if platform == "tiktok":
-            posts_label += " posts"
+        posts_label = f"{posts} posts" if platform == "tiktok" else posts
 
         st.markdown(f"""
-        <a href="{card_url}" target="_blank" style="text-decoration:none" onclick="{onclick}">
-        <div class="ht-card {card_class}" style="cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fe2c55'" onmouseout="this.style.borderColor=''">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <span style="font-size:16px;font-weight:600">{name_prefix}{name}</span>
-              {badge}
-              <div style="font-size:12px;color:#aaa;margin-top:4px">{posts_label} · {category}</div>
+        <a href="{url}" target="_blank" style="text-decoration:none">
+        <div class="ht-card {card_cls}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="flex:1;min-width:0">
+              <span style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">{prefix}{name}</span>
+              <div style="font-size:11px;color:#666;margin-top:2px">{posts_label} · {category}</div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11px;color:#fe2c55">{link_label}</span>
-              <span style="font-size:13px;font-weight:500;color:#aaa">#{rank}</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:10px">
+              {badge}
+              <span style="font-size:11px;color:#555">#{rank}</span>
             </div>
           </div>
         </div>
@@ -278,256 +278,207 @@ def render_hashtag_cards(velocity_data):
         """, unsafe_allow_html=True)
 
 
-# ── Init ───────────────────────────────────────────────────────
-init_db()
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "active_platform" not in st.session_state:
-    st.session_state.active_platform = "tiktok"
+# ══════════════════════════════════════════════════════════════
+# PAGE LAYOUT
+# ══════════════════════════════════════════════════════════════
 
-
-# ── Header ─────────────────────────────────────────────────────
 active_platform = st.session_state.active_platform
 
-# Auto-load if platform has no data yet
-if "loaded_platforms" not in st.session_state:
-    st.session_state.loaded_platforms = set()
-
-if active_platform not in st.session_state.loaded_platforms:
-    existing = get_latest_hashtags(platform=active_platform)
-    if not existing:
-        cfg_auto = PLATFORM_CONFIG[active_platform]
-        with st.spinner(f"Loading {cfg_auto['icon']} {cfg_auto['label']} trends..."):
-            try:
-                results = cfg_auto["scraper"]()
-                if results:
-                    save_snapshot(results, platform=active_platform)
-                    cleanup_old_snapshots(hours=48)
-            except Exception as e:
-                print(f"[AUTO-LOAD] {active_platform} failed: {e}", flush=True)
-    st.session_state.loaded_platforms.add(active_platform)
-
-hashtags = get_latest_hashtags(platform=active_platform)
-is_gpt_fallback = bool(hashtags and hashtags[0].get("source") == "gpt_fallback")
-mins_ago_str = ""
-if hashtags:
-    last_scraped = hashtags[0].get("scraped_at", "")
-    try:
-        ts = datetime.fromisoformat(last_scraped)
-        mins_ago = int((datetime.now() - ts).total_seconds() / 60)
-        mins_ago_str = f'<span class="status-dot"></span><span style="font-size:13px;color:#777">Updated {mins_ago}m ago</span>'
-    except Exception:
-        pass
-
-st.markdown(f"""
-<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0 0.25rem 0">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div style="position:relative;width:44px;height:44px">
-      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="44" height="44" rx="10" fill="#010101"/>
-        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="white"/>
-        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#fe2c55" opacity="0.5" transform="translate(1,1)"/>
-        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#25f4ee" opacity="0.5" transform="translate(-1,-1)"/>
-      </svg>
-    </div>
-    <span style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#fff">
-      Trend<span style="color:#fe2c55">Center</span>
-    </span>
+# ── Header ────────────────────────────────────────────────────
+st.markdown("""
+<div style="display:flex;align-items:center;gap:12px;padding:0.25rem 0 0.5rem 0">
+  <div style="position:relative;width:40px;height:40px;flex-shrink:0">
+    <svg width="40" height="40" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="44" height="44" rx="10" fill="#010101"/>
+      <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="white"/>
+      <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#fe2c55" opacity="0.5" transform="translate(1,1)"/>
+      <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#25f4ee" opacity="0.5" transform="translate(-1,-1)"/>
+    </svg>
   </div>
-  <div style="text-align:right">{mins_ago_str}</div>
+  <div>
+    <div style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.5px;line-height:1;color:#fff">
+      Trend<span style="color:#fe2c55">Center</span>
+    </div>
+    <div style="font-size:12px;color:#555;margin-top:2px">
+      Real-time trends across TikTok · Google · YouTube · Reddit
+    </div>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ── Platform Selector ──────────────────────────────────────────
-st.markdown("<div style='margin:0.5rem 0 0.25rem 0;font-size:12px;font-weight:700;letter-spacing:0.1em;color:#777;text-transform:uppercase'>Select Platform</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size:11px;font-weight:700;letter-spacing:0.08em;color:#444;text-transform:uppercase;margin-bottom:6px'>Click a platform to load trends</div>", unsafe_allow_html=True)
+
 pcols = st.columns(4)
 for idx, (key, cfg) in enumerate(PLATFORM_CONFIG.items()):
     with pcols[idx]:
         is_active = (active_platform == key)
-        btn_style = "background:#fe2c55;color:#fff;border:none;" if is_active else "background:#1e1e2e;color:#aaa;border:0.5px solid #3a3a4a;"
-        if st.button(f"{cfg['icon']} {cfg['label']}", key=f"plat_{key}", use_container_width=True):
+        label = f"🔄 {cfg['icon']} {cfg['label']}" if is_active else f"{cfg['icon']} {cfg['label']}"
+        if st.button(label, key=f"plat_{key}", use_container_width=True,
+                     type="primary" if is_active else "secondary"):
             st.session_state.active_platform = key
+            st.session_state.do_fetch = True
             st.rerun()
 
-st.markdown("---")
+st.markdown("<div style='margin:8px 0 4px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
 
-if is_gpt_fallback:
+
+# ── Main content ───────────────────────────────────────────────
+if not active_platform:
+    # Welcome state
     st.markdown("""
-<div style="background:#2a1a00;border:1px solid #f5a623;border-radius:10px;padding:12px 16px;margin-bottom:0.75rem;display:flex;align-items:center;gap:10px">
-  <span style="font-size:18px">⚠️</span>
-  <div style="font-size:13px;color:#f5a623;line-height:1.5">
-    <b>TikTok Creative Center is temporarily down.</b> Showing AI-generated trend suggestions as a stand-in. Data will automatically switch back to live TikTok data when their site comes back up — just hit Refresh.
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div style="background:#1e1e2e;border:0.5px solid #3a3a4a;border-radius:12px;padding:20px 24px;margin-bottom:0.5rem">
-  <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;color:#fe2c55;text-transform:uppercase;margin-bottom:4px">Built for TikTok content creators</div>
-  <div style="font-size:14px;color:#ccc;line-height:1.6">
-    TrendCenter tracks what's trending on TikTok in real time, tells you which hashtags are climbing fastest, and builds you a full content plan — so you always know what to post and how to make it.
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-card_style = "background:#1e1e2e;border:0.5px solid #3a3a4a;border-radius:10px;padding:14px 16px;height:100%"
-label_style = "font-size:11px;font-weight:700;letter-spacing:0.1em;color:#fe2c55;text-transform:uppercase;margin-bottom:6px"
-body_style = "font-size:13px;color:#aaa;line-height:1.6"
-
-oc1, oc2 = st.columns(2)
-with oc1:
-    st.markdown(f"""
-    <div style="{card_style}">
-      <div style="{label_style}">📊 Dashboard</div>
-      <div style="{body_style}">Hit <b style="color:#e0e0e0">Refresh</b> to load the latest top 20 trending hashtags. Type your niche and hit <b style="color:#e0e0e0">Analyze</b> for AI-filtered results. Watch the velocity leaderboard — <b style="color:#185fa5">Strike now</b> means post today before it peaks. Tap any card to view it live on TikTok.</div>
-    </div>
-    """, unsafe_allow_html=True)
-with oc2:
-    st.markdown(f"""
-    <div style="{card_style}">
-      <div style="{label_style}">🎬 Blueprint Generator</div>
-      <div style="{body_style}">Pick hashtags from the top 20 using checkboxes, hit <b style="color:#e0e0e0">Generate Blueprint</b>, and get a full production plan — hook, script outline, visual style, ready-to-paste caption, best time to post, and which tool to use.</div>
+    <div style="text-align:center;padding:70px 20px 50px 20px">
+      <div style="font-size:52px;margin-bottom:14px">📡</div>
+      <div style="font-size:22px;font-weight:700;color:#ccc;margin-bottom:8px">What's trending right now?</div>
+      <div style="font-size:14px;color:#555;line-height:1.7;max-width:420px;margin:0 auto">
+        Pick a platform above to see the top 20 trends in real time.<br>
+        Use the tools below to build content, research niches, or chat with the AI.
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
-oc3, oc4 = st.columns(2)
-with oc3:
-    st.markdown(f"""
-    <div style="{card_style}">
-      <div style="{label_style}">🔍 Niche Research</div>
-      <div style="{body_style}">Not in the top 20? Type any topic — pickleball, van life, budget cooking — and the AI finds 15 relevant hashtags with competition level and best content format. Select what you want and generate a blueprint instantly.</div>
-    </div>
-    """, unsafe_allow_html=True)
-with oc4:
-    st.markdown(f"""
-    <div style="{card_style}">
-      <div style="{label_style}">💬 Ask the Agent</div>
-      <div style="{body_style}">Chat with the AI in plain English. Ask what's blowing up right now, which hashtags to avoid, or get content strategy advice for your specific niche. No forms — just talk.</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.divider()
-
-
-# ── Tabs ───────────────────────────────────────────────────────
-tab_dash, tab_blueprint, tab_niche, tab_chat = st.tabs(["📊 Dashboard", "🎬 Blueprint Generator", "🔍 Niche Research", "💬 Ask the Agent"])
-
-
-# ═══════════════════════════════════════════════════════════════
-# DASHBOARD TAB
-# ═══════════════════════════════════════════════════════════════
-with tab_dash:
-
-    col_input, col_btn, col_scrape = st.columns([4, 1, 1])
-    with col_input:
-        niche = st.text_input(
-            "Your niche",
-            placeholder="e.g. fitness, fashion, sports, cooking...",
-            label_visibility="collapsed"
-        )
-    with col_btn:
-        analyze = st.button("Analyze", type="primary", use_container_width=True)
-    with col_scrape:
-        if st.button("🔄 Refresh", use_container_width=True):
-            cfg = PLATFORM_CONFIG[active_platform]
-            print(f"[REFRESH] Manual refresh for {active_platform}", flush=True)
-            with st.spinner(f"Fetching {cfg['label']} trends..."):
-                results = cfg["scraper"]()
-                if results:
-                    save_snapshot(results, platform=active_platform)
-                    cleanup_old_snapshots(hours=48)
-            print("[REFRESH] Done", flush=True)
-            st.success(f"{cfg['icon']} {cfg['label']} data refreshed!")
-            st.rerun()
-
-    st.markdown("---")
-
-    # Metrics
+else:
+    hashtags     = get_latest_hashtags(platform=active_platform)
     velocity_data = get_hashtag_velocity(platform=active_platform)
-    all_hashtags = get_latest_hashtags(platform=active_platform)
-    climbing = [h for h in velocity_data if h.get("rank_change", 0) < 0]
-    new_ones = [h for h in velocity_data if h.get("is_new")]
+    cfg          = PLATFORM_CONFIG[active_platform]
+    color        = cfg["color"]
+    is_gpt       = bool(hashtags and hashtags[0].get("source") == "gpt_fallback")
+    climbing     = [h for h in velocity_data if h.get("rank_change", 0) < 0]
+    new_ones     = [h for h in velocity_data if h.get("is_new")]
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Tracked", len(all_hashtags))
-    m2.metric("Climbing ↑", len(climbing))
-    m3.metric("New Entries", len(new_ones))
-    m4.metric("DB Snapshots", get_snapshot_count())
+    # Status bar
+    mins_ago_str = "just now"
+    if hashtags:
+        try:
+            ts = datetime.fromisoformat(hashtags[0].get("scraped_at", ""))
+            mins = int((datetime.now() - ts).total_seconds() / 60)
+            mins_ago_str = f"{mins}m ago" if mins > 0 else "just now"
+        except Exception:
+            pass
 
-    st.markdown("---")
+    dot = "dot-gpt" if is_gpt else "dot-live"
+    src = "AI data" if is_gpt else "Live"
 
-    # Velocity chart
-    st.markdown("**Rank velocity — all scrapes**")
-    render_velocity_chart(velocity_data)
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:17px;font-weight:700;color:{color}">{cfg['icon']} {cfg['label']}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="status-pill"><span class="{dot}"></span>{src}</span>
+        <span class="status-pill">🕐 {mins_ago_str}</span>
+        <span class="status-pill">📊 {len(hashtags)} trends</span>
+        <span class="status-pill">📈 {len(climbing)} climbing</span>
+        <span class="status-pill">✨ {len(new_ones)} new</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("---")
+    # GPT warning
+    if is_gpt:
+        platform_name = cfg["label"]
+        st.markdown(f"""
+        <div style="background:#1f1500;border:1px solid #f5a623;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+          <span>⚠️</span>
+          <div style="font-size:12px;color:#f5a623;line-height:1.5">
+            <b>{platform_name} is temporarily unavailable.</b> Showing AI-generated trend suggestions. Hit 🔄 {platform_name} above to check for live data.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # Recommendations or leaderboard
-    if analyze and niche:
-        st.markdown(f"**Recommendations for: *{niche}***")
-        with st.spinner("Agent is analyzing trends..."):
-            answer = run_agent(
-                f"I make {niche} content. What hashtags should I use right now? "
-                "For each relevant one, give me 3 content ideas."
-            )
-        st.markdown(answer)
+    # ── Side-by-side: chart + cards ────────────────────────────
+    left_col, right_col = st.columns([4, 6], gap="large")
 
-    else:
-        st.markdown("**Trending now — velocity leaderboard**")
-        render_hashtag_cards(velocity_data[:10] if velocity_data else all_hashtags[:10])
+    with left_col:
+        st.markdown(f"<div style='font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px'>Rank velocity</div>", unsafe_allow_html=True)
+        render_velocity_chart(velocity_data, platform=active_platform)
+
+        # Niche analyze below chart
+        st.markdown("<div style='margin:12px 0 6px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px'>Filter by niche</div>", unsafe_allow_html=True)
+        niche = st.text_input("niche", placeholder="fitness, fashion, gaming...", label_visibility="collapsed", key="niche_filter")
+        analyze = st.button("🔍 Analyze", type="primary", use_container_width=True)
+        if analyze and niche:
+            with st.spinner("Analyzing..."):
+                answer = run_agent(
+                    f"I make {niche} content. Looking at these trending topics: "
+                    f"{[h['name'] for h in hashtags[:20]]}. "
+                    "Which ones fit my niche and why? Give me 2 content ideas for the top 3."
+                )
+            st.markdown(f"<div style='font-size:13px;color:#ccc;line-height:1.6;margin-top:8px'>{answer}</div>", unsafe_allow_html=True)
+
+    with right_col:
+        display_data = velocity_data[:10] if velocity_data else hashtags[:10]
+        st.markdown(f"<div style='font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px'>Trending now — top 10</div>", unsafe_allow_html=True)
+        render_cards(display_data, platform=active_platform)
+
+
+# ── Feature tabs (always visible) ─────────────────────────────
+st.markdown("<div style='margin:16px 0 4px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
+tab_bp, tab_niche, tab_chat = st.tabs(["🎬 Blueprint Generator", "🔍 Niche Research", "💬 Ask the Agent"])
 
 
 # ═══════════════════════════════════════════════════════════════
 # BLUEPRINT TAB
 # ═══════════════════════════════════════════════════════════════
-with tab_blueprint:
-    st.markdown("**Select the hashtags you want a content blueprint for:**")
-
-    bp_hashtags = get_latest_hashtags(platform=active_platform)
-    cfg_bp = PLATFORM_CONFIG[active_platform]
-    if not bp_hashtags:
-        st.info(f"No {cfg_bp['label']} trends yet — hit Refresh on the Dashboard first.")
+with tab_bp:
+    if not active_platform:
+        st.markdown("<div style='color:#555;font-size:14px;padding:20px 0'>Select a platform above first to pick trends for your blueprint.</div>", unsafe_allow_html=True)
     else:
-        bp_niche = st.text_input(
-            "Your niche (optional)",
-            placeholder="e.g. fitness, fashion, food...",
-            key="bp_niche"
-        )
+        bp_hashtags = get_latest_hashtags(platform=active_platform)
+        cfg_bp = PLATFORM_CONFIG[active_platform]
+        if not bp_hashtags:
+            st.info(f"No {cfg_bp['label']} trends yet — click 🔄 {cfg_bp['label']} above to load.")
+        else:
+            st.markdown(f"<div style='font-size:13px;color:#aaa;margin-bottom:12px'>Select trends from <b style='color:{cfg_bp['color']}'>{cfg_bp['icon']} {cfg_bp['label']}</b> to build a content blueprint.</div>", unsafe_allow_html=True)
 
-        selected = []
-        cols = st.columns(2)
-        for i, h in enumerate(bp_hashtags):
-            with cols[i % 2]:
-                checked = st.checkbox(f"#{h['name']}", key=f"bp_{active_platform}_{i}")
-                if checked:
-                    selected.append(h['name'])
+            bp_niche = st.text_input(
+                "Your niche (optional)",
+                placeholder="e.g. fitness, fashion, food...",
+                key="bp_niche"
+            )
 
-        st.markdown("---")
-        generate_btn = st.button("🎬 Generate Blueprint", type="primary", use_container_width=True, disabled=len(selected) == 0)
+            selected = []
+            cols = st.columns(2)
+            for i, h in enumerate(bp_hashtags):
+                with cols[i % 2]:
+                    prefix = "#" if active_platform == "tiktok" else ""
+                    checked = st.checkbox(f"{prefix}{h['name']}", key=f"bp_{active_platform}_{i}")
+                    if checked:
+                        selected.append(h['name'])
 
-        if generate_btn and selected:
-            niche_label = bp_niche.strip() if bp_niche.strip() else "content creator"
-            with st.spinner(f"Building blueprints for {len(selected)} hashtag(s)..."):
-                blueprint = generate_blueprint(selected, niche_label)
             st.markdown("---")
-            st.markdown(blueprint)
+            generate_btn = st.button(
+                "🎬 Generate Blueprint",
+                type="primary",
+                use_container_width=True,
+                disabled=len(selected) == 0
+            )
+            if generate_btn and selected:
+                niche_label = bp_niche.strip() if bp_niche.strip() else "content creator"
+                with st.spinner(f"Building blueprints for {len(selected)} trend(s)..."):
+                    blueprint = generate_blueprint(selected, niche_label)
+                st.markdown("---")
+                st.markdown(blueprint)
 
 
 # ═══════════════════════════════════════════════════════════════
 # NICHE RESEARCH TAB
 # ═══════════════════════════════════════════════════════════════
 with tab_niche:
-    st.markdown("**Search any topic to find relevant TikTok hashtags — even if they're not in the top 20.**")
-    st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:1rem'>Type a niche or topic, see which hashtags fit it, then generate a full content blueprint for the ones you want.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:12px'>Type any topic to find relevant hashtags — even if they're not in the top 20 — then generate a full content blueprint.</div>", unsafe_allow_html=True)
 
     nr_col1, nr_col2 = st.columns([4, 1])
     with nr_col1:
-        nr_topic = st.text_input("Topic", placeholder="e.g. pickleball, van life, budget cooking, nail art...", label_visibility="collapsed", key="nr_topic")
+        nr_topic = st.text_input(
+            "Topic",
+            placeholder="e.g. pickleball, van life, budget cooking, nail art...",
+            label_visibility="collapsed",
+            key="nr_topic"
+        )
     with nr_col2:
         nr_search = st.button("🔍 Search", type="primary", use_container_width=True)
 
     if nr_search and nr_topic.strip():
-        with st.spinner(f"Researching hashtags for '{nr_topic}'..."):
+        with st.spinner(f"Researching '{nr_topic}'..."):
             st.session_state["nr_results"] = research_niche_hashtags(nr_topic.strip())
             st.session_state["nr_topic_label"] = nr_topic.strip()
 
@@ -536,16 +487,16 @@ with tab_niche:
 
     if nr_results:
         st.markdown("---")
-        st.markdown(f"**{len(nr_results)} hashtags found for: *{nr_topic_label}***")
-        st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:0.75rem'>Check the ones you want to create content for, then hit Generate Blueprint.</div>", unsafe_allow_html=True)
+        st.markdown(f"**{len(nr_results)} hashtags for: *{nr_topic_label}***")
+        st.markdown("<div style='font-size:12px;color:#555;margin-bottom:8px'>Check the ones you want, then generate a blueprint.</div>", unsafe_allow_html=True)
 
         nr_selected = []
         for h in nr_results:
             competition = h.get("competition", "Medium")
-            comp_color = {"Low": "#0f6e56", "Medium": "#7a5c00", "High": "#993c1d"}.get(competition, "#555")
-            comp_bg = {"Low": "#e1f5ee", "Medium": "#fef9e7", "High": "#faece7"}.get(competition, "#333")
+            comp_color = {"Low": "#3dd68c", "Medium": "#fbbf24", "High": "#f87171"}.get(competition, "#aaa")
+            comp_bg    = {"Low": "#0f3d2e", "Medium": "#3d2e0f", "High": "#3d0f0f"}.get(competition, "#222")
             content_type = h.get("content_type", "")
-            description = h.get("description", "")
+            description  = h.get("description", "")
             name = h.get("name", "")
 
             col_check, col_card = st.columns([0.5, 9.5])
@@ -558,18 +509,23 @@ with tab_niche:
                 <div class="ht-card" style="margin-bottom:6px">
                   <div style="display:flex;justify-content:space-between;align-items:flex-start">
                     <div>
-                      <span style="font-size:15px;font-weight:600">#{name}</span>
-                      <span class="badge" style="background:{comp_bg};color:{comp_color};margin-left:8px">{competition} competition</span>
-                      <span class="badge badge-blue" style="margin-left:4px">{content_type}</span>
-                      <div style="font-size:12px;color:#aaa;margin-top:4px">{description}</div>
+                      <span style="font-size:14px;font-weight:600">#{name}</span>
+                      <span class="badge" style="background:{comp_bg};color:{comp_color}">{competition}</span>
+                      <span class="badge badge-blue">{content_type}</span>
+                      <div style="font-size:11px;color:#555;margin-top:3px">{description}</div>
                     </div>
                   </div>
                 </div>
                 """, unsafe_allow_html=True)
 
         st.markdown("---")
-        nr_generate = st.button("🎬 Generate Blueprint", type="primary", use_container_width=True, disabled=len(nr_selected) == 0, key="nr_gen_btn")
-
+        nr_generate = st.button(
+            "🎬 Generate Blueprint",
+            type="primary",
+            use_container_width=True,
+            disabled=len(nr_selected) == 0,
+            key="nr_gen_btn"
+        )
         if nr_generate and nr_selected:
             with st.spinner(f"Building blueprints for {len(nr_selected)} hashtag(s)..."):
                 blueprint = generate_blueprint(nr_selected, nr_topic_label)
@@ -581,7 +537,6 @@ with tab_niche:
 # CHAT TAB
 # ═══════════════════════════════════════════════════════════════
 with tab_chat:
-
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
@@ -598,6 +553,7 @@ with tab_chat:
             st.markdown(response)
         st.session_state.chat_history.append({"role": "assistant", "content": response})
 
-    if st.button("Clear chat"):
-        st.session_state.chat_history = []
-        st.rerun()
+    if st.session_state.chat_history:
+        if st.button("Clear chat", key="clear_chat"):
+            st.session_state.chat_history = []
+            st.rerun()
