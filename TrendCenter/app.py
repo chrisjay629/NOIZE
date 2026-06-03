@@ -417,34 +417,6 @@ for idx, (key, cfg) in enumerate(PLATFORM_CONFIG.items()):
 
 st.markdown("<div style='margin:8px 0 8px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
 
-# ── Niche Pulse Search (always visible) ───────────────────────
-np_col1, np_col2, np_col3 = st.columns([5, 1, 1])
-with np_col1:
-    pulse_niche = st.text_input(
-        "niche_pulse_input",
-        placeholder="🔍  Search a niche across all platforms — e.g. pokemon, fitness, cooking...",
-        label_visibility="collapsed",
-        key="pulse_niche_input"
-    )
-with np_col2:
-    pulse_search = st.button("Analyze All", type="primary", use_container_width=True)
-with np_col3:
-    if st.button("✕ Clear", use_container_width=True, disabled=not st.session_state.pulse_results):
-        st.session_state.pulse_results = None
-        st.session_state.pulse_query = ""
-        st.rerun()
-
-if pulse_search and pulse_niche.strip():
-    with st.spinner(f"Scanning all 4 platforms for '{pulse_niche.strip()}'..."):
-        st.session_state.pulse_results = niche_pulse(pulse_niche.strip())
-        st.session_state.pulse_query = pulse_niche.strip()
-
-# Show pulse results if active
-if st.session_state.pulse_results:
-    render_niche_pulse(st.session_state.pulse_results, st.session_state.pulse_query)
-    st.markdown("<div style='margin:12px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
-
-
 # ── Main content ───────────────────────────────────────────────
 if not active_platform:
     # Welcome state
@@ -521,7 +493,46 @@ else:
 
 # ── Feature tabs (always visible) ─────────────────────────────
 st.markdown("<div style='margin:16px 0 4px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
-tab_bp, tab_niche, tab_chat = st.tabs(["🎬 Blueprint Generator", "🔍 Niche Research", "💬 Ask the Agent"])
+tab_all, tab_bp, tab_niche, tab_chat = st.tabs(["🌐 All Platforms", "🎬 Blueprint Generator", "🔍 Niche Research", "💬 Ask the Agent"])
+
+
+# ═══════════════════════════════════════════════════════════════
+# ALL PLATFORMS TAB
+# ═══════════════════════════════════════════════════════════════
+with tab_all:
+    st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:14px'>Type any topic and see the top 3 trending stories or hashtags from <b style='color:#ccc'>all 4 platforms</b> at once. Falls back to AI if a platform has no live data.</div>", unsafe_allow_html=True)
+
+    ap_col1, ap_col2 = st.columns([5, 1])
+    with ap_col1:
+        ap_topic = st.text_input(
+            "topic",
+            placeholder="e.g. pokemon, elections, fitness, Taylor Swift, AI...",
+            label_visibility="collapsed",
+            key="ap_topic"
+        )
+    with ap_col2:
+        ap_search = st.button("🔍 Search", type="primary", use_container_width=True, key="ap_search_btn")
+
+    if ap_search and ap_topic.strip():
+        with st.spinner(f"Scanning TikTok · Google · YouTube · Reddit for \"{ap_topic.strip()}\"..."):
+            st.session_state.pulse_results = niche_pulse(ap_topic.strip())
+            st.session_state.pulse_query   = ap_topic.strip()
+
+    if st.session_state.pulse_results and st.session_state.pulse_query:
+        st.markdown("---")
+        render_niche_pulse(st.session_state.pulse_results, st.session_state.pulse_query)
+        if st.button("✕ Clear results", key="ap_clear"):
+            st.session_state.pulse_results = None
+            st.session_state.pulse_query   = ""
+            st.rerun()
+    elif not st.session_state.pulse_results:
+        st.markdown("""
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:36px;margin-bottom:10px">🌐</div>
+          <div style="font-size:15px;font-weight:600;color:#aaa;margin-bottom:6px">Search any topic</div>
+          <div style="font-size:13px;color:#555">Type a topic above and hit Search to see what's trending across all platforms right now.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════
