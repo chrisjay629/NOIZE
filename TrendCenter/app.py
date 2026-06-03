@@ -109,10 +109,10 @@ st.markdown("""
    Borders: rgba(255,255,255,0.08) · Green: #A3FF12
    ══════════════════════════════════════════════════════════════ */
 :root {
-  --bg:           #1c1c1c;
-  --surface:      #272727;
-  --surface-alt:  #2e2e2e;
-  --surface-2:    #272727;
+  --bg:           #070B10;
+  --surface:      #0E131B;
+  --surface-alt:  #151B24;
+  --surface-2:    #0E131B;
   --border:       rgba(255,255,255,0.08);
   --border-2:     rgba(255,255,255,0.06);
   --tx1:          #F5F7FA;
@@ -157,11 +157,11 @@ html, body, [class*="css"] {
   background-image: var(--app-grid) !important;
 }
 
-.block-container { padding: 1.2rem 1.6rem 3rem 1.6rem !important; max-width: 100% !important; }
+.block-container { padding: 0.75rem 1.2rem 2rem 1.2rem !important; max-width: 100% !important; }
 
 /* ── Sidebar — Command Center ── */
 [data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #141414 0%, #1c1c1c 100%) !important;
+  background: linear-gradient(180deg, #080C12 0%, #0E131B 100%) !important;
   border-right: 1px solid var(--sb-border) !important;
   box-shadow: 4px 0 32px rgba(0,0,0,0.6) !important;
 }
@@ -459,7 +459,7 @@ def render_case_cards(data, platform="tiktok"):
     thumb_b64 = CASE_FOLDER_LIGHT_B64 if theme == "day" else CASE_FOLDER_DARK_B64
     thumb_src = f"data:image/jpeg;base64,{thumb_b64}" if thumb_b64 else ""
     # Premium card shadow: deeper in night mode
-    card_bg     = "#272727" if theme == "night" else "var(--surface)"
+    card_bg     = "#171F29" if theme == "night" else "var(--surface)"
     card_shadow = "0 20px 60px rgba(0,0,0,0.50),0 1px 0 rgba(255,255,255,0.04) inset,0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else "0 2px 12px rgba(0,0,0,0.10)"
     for row_start in range(0, min(len(data), 9), 3):
         row  = data[row_start:row_start+3]
@@ -587,7 +587,7 @@ def render_detective_briefing(articles):
         leads_html = '<div style="color:var(--tx4);font-size:12px;padding:10px">Loading intelligence...</div>'
     view_btn = '<a href="#" style="display:block;text-align:center;margin-top:10px;padding:8px;background:var(--lime-bg);border:1px solid var(--lime-border);border-radius:8px;font-size:10px;font-weight:700;color:var(--lime-t);text-decoration:none;letter-spacing:0.06em">VIEW FULL BRIEFING →</a>'
     ts_str      = datetime.now().strftime("%H:%M · %b %d")
-    panel_bg    = "background:rgba(15,26,40,0.80);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if theme == "night" else "background:var(--surface-alt)"
+    panel_bg    = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)" if theme == "night" else "background:var(--surface-alt)"
     panel_shad  = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else ""
     st.markdown(
         f'<div style="{panel_bg};border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px{panel_shad}">'
@@ -655,9 +655,9 @@ def render_trend_radar(velocity_data, platform="tiktok"):
         showlegend=False,
     )
     # Radar panel header — glass treatment in night mode
-    _radar_bg   = "background:rgba(20,20,20,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if is_night else "background:var(--surface-alt)"
-    _radar_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.55),0 0 0 1px rgba(163,255,18,0.12)" if is_night else ""
-    _radar_bord = "border:1px solid rgba(163,255,18,0.15)" if is_night else "border:1px solid var(--border-2)"
+    _radar_bg   = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)" if is_night else "background:var(--surface-alt)"
+    _radar_shad = ";box-shadow:0 20px 60px rgba(0,0,0,0.45)" if is_night else ""
+    _radar_bord = "border:1px solid rgba(163,255,18,0.18)" if is_night else "border:1px solid var(--border-2)"
     _live_glow  = f";text-shadow:0 0 10px {_r_lime}" if is_night else ""
     st.markdown(
         f'<div style="{_radar_bg};{_radar_bord};border-radius:14px;padding:14px 14px 10px;margin-bottom:12px{_radar_shad}">'
@@ -879,7 +879,46 @@ articles = st.session_state.trend_articles
 # Sidebar | Center (Hero + Cases) | Right (Briefing + Radar)
 # ═════════════════════════════════════════════════════════════════
 
-_bottom_fade_color = "28,28,28" if theme == "night" else "26,37,56"
+_bottom_fade_color = "7,11,16" if theme == "night" else "26,37,56"
+
+# ── Full-width hero background spanning BOTH columns ─────────────
+_hero_overlay_css = hero_overlay
+st.markdown(f"""
+<style>
+/* Hero spans center + right column — creates shared atmosphere */
+[data-testid="stHorizontalBlock"]:first-of-type {{
+  background-image: {_hero_overlay_css}, url('data:image/jpeg;base64,{hero_b64 or ""}');
+  background-size: cover;
+  background-position: 65% 20%;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  position: relative;
+}}
+[data-testid="stHorizontalBlock"]:first-of-type::after {{
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 120px;
+  background: linear-gradient(180deg, transparent 0%, #070B10 100%);
+  pointer-events: none;
+  z-index: 0;
+}}
+</style>
+<script>
+(function() {{
+  var tgt = null;
+  function init() {{
+    tgt = document.querySelector('[data-testid="stHorizontalBlock"]');
+  }}
+  document.addEventListener('mousemove', function(e) {{
+    if (!tgt) init();
+    if (!tgt) return;
+    var x = (e.clientX / window.innerWidth  - 0.5) * -8;
+    var y = (e.clientY / window.innerHeight - 0.5) * -6;
+    tgt.style.backgroundPosition = 'calc(65% + '+x+'px) calc(20% + '+y+'px), calc(65% + '+x+'px) calc(20% + '+y+'px)';
+  }});
+}})();
+</script>
+""", unsafe_allow_html=True)
 
 main_col, right_col = st.columns([7, 3], gap="medium")
 
@@ -888,10 +927,9 @@ with right_col:
     render_detective_briefing(articles)
     radar_vel = get_hashtag_velocity(platform=active_platform or "tiktok")
     render_trend_radar(radar_vel, platform=active_platform or "tiktok")
-    _wl_bg   = "background:rgba(15,26,40,0.80);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if theme == "night" else "background:var(--surface-alt)"
-    _wl_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else ""
+    _wl_style = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.45)" if theme == "night" else "background:var(--surface-alt);border:1px solid var(--border)"
     st.markdown(
-        f'<div style="{_wl_bg};border:1px solid var(--border-2);border-radius:14px;padding:14px{_wl_shad}">'
+        f'<div style="{_wl_style};border-radius:14px;padding:14px">'
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
         '<div style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--tx3);letter-spacing:0.14em;text-transform:uppercase">⭐ WATCHLIST</div>'
         '<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em">MANAGE →</span>'
@@ -908,29 +946,26 @@ with right_col:
 # ── MAIN CONTENT ──────────────────────────────────────────────────
 with main_col:
 
-    # ── HERO — inside main column so right panel aligns with top ──
+    # ── HERO content — background comes from shared wrapper CSS ──
     st.markdown(
-        f'<div style="{bg_style}border-radius:12px;position:relative;overflow:hidden;margin-bottom:12px;min-height:380px">'
-        f'<div style="position:absolute;inset:0;background:{hero_overlay}"></div>'
-        f'<div style="position:absolute;bottom:0;left:0;right:0;height:100px;background:linear-gradient(180deg,rgba({_bottom_fade_color},0) 0%,rgba({_bottom_fade_color},1.0) 100%)"></div>'
-        f'<div style="position:relative;padding:32px 36px 28px 36px">'
-        f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
-        f'<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#0d1520"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/><rect x="7" y="18" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="17" y="9" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="27" y="13" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/></svg>'
-        f'<div><div style="font-family:Inter,sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.5)">ze</span></div>'
-        f'<div style="font-size:9px;color:rgba(255,255,255,0.32);letter-spacing:0.2em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
+        f'<div style="position:relative;z-index:2;padding:28px 32px 200px 32px">'
+        f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'
+        f'<svg width="38" height="38" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="rgba(13,21,32,0.7)"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/></svg>'
+        f'<div><div style="font-family:Inter,sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.6)">ze</span></div>'
+        f'<div style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.22em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
         f'</div></div>'
-        f'<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.9;margin-bottom:18px;font-family:Inter,sans-serif">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
-        f'<div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px">'
-        f'<span style="font-size:14px;opacity:0.45">🔍</span>'
-        f'<span style="font-size:13px;color:rgba(255,255,255,0.30);font-family:Inter,sans-serif">Investigate any topic, keyword or trend...</span>'
-        f'<div style="margin-left:auto;background:#A3FF12;color:#080e14;font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 12px rgba(163,255,18,0.35)">INVESTIGATE →</div>'
+        f'<div style="font-size:11px;color:rgba(255,255,255,0.40);line-height:1.8;margin-bottom:14px;font-family:Inter,sans-serif">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
+        f'<div style="background:rgba(0,0,0,0.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+        f'<span style="font-size:14px;opacity:0.35">🔍</span>'
+        f'<span style="font-size:12px;color:rgba(255,255,255,0.25);font-family:Inter,sans-serif">Investigate any topic, keyword or trend...</span>'
+        f'<div style="margin-left:auto;background:#A3FF12;color:#070B10;font-size:10px;font-weight:800;padding:5px 12px;border-radius:6px;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0;box-shadow:0 0 20px rgba(163,255,18,0.40)">INVESTIGATE →</div>'
         f'</div>'
-        f'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
-        f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.18);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap;font-family:Inter,sans-serif">Popular:</span>'
+        f'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">'
+        f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.15);text-transform:uppercase;letter-spacing:0.12em;white-space:nowrap">Popular:</span>'
         f'{popular_chips}'
         f'</div>'
         f'{chips_html}'
-        f'</div></div>',
+        f'</div>',
         unsafe_allow_html=True
     )
 
