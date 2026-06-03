@@ -943,15 +943,6 @@ def render_strange_radar(signals):
         if idx is not None:
             st.session_state.strange_sel = int(idx)
 
-    # clickable legend buttons (reliable fallback to fiddly blip clicks)
-    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-    lg = st.columns(n)
-    for i, s in enumerate(signals):
-        with lg[i]:
-            col = SIGNAL_TYPE_COLORS.get(s["type"], "#A3FF12")
-            if st.button(f"{i+1} · {s['type']}", key=f"strange_btn_{i}", use_container_width=True):
-                st.session_state.strange_sel = i
-
     # selected case file — Pugson's full on-site write-up
     sel = st.session_state.get("strange_sel")
     if sel is not None and 0 <= sel < n:
@@ -960,7 +951,7 @@ def render_strange_radar(signals):
     else:
         st.markdown(
             "<div style='text-align:center;padding:14px;font-size:12px;color:var(--tx4)'>"
-            "Click a blip on the radar (or a button above) to open the case file.</div>",
+            "Click a blip on the radar (or a file in Classified Files) to open the case.</div>",
             unsafe_allow_html=True)
 
 
@@ -1069,12 +1060,6 @@ def render_strange_radar_mini(signals):
         idx = cd[0] if isinstance(cd, list) else cd
         if idx is not None:
             _open(idx)
-
-    bcols = st.columns(n)
-    for i in range(n):
-        with bcols[i]:
-            if st.button(str(i + 1), key=f"strange_mini_btn_{i}", use_container_width=True):
-                _open(i)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
