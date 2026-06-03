@@ -149,7 +149,25 @@ html, body, [class*="css"] {
   font-family: var(--body-font) !important;
   background: var(--bg) !important;
 }
-[data-testid="stHeader"] { display: none !important; }
+/* Hide the header chrome but KEEP the sidebar collapse/re-open control so the
+   sidebar can never get stuck collapsed (its re-open arrow lives in the header). */
+[data-testid="stHeader"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+[data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] {
+  display: none !important;
+}
+[data-testid="stSidebarCollapsedControl"] {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 999999 !important;
+}
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="stSidebarCollapsedControl"] svg { color: var(--lime-t) !important; fill: var(--lime-t) !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
 .stApp {
