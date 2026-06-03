@@ -4,6 +4,7 @@ import time
 import base64
 import io
 import streamlit as st
+import streamlit.components.v1 as components
 import plotly.graph_objects as go
 from datetime import datetime
 
@@ -383,6 +384,72 @@ if theme == "day":
     .stApp { background-color: #1a2538 !important; }
     </style>
     """, unsafe_allow_html=True)
+
+# ── Sidebar resize + collapse JS (injected via components to allow scripts) ──
+components.html("""
+<script>
+(function() {
+  var doc = window.parent.document;
+  var sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+  if (!sidebar) return;
+  sidebar.style.position = 'relative';
+
+  var EXPANDED_W = parseInt(localStorage.getItem('noize_sidebar_width')) || 244;
+  var collapsed  = localStorage.getItem('noize_sidebar_collapsed') === 'true';
+
+  // Inject collapse toggle button into parent doc
+  var btn = doc.getElementById('sb-toggle-btn');
+  if (!btn) {
+    btn = doc.createElement('button');
+    btn.id = 'sb-toggle-btn';
+    btn.style.cssText = 'position:fixed;bottom:20px;left:12px;z-index:9999;background:#0E131B;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;color:#8B93A7;transition:all 0.15s';
+    btn.onmouseover = function(){ btn.style.background='rgba(163,255,18,0.07)'; btn.style.color='#A3FF12'; btn.style.borderColor='rgba(163,255,18,0.2)'; };
+    btn.onmouseout  = function(){ btn.style.background='#0E131B'; btn.style.color='#8B93A7'; btn.style.borderColor='rgba(255,255,255,0.08)'; };
+    doc.body.appendChild(btn);
+  }
+
+  function applyState() {
+    if (collapsed) {
+      sidebar.style.width = '60px';
+      sidebar.style.minWidth = '60px';
+      btn.textContent = '▶';
+    } else {
+      sidebar.style.width = EXPANDED_W + 'px';
+      sidebar.style.minWidth = '60px';
+      btn.textContent = '◀';
+    }
+  }
+
+  btn.addEventListener('click', function() {
+    collapsed = !collapsed;
+    localStorage.setItem('noize_sidebar_collapsed', collapsed);
+    applyState();
+  });
+
+  applyState();
+
+  // Resize drag handle
+  var handle = doc.getElementById('sb-resize-handle');
+  var dragging = false;
+  if (handle) {
+    handle.addEventListener('mousedown', function(e) { dragging = true; e.preventDefault(); });
+  }
+  doc.addEventListener('mousemove', function(e) {
+    if (!dragging || collapsed) return;
+    var rect = sidebar.getBoundingClientRect();
+    var w = Math.min(400, Math.max(200, e.clientX - rect.left));
+    sidebar.style.width = w + 'px';
+    EXPANDED_W = w;
+  });
+  doc.addEventListener('mouseup', function() {
+    if (dragging) {
+      dragging = false;
+      localStorage.setItem('noize_sidebar_width', EXPANDED_W);
+    }
+  });
+})();
+</script>
+""", height=0)
 
 # ── Fetch on demand ───────────────────────────────────────────────
 if st.session_state.do_fetch and st.session_state.active_platform:
@@ -854,63 +921,8 @@ with st.sidebar:
       </div>
     </div>""", unsafe_allow_html=True)
 
-    # Resize handle + collapse toggle JS
-    st.markdown("""
-    <div class="sidebar-resize-handle" id="sb-resize-handle"></div>
-    <button class="sb-toggle-btn" id="sb-toggle-btn" title="Collapse/Expand sidebar">◀</button>
-    <script>
-    (function() {
-      var sidebar = document.querySelector('section[data-testid="stSidebar"]');
-      if (!sidebar) return;
-      sidebar.style.position = 'relative';
-
-      var EXPANDED_W = parseInt(localStorage.getItem('noize_sidebar_width')) || 244;
-      var collapsed = localStorage.getItem('noize_sidebar_collapsed') === 'true';
-
-      function applyState() {
-        if (collapsed) {
-          sidebar.style.width = '60px';
-          btn.textContent = '▶';
-        } else {
-          sidebar.style.width = EXPANDED_W + 'px';
-          btn.textContent = '◀';
-        }
-      }
-
-      // Toggle button
-      var btn = document.getElementById('sb-toggle-btn');
-      if (btn) {
-        btn.addEventListener('click', function() {
-          collapsed = !collapsed;
-          localStorage.setItem('noize_sidebar_collapsed', collapsed);
-          applyState();
-        });
-      }
-
-      applyState();
-
-      // Resize drag
-      var handle = document.getElementById('sb-resize-handle');
-      var dragging = false;
-      if (handle) {
-        handle.addEventListener('mousedown', function(e) { dragging = true; e.preventDefault(); });
-      }
-      document.addEventListener('mousemove', function(e) {
-        if (!dragging || collapsed) return;
-        var rect = sidebar.getBoundingClientRect();
-        var w = Math.min(400, Math.max(200, e.clientX - rect.left));
-        sidebar.style.width = w + 'px';
-        EXPANDED_W = w;
-      });
-      document.addEventListener('mouseup', function() {
-        if (dragging) {
-          dragging = false;
-          localStorage.setItem('noize_sidebar_width', EXPANDED_W);
-        }
-      });
-    })();
-    </script>
-    """, unsafe_allow_html=True)
+    # Resize handle div (styled via CSS above)
+    st.markdown('<div class="sidebar-resize-handle" id="sb-resize-handle"></div>', unsafe_allow_html=True)
 
     active_nav = st.session_state.active_nav
     st.markdown('<div style="padding:8px 0">', unsafe_allow_html=True)
