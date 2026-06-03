@@ -171,7 +171,11 @@ html, body, [class*="css"] {
   box-shadow: none !important;
   pointer-events: none !important;
 }
-[data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] {
+/* Hide header chrome (deploy button, menu, status, decoration) but NOT the
+   toolbar itself — the sidebar re-open button lives inside the toolbar, so
+   hiding the toolbar would hide it too. */
+[data-testid="stDecoration"], [data-testid="stStatusWidget"],
+[data-testid="stAppDeployButton"], [data-testid="stMainMenu"] {
   display: none !important;
 }
 /* Streamlit 1.50: the re-open arrow is stExpandSidebarButton (lives in the
