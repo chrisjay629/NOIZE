@@ -168,53 +168,50 @@ html, body, [class*="css"] {
 [data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
-/* Sidebar — always visible, resizable, custom collapse */
+/* Sidebar — collapsible, native Streamlit controls re-enabled */
 section[data-testid="stSidebar"] {
-  transform: translateX(0) !important;
-  min-width: 60px !important;
-  max-width: 400px !important;
-  width: 244px;
-  transition: width 0.25s ease !important;
-  overflow: hidden !important;
+  min-width: 244px;
+  transition: all 0.25s ease !important;
 }
-/* Hide Streamlit's own collapse controls — we use our own */
-[data-testid="stSidebarCollapseButton"],
+/* Collapse button (inside sidebar) */
+[data-testid="stSidebarCollapseButton"] {
+  display: flex !important;
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 999 !important;
+}
+[data-testid="stSidebarCollapseButton"] button {
+  background: var(--surface-alt) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--tx2) !important;
+  border-radius: 8px !important;
+  width: 32px !important; height: 32px !important;
+}
+[data-testid="stSidebarCollapseButton"] button:hover {
+  background: var(--lime-bg) !important;
+  color: var(--lime-t) !important;
+  border-color: var(--lime-border) !important;
+}
+/* Expand button (shown when sidebar is collapsed) */
 [data-testid="stSidebarCollapsedControl"] {
-  display: none !important;
+  display: flex !important;
+  position: fixed !important;
+  top: 50% !important;
+  left: 0 !important;
+  z-index: 9999 !important;
 }
-/* Resize handle */
-.sidebar-resize-handle {
-  position: absolute;
-  top: 0; right: 0;
-  width: 5px; height: 100%;
-  cursor: col-resize;
-  z-index: 9999;
-  background: transparent;
-  border-right: 1px solid rgba(163,255,18,0.0);
-  transition: border-color 0.2s;
+[data-testid="stSidebarCollapsedControl"] button {
+  background: var(--surface-alt) !important;
+  border: 1px solid var(--border) !important;
+  border-left: none !important;
+  border-radius: 0 8px 8px 0 !important;
+  color: var(--lime-t) !important;
+  padding: 10px 6px !important;
 }
-.sidebar-resize-handle:hover {
-  border-right: 1px solid rgba(163,255,18,0.4);
-}
-/* Custom collapse toggle button */
-.sb-toggle-btn {
-  position: fixed;
-  bottom: 20px;
-  left: 12px;
-  z-index: 9999;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--tx2);
-  transition: background 0.15s, color 0.15s;
-}
-.sb-toggle-btn:hover {
-  background: var(--lime-bg);
-  color: var(--lime-t);
-  border-color: var(--lime-border);
+[data-testid="stSidebarCollapsedControl"] button:hover {
+  background: var(--lime-bg) !important;
+  border-color: var(--lime-border) !important;
 }
 
 .stApp {
@@ -384,72 +381,6 @@ if theme == "day":
     .stApp { background-color: #1a2538 !important; }
     </style>
     """, unsafe_allow_html=True)
-
-# ── Sidebar resize + collapse JS (injected via components to allow scripts) ──
-components.html("""
-<script>
-(function() {
-  var doc = window.parent.document;
-  var sidebar = doc.querySelector('section[data-testid="stSidebar"]');
-  if (!sidebar) return;
-  sidebar.style.position = 'relative';
-
-  var EXPANDED_W = parseInt(localStorage.getItem('noize_sidebar_width')) || 244;
-  var collapsed  = localStorage.getItem('noize_sidebar_collapsed') === 'true';
-
-  // Inject collapse toggle button into parent doc
-  var btn = doc.getElementById('sb-toggle-btn');
-  if (!btn) {
-    btn = doc.createElement('button');
-    btn.id = 'sb-toggle-btn';
-    btn.style.cssText = 'position:fixed;bottom:20px;left:12px;z-index:9999;background:#0E131B;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;color:#8B93A7;transition:all 0.15s';
-    btn.onmouseover = function(){ btn.style.background='rgba(163,255,18,0.07)'; btn.style.color='#A3FF12'; btn.style.borderColor='rgba(163,255,18,0.2)'; };
-    btn.onmouseout  = function(){ btn.style.background='#0E131B'; btn.style.color='#8B93A7'; btn.style.borderColor='rgba(255,255,255,0.08)'; };
-    doc.body.appendChild(btn);
-  }
-
-  function applyState() {
-    if (collapsed) {
-      sidebar.style.width = '60px';
-      sidebar.style.minWidth = '60px';
-      btn.textContent = '▶';
-    } else {
-      sidebar.style.width = EXPANDED_W + 'px';
-      sidebar.style.minWidth = '60px';
-      btn.textContent = '◀';
-    }
-  }
-
-  btn.addEventListener('click', function() {
-    collapsed = !collapsed;
-    localStorage.setItem('noize_sidebar_collapsed', collapsed);
-    applyState();
-  });
-
-  applyState();
-
-  // Resize drag handle
-  var handle = doc.getElementById('sb-resize-handle');
-  var dragging = false;
-  if (handle) {
-    handle.addEventListener('mousedown', function(e) { dragging = true; e.preventDefault(); });
-  }
-  doc.addEventListener('mousemove', function(e) {
-    if (!dragging || collapsed) return;
-    var rect = sidebar.getBoundingClientRect();
-    var w = Math.min(400, Math.max(200, e.clientX - rect.left));
-    sidebar.style.width = w + 'px';
-    EXPANDED_W = w;
-  });
-  doc.addEventListener('mouseup', function() {
-    if (dragging) {
-      dragging = false;
-      localStorage.setItem('noize_sidebar_width', EXPANDED_W);
-    }
-  });
-})();
-</script>
-""", height=0)
 
 # ── Fetch on demand ───────────────────────────────────────────────
 if st.session_state.do_fetch and st.session_state.active_platform:
@@ -921,8 +852,6 @@ with st.sidebar:
       </div>
     </div>""", unsafe_allow_html=True)
 
-    # Resize handle div (styled via CSS above)
-    st.markdown('<div class="sidebar-resize-handle" id="sb-resize-handle"></div>', unsafe_allow_html=True)
 
     active_nav = st.session_state.active_nav
     st.markdown('<div style="padding:8px 0">', unsafe_allow_html=True)
