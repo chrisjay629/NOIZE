@@ -174,15 +174,28 @@ html, body, [class*="css"] {
 [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] {
   display: none !important;
 }
-[data-testid="stSidebarCollapsedControl"] {
+/* Streamlit 1.50: the re-open arrow is stExpandSidebarButton (lives in the
+   header). Force it visible + clickable as a lime chip so a collapsed sidebar
+   can always be reopened. */
+[data-testid="stExpandSidebarButton"] {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
+  position: fixed !important;
+  top: 12px !important;
+  left: 12px !important;
   z-index: 999999 !important;
+  background: rgba(14,19,27,0.92) !important;
+  border: 1px solid var(--sb-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
 }
-[data-testid="stSidebarCollapsedControl"] button,
-[data-testid="stSidebarCollapsedControl"] svg { color: var(--lime-t) !important; fill: var(--lime-t) !important; }
+[data-testid="stExpandSidebarButton"] svg,
+[data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"] {
+  color: var(--lime-t) !important;
+  fill: var(--lime-t) !important;
+}
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
 .stApp {
