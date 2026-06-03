@@ -4,7 +4,6 @@ import time
 import base64
 import io
 import streamlit as st
-import streamlit.components.v1 as components
 import plotly.graph_objects as go
 from datetime import datetime
 
@@ -165,49 +164,8 @@ html, body, [class*="css"] {
   font-family: var(--body-font) !important;
   background: var(--bg) !important;
 }
-/* Hide the app header chrome but keep it in the layout so the sidebar
-   re-open (»») control it contains stays reachable. */
-[data-testid="stHeader"] {
-  background: transparent !important;
-  box-shadow: none !important;
-  pointer-events: none !important;
-}
-/* Hide the toolbar/decoration but NOT the sidebar control */
-[data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] {
-  display: none !important;
-}
+[data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
-
-/* Keep Streamlit's native collapse («) and re-open (»») controls usable.
-   The app header is transparent/click-through, so pin the re-open control to
-   the top-left, force it visible, and give it a visible chip so users can
-   always bring the sidebar back (incl. mobile). */
-[data-testid="stSidebarCollapseButton"] {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-[data-testid="stSidebarCollapsedControl"] {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: fixed !important;
-  top: 12px !important;
-  left: 12px !important;
-  z-index: 999999 !important;
-  pointer-events: auto !important;
-  background: rgba(14,19,27,0.92) !important;
-  border: 1px solid var(--sb-border) !important;
-  border-radius: 8px !important;
-  padding: 4px !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
-}
-[data-testid="stSidebarCollapsedControl"] button,
-[data-testid="stSidebarCollapsedControl"] svg {
-  color: var(--lime-t) !important;
-  fill: var(--lime-t) !important;
-  opacity: 1 !important;
-}
 
 .stApp {
   background-color: var(--bg) !important;
@@ -846,7 +804,6 @@ with st.sidebar:
         </div>
       </div>
     </div>""", unsafe_allow_html=True)
-
 
     active_nav = st.session_state.active_nav
     st.markdown('<div style="padding:8px 0">', unsafe_allow_html=True)
