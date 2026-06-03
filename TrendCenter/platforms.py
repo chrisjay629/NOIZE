@@ -142,10 +142,14 @@ def scrape_youtube():
             },
             timeout=15
         )
+        print(f"[YOUTUBE] API status: {r.status_code}", flush=True)
+        if r.status_code != 200:
+            print(f"[YOUTUBE] API error response: {r.text[:300]}", flush=True)
         r.raise_for_status()
         data = r.json()
         items = data.get("items", [])
         if not items:
+            print(f"[YOUTUBE] API returned 0 items. Full response: {r.text[:300]}", flush=True)
             raise ValueError("No items returned from YouTube API")
 
         results = []
