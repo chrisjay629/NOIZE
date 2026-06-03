@@ -96,7 +96,9 @@ for k, v in {
     if k not in st.session_state:
         st.session_state[k] = v
 
-theme = st.session_state.theme
+# Day mode removed — dark ops center only
+st.session_state.theme = "night"
+theme = "night"
 
 # ── CSS — Bloomberg Terminal × Palantir × Intelligence Agency ────────
 st.markdown("""
@@ -104,23 +106,23 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 /* ══════════════════════════════════════════════════════════════
-   NIGHT MODE  —  Bloomberg Terminal × Intelligence Platform
-   Background: #0B0F14 · Panels: #111827 · Cards: #151C25
-   Green: #A3FF12  · White: #F5F7FA  · Muted: #8B93A7
+   NIGHT MODE  —  Bloomberg Terminal × Palantir × Ops Center
+   Background: #070B10 · Panels: #0E131B · Cards: #171F29
+   Borders: rgba(255,255,255,0.08) · Green: #A3FF12
    ══════════════════════════════════════════════════════════════ */
 :root {
-  --bg:           #0B0F14;
-  --surface:      #111827;
-  --surface-alt:  #0f1a28;
-  --surface-2:    #0d1520;
-  --border:       #1e2d40;
-  --border-2:     #192535;
+  --bg:           #070B10;
+  --surface:      #0E131B;
+  --surface-alt:  #151B24;
+  --surface-2:    #0E131B;
+  --border:       rgba(255,255,255,0.08);
+  --border-2:     rgba(255,255,255,0.06);
   --tx1:          #F5F7FA;
   --tx2:          #8B93A7;
   --tx3:          #4a5568;
   --tx4:          #2d3748;
-  --sb-bg:        #070b10;
-  --sb-border:    #111d2a;
+  --sb-bg:        #080C12;
+  --sb-border:    rgba(255,255,255,0.06);
   --lime-t:       #A3FF12;
   --lime-bg:      rgba(163,255,18,0.07);
   --lime-border:  rgba(163,255,18,0.20);
@@ -128,30 +130,31 @@ st.markdown("""
   --amber-bg:     rgba(200,169,110,0.08);
   --amber-border: rgba(200,169,110,0.22);
   --radar-green:  #00ff88;
-  --input-bg:     #0d1520;
-  --input-bd:     #1e2d40;
-  --pill-bg:      #0d1520;
-  --pill-bd:      #1e2d40;
+  --input-bg:     #0E131B;
+  --input-bd:     rgba(255,255,255,0.08);
+  --pill-bg:      #0E131B;
+  --pill-bd:      rgba(255,255,255,0.06);
   --card-hover:   rgba(163,255,18,0.03);
   --data-font:    'JetBrains Mono', 'Courier New', monospace;
   --body-font:    'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --shadow-card:  0 4px 24px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset, 0 0 0 1px rgba(255,255,255,0.03);
-  --shadow-panel: 0 8px 40px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04) inset;
+  --shadow-card:  0 20px 60px rgba(0,0,0,0.50), 0 1px 0 rgba(255,255,255,0.04) inset, 0 0 0 1px rgba(255,255,255,0.03);
+  --shadow-panel: 0 8px 40px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset;
   --glow-edge:    0 0 0 1px rgba(163,255,18,0.18), 0 4px 20px rgba(163,255,18,0.08);
 }
 
 /* ── Base layout ── */
 html, body, [class*="css"] {
   font-family: var(--body-font) !important;
-  background: var(--bg) !important;
+  background: #070B10 !important;
 }
 [data-testid="stHeader"] { display: none !important; }
-[data-testid="stAppViewContainer"] { background: var(--bg) !important; }
+[data-testid="stAppViewContainer"] { background: #070B10 !important; }
 
-/* Deep navy intelligence grid */
+/* Deep operations center — grid + atmospheric depth */
 .stApp {
-  background-color: var(--bg) !important;
+  background-color: #070B10 !important;
   background-image:
+    radial-gradient(circle at 50% 0%, rgba(18,24,38,0.90) 0%, transparent 65%),
     repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(163,255,18,0.014) 48px),
     repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(163,255,18,0.014) 48px) !important;
 }
@@ -160,7 +163,7 @@ html, body, [class*="css"] {
 
 /* ── Sidebar — Command Center ── */
 [data-testid="stSidebar"] {
-  background: var(--sb-bg) !important;
+  background: linear-gradient(180deg, #080C12 0%, #0E131B 100%) !important;
   border-right: 1px solid var(--sb-border) !important;
   box-shadow: 4px 0 32px rgba(0,0,0,0.6) !important;
 }
@@ -285,107 +288,6 @@ h1, h2, h3, h4 { color: var(--tx1) !important; font-family: var(--body-font) !im
 .ht-card:hover { border-color: rgba(163,255,18,0.22); box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(163,255,18,0.08); }
 </style>
 """, unsafe_allow_html=True)
-
-# ── Day mode CSS override ─────────────────────────────────────────
-if theme == "day":
-    st.markdown("""
-    <style>
-    /* ══════════════════════════════════════════════════
-       DAY MODE  —  Warm parchment × classified dossier
-       ══════════════════════════════════════════════════ */
-    :root {
-      --bg:           #f2ece0;
-      --surface:      #fdfaf4;
-      --surface-alt:  #ede8db;
-      --surface-2:    #e7e1d4;
-      --border:       #cdc8ba;
-      --border-2:     #d8d3c5;
-      --tx1:          #0d1117;
-      --tx2:          #2a2f3a;
-      --tx3:          #616676;
-      --tx4:          #929aab;
-      --sb-bg:        #e7e2d7;
-      --sb-border:    #cbc6b8;
-      --lime-t:       #2a5200;
-      --lime-bg:      rgba(42,82,0,0.07);
-      --lime-border:  rgba(42,82,0,0.20);
-      --amber:        #8a6418;
-      --amber-bg:     rgba(138,100,24,0.09);
-      --amber-border: rgba(138,100,24,0.24);
-      --radar-green:  #2a5200;
-      --input-bg:     #fdfaf4;
-      --input-bd:     #cac5b7;
-      --pill-bg:      #e7e2d7;
-      --pill-bd:      #cdc8ba;
-      --card-hover:   rgba(0,0,0,0.03);
-    }
-
-    /* Warm sepia grid texture */
-    .stApp {
-      background-image:
-        repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(100,80,40,0.030) 48px),
-        repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(100,80,40,0.030) 48px) !important;
-    }
-
-    /* Sidebar nav hover */
-    [data-testid="stSidebar"] .stButton > button { color: var(--tx3) !important; }
-    [data-testid="stSidebar"] .stButton > button:hover {
-      background: var(--lime-bg) !important;
-      color: var(--lime-t) !important;
-      border-left-color: var(--lime-t) !important;
-    }
-
-    /* Primary button — deep forest green */
-    .stButton > button[kind="primary"] {
-      background: var(--lime-t) !important;
-      color: #ffffff !important;
-      border: none !important;
-      box-shadow: 0 2px 12px rgba(42,82,0,0.20) !important;
-    }
-    .stButton > button[kind="primary"]:hover {
-      background: #1e3d00 !important;
-      box-shadow: 0 4px 18px rgba(42,82,0,0.30) !important;
-    }
-
-    /* Secondary button */
-    .stButton > button[kind="secondary"]:hover {
-      border-color: rgba(42,82,0,0.30) !important;
-      color: var(--lime-t) !important;
-      background: var(--lime-bg) !important;
-    }
-
-    /* Active tab */
-    [data-testid="stTabs"] button[aria-selected="true"] {
-      color: var(--lime-t) !important;
-      border-bottom: 2px solid var(--lime-t) !important;
-    }
-
-    /* Input focus */
-    [data-testid="stTextInput"] input:focus {
-      border-color: var(--lime-t) !important;
-      box-shadow: 0 0 0 2px rgba(42,82,0,0.10) !important;
-    }
-
-    /* Live dot — no glow on light bg */
-    .dot-live { background: var(--lime-t) !important; box-shadow: none !important; }
-
-    /* Lime badge */
-    .badge-lime { background: var(--lime-bg) !important; color: var(--lime-t) !important; border-color: var(--lime-border) !important; }
-
-    /* Metric container */
-    [data-testid="metric-container"] [data-testid="stMetricValue"] { color: var(--tx1) !important; }
-
-    /* Card hover */
-    .ht-card:hover { border-color: rgba(42,82,0,0.18) !important; }
-
-    /* UPGRADE CTA button in sidebar */
-    [data-testid="stSidebar"] [style*="background:#A3FF12"],
-    [data-testid="stSidebar"] [style*="background: #A3FF12"] {
-      background: var(--lime-t) !important;
-      color: #ffffff !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
 # ── Fetch on demand ───────────────────────────────────────────────
 if st.session_state.do_fetch and st.session_state.active_platform:
@@ -525,7 +427,8 @@ def render_case_cards(data, platform="tiktok"):
     thumb_b64 = CASE_FOLDER_LIGHT_B64 if theme == "day" else CASE_FOLDER_DARK_B64
     thumb_src = f"data:image/jpeg;base64,{thumb_b64}" if thumb_b64 else ""
     # Premium card shadow: deeper in night mode
-    card_shadow = "0 4px 24px rgba(0,0,0,0.55),0 1px 0 rgba(255,255,255,0.04) inset" if theme == "night" else "0 2px 12px rgba(0,0,0,0.10)"
+    card_bg     = "#171F29" if theme == "night" else "var(--surface)"
+    card_shadow = "0 20px 60px rgba(0,0,0,0.50),0 1px 0 rgba(255,255,255,0.04) inset,0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else "0 2px 12px rgba(0,0,0,0.10)"
     for row_start in range(0, min(len(data), 9), 3):
         row  = data[row_start:row_start+3]
         cols = st.columns(3, gap="small")
@@ -567,7 +470,7 @@ def render_case_cards(data, platform="tiktok"):
                 corner_tr = f'<div style="position:absolute;top:6px;right:6px;width:14px;height:14px;border-right:1.5px solid {sc};border-top:1.5px solid {sc};opacity:0.45"></div>'
                 st.markdown(
                     f'<a href="{url}" target="_blank" style="text-decoration:none">'
-                    f'<div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {sc};border-radius:10px;padding:14px 14px 12px;margin-bottom:12px;cursor:pointer;position:relative;box-shadow:{card_shadow};transition:all 0.15s">'
+                    f'<div style="background:{card_bg};border:1px solid var(--border);border-top:2px solid {sc};border-radius:10px;padding:14px 14px 12px;margin-bottom:12px;cursor:pointer;position:relative;box-shadow:{card_shadow};transition:all 0.15s;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)">'
                     f'{clip_html}{corner_tl}{corner_tr}'
                     f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
                     f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:600;color:var(--amber);letter-spacing:0.10em">{case_num}</span>'
@@ -720,11 +623,12 @@ def render_trend_radar(velocity_data, platform="tiktok"):
         showlegend=False,
     )
     # Radar panel header — glass treatment in night mode
-    _radar_bg   = "background:rgba(15,26,40,0.80);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if is_night else "background:var(--surface-alt)"
-    _radar_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if is_night else ""
+    _radar_bg   = "background:rgba(8,12,18,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if is_night else "background:var(--surface-alt)"
+    _radar_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.55),0 0 0 1px rgba(163,255,18,0.12)" if is_night else ""
+    _radar_bord = "border:1px solid rgba(163,255,18,0.15)" if is_night else "border:1px solid var(--border-2)"
     _live_glow  = f";text-shadow:0 0 10px {_r_lime}" if is_night else ""
     st.markdown(
-        f'<div style="{_radar_bg};border:1px solid var(--border-2);border-radius:14px;padding:14px 14px 10px;margin-bottom:12px{_radar_shad}">'
+        f'<div style="{_radar_bg};{_radar_bord};border-radius:14px;padding:14px 14px 10px;margin-bottom:12px{_radar_shad}">'
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
         f'<div style="font-size:9px;font-weight:700;color:var(--lime-t);letter-spacing:0.14em;text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ TREND RADAR</div>'
         f'<span style="font-size:8px;color:var(--lime-t);font-weight:700;font-family:JetBrains Mono,monospace;letter-spacing:0.1em{_live_glow}">LIVE</span>'
@@ -926,8 +830,9 @@ popular_chips  = "".join([
 ])
 
 st.markdown(
-    f'<div style="{bg_style}border-radius:16px;position:relative;overflow:hidden;margin-bottom:16px;min-height:240px">'
-    f'<div style="position:absolute;inset:0;background:{hero_overlay};border-radius:16px"></div>'
+    f'<div style="{bg_style}border-radius:16px 16px 0 0;position:relative;overflow:hidden;margin-bottom:0;min-height:240px">'
+    f'<div style="position:absolute;inset:0;background:{hero_overlay}"></div>'
+    f'<div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(180deg,rgba(7,11,16,0) 0%,rgba(7,11,16,1.0) 100%)"></div>'
     f'<div style="position:relative;padding:30px 32px 26px 32px">'
     f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
     f'<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#0d1520"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/><rect x="7" y="18" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="17" y="9" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="27" y="13" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/></svg>'
@@ -948,6 +853,8 @@ st.markdown(
     f'</div></div>',
     unsafe_allow_html=True
 )
+# Seamless bleed spacer — connects hero bottom fade to page background
+st.markdown('<div style="height:16px;background:var(--bg);margin-top:-1px"></div>', unsafe_allow_html=True)
 
 
 # ═════════════════════════════════════════════════════════════════
