@@ -285,12 +285,6 @@ h1, h2, h3, h4 { color: var(--tx1) !important; font-family: var(--body-font) !im
 .ht-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; box-shadow: var(--shadow-card); }
 .ht-card:hover { border-color: rgba(163,255,18,0.22); box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(163,255,18,0.08); }
 
-/* ── Hero overlap — columns float over bottom of hero ── */
-.hero-overlap-anchor + div {
-  margin-top: -120px !important;
-  position: relative !important;
-  z-index: 5 !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -867,37 +861,8 @@ popular_chips  = "".join([
     for t in popular_topics
 ])
 
-_bottom_fade_color = "28,28,28" if theme == "night" else "26,37,56"
-st.markdown(
-    f'<div style="{bg_style}border-radius:16px 16px 0 0;position:relative;overflow:hidden;margin-bottom:0;min-height:420px">'
-    f'<div style="position:absolute;inset:0;background:{hero_overlay}"></div>'
-    f'<div style="position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(180deg,rgba({_bottom_fade_color},0) 0%,rgba({_bottom_fade_color},1.0) 100%)"></div>'
-    f'<div style="position:relative;padding:36px 40px 32px 40px">'
-    f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
-    f'<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#0d1520"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/><rect x="7" y="18" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="17" y="9" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="27" y="13" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/></svg>'
-    f'<div><div style="font-family:Inter,sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.5)">ze</span></div>'
-    f'<div style="font-size:9px;color:rgba(255,255,255,0.32);letter-spacing:0.2em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
-    f'</div></div>'
-    f'<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.9;margin-bottom:18px;font-family:Inter,sans-serif">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
-    f'<div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px;max-width:560px">'
-    f'<span style="font-size:14px;opacity:0.45">🔍</span>'
-    f'<span style="font-size:13px;color:rgba(255,255,255,0.30);font-family:Inter,sans-serif">Investigate any topic, keyword or trend...</span>'
-    f'<div style="margin-left:auto;background:#A3FF12;color:#080e14;font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 12px rgba(163,255,18,0.35)">INVESTIGATE →</div>'
-    f'</div>'
-    f'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
-    f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.18);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap;font-family:Inter,sans-serif">Popular:</span>'
-    f'{popular_chips}'
-    f'</div>'
-    f'{chips_html}'
-    f'</div></div>',
-    unsafe_allow_html=True
-)
-# Seamless bleed spacer — connects hero bottom fade to page background
-st.markdown('<div style="height:16px;background:var(--bg);margin-top:-1px"></div>', unsafe_allow_html=True)
-
-
 # ═════════════════════════════════════════════════════════════════
-# AUTO BRIEFING ARTICLES
+# AUTO BRIEFING ARTICLES  (compute before rendering)
 # ═════════════════════════════════════════════════════════════════
 
 articles_stale = True
@@ -910,10 +875,12 @@ articles = st.session_state.trend_articles
 
 
 # ═════════════════════════════════════════════════════════════════
-# MAIN  +  RIGHT PANEL
+# TRUE 3-COLUMN INTELLIGENCE DASHBOARD
+# Sidebar | Center (Hero + Cases) | Right (Briefing + Radar)
 # ═════════════════════════════════════════════════════════════════
 
-st.markdown('<div class="hero-overlap-anchor"></div>', unsafe_allow_html=True)
+_bottom_fade_color = "28,28,28" if theme == "night" else "26,37,56"
+
 main_col, right_col = st.columns([7, 3], gap="medium")
 
 # ── RIGHT PANEL ───────────────────────────────────────────────────
@@ -940,6 +907,32 @@ with right_col:
 
 # ── MAIN CONTENT ──────────────────────────────────────────────────
 with main_col:
+
+    # ── HERO — inside main column so right panel aligns with top ──
+    st.markdown(
+        f'<div style="{bg_style}border-radius:12px;position:relative;overflow:hidden;margin-bottom:12px;min-height:380px">'
+        f'<div style="position:absolute;inset:0;background:{hero_overlay}"></div>'
+        f'<div style="position:absolute;bottom:0;left:0;right:0;height:100px;background:linear-gradient(180deg,rgba({_bottom_fade_color},0) 0%,rgba({_bottom_fade_color},1.0) 100%)"></div>'
+        f'<div style="position:relative;padding:32px 36px 28px 36px">'
+        f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
+        f'<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#0d1520"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/><rect x="7" y="18" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="17" y="9" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="27" y="13" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/></svg>'
+        f'<div><div style="font-family:Inter,sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.5)">ze</span></div>'
+        f'<div style="font-size:9px;color:rgba(255,255,255,0.32);letter-spacing:0.2em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
+        f'</div></div>'
+        f'<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.9;margin-bottom:18px;font-family:Inter,sans-serif">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
+        f'<div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px">'
+        f'<span style="font-size:14px;opacity:0.45">🔍</span>'
+        f'<span style="font-size:13px;color:rgba(255,255,255,0.30);font-family:Inter,sans-serif">Investigate any topic, keyword or trend...</span>'
+        f'<div style="margin-left:auto;background:#A3FF12;color:#080e14;font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 12px rgba(163,255,18,0.35)">INVESTIGATE →</div>'
+        f'</div>'
+        f'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+        f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.18);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap;font-family:Inter,sans-serif">Popular:</span>'
+        f'{popular_chips}'
+        f'</div>'
+        f'{chips_html}'
+        f'</div></div>',
+        unsafe_allow_html=True
+    )
 
     # ── CASE FILES ───────────────────────────────────────────────
     if active_nav == "CASE FILES":
