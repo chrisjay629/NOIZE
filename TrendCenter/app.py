@@ -893,40 +893,24 @@ articles = st.session_state.trend_articles
 
 _bottom_fade_color = "7,11,16" if theme == "night" else "26,37,56"
 
-_hero_img_style = "position:relative;z-index:2;"
-
-# Inject hero background as ::before pseudo-element — spans both columns,
-# fixed 220px height so it never bleeds into the cards below.
-if hero_b64:
-    st.markdown(f"""
-    <style>
-    [data-testid="stHorizontalBlock"]:first-of-type {{
-      position: relative;
-    }}
-    [data-testid="stHorizontalBlock"]:first-of-type::before {{
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 220px;
-      background-image: {hero_overlay}, url('data:image/jpeg;base64,{hero_b64}');
-      background-size: cover;
-      background-position: 65% center;
-      border-radius: 12px 12px 0 0;
-      z-index: 0;
-      pointer-events: none;
-    }}
-    [data-testid="stHorizontalBlock"]:first-of-type > div {{
-      position: relative;
-      z-index: 1;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
+# Hero background style — fixed to viewport so center + right panel
+# show the same continuous image without bleeding into the cards below.
+_hero_bg = (
+    f"background-image:{hero_overlay},url('data:image/jpeg;base64,{hero_b64}');"
+    "background-size:cover;"
+    "background-attachment:fixed;"
+    "background-position:65% top;"
+) if hero_b64 else ""
+_hero_img_style = f"position:relative;z-index:2;{_hero_bg}"
+_briefing_bg_style = _hero_bg  # same image, viewport-fixed → seamless continuation
 
 main_col, right_col = st.columns([7, 3], gap="medium")
 
 # ── RIGHT PANEL ───────────────────────────────────────────────────
 with right_col:
+    st.markdown(f'<div style="{_briefing_bg_style}border-radius:12px 12px 0 0;">', unsafe_allow_html=True)
     render_detective_briefing(articles)
+    st.markdown('</div>', unsafe_allow_html=True)
     radar_vel = get_hashtag_velocity(platform=active_platform or "tiktok")
     render_trend_radar(radar_vel, platform=active_platform or "tiktok")
     _wl_style = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.45)" if theme == "night" else "background:var(--surface-alt);border:1px solid var(--border)"
