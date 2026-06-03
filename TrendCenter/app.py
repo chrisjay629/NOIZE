@@ -52,33 +52,41 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&display=swap');
   html, body, [class*="css"] { font-family: -apple-system, system-ui, sans-serif; }
 
   .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-    background-color: #0f0f15 !important;
+    background-color: #0a0a12 !important;
   }
-  [data-testid="stSidebar"] { background-color: #15151f !important; }
-  .block-container { padding: 1.25rem 2rem 2rem 2rem; max-width: 1200px; }
+  [data-testid="stSidebar"] { background-color: #0f0f1a !important; }
+  .block-container { padding: 0 2rem 2rem 2rem; max-width: 1200px; }
 
   html, body, p, span, div, label, h1, h2, h3 { color: #e0e0e0; }
 
-  [data-testid="stTabs"] button { color: #aaa !important; font-size: 13px !important; }
+  /* Tabs */
+  [data-testid="stTabs"] button { color: #666 !important; font-size: 13px !important; font-weight: 600 !important; }
   [data-testid="stTabs"] button[aria-selected="true"] { color: #fe2c55 !important; border-bottom-color: #fe2c55 !important; }
 
+  /* Inputs */
   [data-testid="stTextInput"] input {
-    background: #1e1e2e !important;
-    border: 0.5px solid #3a3a4a !important;
+    background: #13131e !important;
+    border: 1px solid #2a2a3a !important;
     color: #e0e0e0 !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    padding: 10px 14px !important;
+  }
+  [data-testid="stTextInput"] input:focus {
+    border-color: #fe2c55 !important;
+    box-shadow: 0 0 0 2px rgba(254,44,85,0.15) !important;
   }
 
-  hr { border-color: #2a2a3a !important; }
+  hr { border-color: #1e1e2e !important; }
 
+  /* Old cards (kept for blueprint/niche tabs) */
   .ht-card {
-    background: #1a1a28;
-    border: 0.5px solid #2e2e42;
+    background: #13131e;
+    border: 0.5px solid #252535;
     border-radius: 10px;
     padding: 10px 14px;
     margin-bottom: 8px;
@@ -88,8 +96,9 @@ st.markdown("""
   .ht-card:hover { border-color: #fe2c55; }
   .ht-card * { color: inherit; }
   .ht-card.featured { border: 1.5px solid #185fa5; }
-  .ht-card.faded { opacity: 0.55; }
+  .ht-card.faded { opacity: 0.5; }
 
+  /* Badges */
   .badge {
     display: inline-block;
     font-size: 10px;
@@ -97,43 +106,61 @@ st.markdown("""
     border-radius: 5px;
     margin-left: 5px;
     vertical-align: middle;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
   .badge-green  { background: #0f3d2e; color: #3dd68c; }
   .badge-blue   { background: #0d2a4a; color: #60a5fa; }
   .badge-red    { background: #3d1010; color: #f87171; }
   .badge-strike { background: #185fa5; color: #fff; }
 
-  .plat-btn-active {
-    background: linear-gradient(135deg, #fe2c55, #c0203d) !important;
-    color: #fff !important;
-    border: none !important;
-  }
-
-  .welcome-state {
-    text-align: center;
-    padding: 50px 20px;
-  }
-
+  /* Status pills */
   .status-pill {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 12px;
-    color: #666;
+    font-size: 11px;
+    color: #555;
     padding: 3px 10px;
-    background: #1a1a28;
-    border: 0.5px solid #2e2e42;
+    background: #13131e;
+    border: 0.5px solid #252535;
     border-radius: 20px;
   }
-  .dot-live { width:7px;height:7px;border-radius:50%;background:#1d9e75;display:inline-block; }
-  .dot-gpt  { width:7px;height:7px;border-radius:50%;background:#f5a623;display:inline-block; }
+  .dot-live { width:6px;height:6px;border-radius:50%;background:#1d9e75;display:inline-block; }
+  .dot-gpt  { width:6px;height:6px;border-radius:50%;background:#f5a623;display:inline-block; }
 
+  /* Buttons */
   .stButton > button {
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     font-size: 13px !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.01em !important;
     transition: all 0.15s !important;
+  }
+
+  /* Trend chip pills (for quick-select trending topics) */
+  .trend-chip {
+    display: inline-block;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .trend-chip:hover { background: rgba(254,44,85,0.15); border-color: rgba(254,44,85,0.4); color: #fe2c55; }
+
+  /* Section labels */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #444;
+    text-transform: uppercase;
+    margin-bottom: 8px;
   }
 </style>
 """, unsafe_allow_html=True)
@@ -247,36 +274,95 @@ def velocity_badge(h):
 
 def render_cards(data, platform="tiktok"):
     if not data:
-        st.markdown("<div style='color:#555;font-size:13px;padding:20px 0;text-align:center'>No data yet — click the platform button above to load trends.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:#444;font-size:13px;padding:30px 0;text-align:center'>No data yet — click the platform button above to load trends.</div>", unsafe_allow_html=True)
         return
-    link_label = PLATFORM_CONFIG.get(platform, {}).get("link_label", "↗ View")
+
+    cfg     = PLATFORM_CONFIG.get(platform, {})
+    color   = cfg.get("color", "#fe2c55")
+    link_lbl = cfg.get("link_label", "↗ View")
+    prefix  = "#" if platform == "tiktok" else ""
+
     for h in data:
         change   = h.get("rank_change", 0)
         is_new   = h.get("is_new", False)
-        card_cls = "featured" if change < -3 else ("faded" if change > 5 else "")
         badge    = velocity_badge(h)
         category = h.get("category") or "—"
         posts    = h.get("posts") or "—"
-        rank     = h.get("current_rank") or h.get("rank") or "—"
+        rank_raw = h.get("current_rank") or h.get("rank") or 10
         name     = h.get("name", "")
         url      = h.get("url") or f"https://www.google.com/search?q={name}"
-        prefix   = "#" if platform == "tiktok" else ""
-
         posts_label = f"{posts} posts" if platform == "tiktok" else posts
+
+        try:
+            rank_int = int(str(rank_raw))
+        except (ValueError, TypeError):
+            rank_int = 10
+
+        # Progress bar — rank 1=100%, rank 20=5%
+        bar_pct = max(5, int((21 - rank_int) / 20 * 100))
+
+        # Rank circle style: top 3 filled, 4-10 outlined, 11+ grey
+        if rank_int <= 3:
+            circle_bg     = color
+            circle_color  = "#fff"
+            circle_border = color
+        elif rank_int <= 10:
+            circle_bg     = f"{color}22"
+            circle_color  = color
+            circle_border = f"{color}66"
+        else:
+            circle_bg     = "#1a1a26"
+            circle_color  = "#555"
+            circle_border = "#333"
+
+        # Card opacity for falling trends
+        card_opacity = "0.55" if change > 5 else "1"
+        # Highlight border for fast climbers
+        card_border = f"1.5px solid {color}88" if change < -3 else "0.5px solid #252535"
 
         st.markdown(f"""
         <a href="{url}" target="_blank" style="text-decoration:none">
-        <div class="ht-card {card_cls}">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="flex:1;min-width:0">
-              <span style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">{prefix}{name}</span>
-              <div style="font-size:11px;color:#666;margin-top:2px">{posts_label} · {category}</div>
+        <div style="background:#13131e;border:{card_border};border-radius:14px;
+                    padding:14px 16px;margin-bottom:9px;
+                    display:flex;align-items:center;gap:14px;
+                    cursor:pointer;opacity:{card_opacity};
+                    transition:all 0.15s"
+             onmouseover="this.style.borderColor='{color}';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 20px {color}22'"
+             onmouseout="this.style.borderColor='';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+
+          <!-- Rank circle -->
+          <div style="width:42px;height:42px;border-radius:50%;
+                      background:{circle_bg};border:2px solid {circle_border};
+                      display:flex;align-items:center;justify-content:center;
+                      font-family:'Poppins',sans-serif;font-weight:800;font-size:13px;
+                      color:{circle_color};flex-shrink:0">
+            {rank_int}
+          </div>
+
+          <!-- Main content -->
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:700;color:#f0f0f0;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                        margin-bottom:2px;font-family:'Poppins',sans-serif">
+              {prefix}{name}
             </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:10px">
-              {badge}
-              <span style="font-size:11px;color:#555">#{rank}</span>
+            <div style="font-size:11px;color:#555;margin-bottom:7px">
+              {posts_label} &nbsp;·&nbsp; {category}
+            </div>
+            <!-- Prominence bar (like YouGov's Fame bar) -->
+            <div style="height:3px;background:#1e1e2a;border-radius:3px">
+              <div style="height:3px;width:{bar_pct}%;
+                          background:linear-gradient(90deg,{color},{color}55);
+                          border-radius:3px"></div>
             </div>
           </div>
+
+          <!-- Right: badge + link -->
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;padding-left:6px">
+            <div>{badge}</div>
+            <span style="font-size:11px;color:{color};font-weight:600">{link_lbl}</span>
+          </div>
+
         </div>
         </a>
         """, unsafe_allow_html=True)
@@ -312,17 +398,29 @@ def render_niche_pulse(results: dict, query: str):
             for t in trends:
                 name  = t.get("name", "")
                 posts = t.get("posts", "—")
-                rank  = t.get("rank") or t.get("current_rank") or "—"
+                rank_raw = t.get("rank") or t.get("current_rank") or 10
                 url   = t.get("url", "#")
                 prefix = "#" if key == "tiktok" else ""
-                disp_name = name[:22] + ("…" if len(name) > 22 else "")
+                disp_name = name[:20] + ("…" if len(name) > 20 else "")
+                try:
+                    rank_int = int(str(rank_raw))
+                except (ValueError, TypeError):
+                    rank_int = 10
+                bar_pct = max(5, int((21 - rank_int) / 20 * 100))
 
                 st.markdown(f"""
                 <a href="{url}" target="_blank" style="text-decoration:none">
-                <div style="background:#16161f;border:0.5px solid #2a2a3c;border-radius:8px;padding:8px 10px;margin-bottom:6px;transition:border-color 0.15s"
-                     onmouseover="this.style.borderColor='{color}'" onmouseout="this.style.borderColor='#2a2a3c'">
-                  <div style="font-size:12px;font-weight:600;color:#ddd">{prefix}{disp_name}</div>
-                  <div style="font-size:10px;color:#555;margin-top:2px">{posts}</div>
+                <div style="background:#13131e;border:0.5px solid #252535;border-radius:10px;
+                            padding:10px 12px;margin-bottom:6px;transition:all 0.15s"
+                     onmouseover="this.style.borderColor='{color}';this.style.transform='translateY(-1px)'"
+                     onmouseout="this.style.borderColor='#252535';this.style.transform='translateY(0)'">
+                  <div style="font-size:13px;font-weight:700;color:#eee;
+                              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                              font-family:'Poppins',sans-serif">{prefix}{disp_name}</div>
+                  <div style="font-size:10px;color:#444;margin:3px 0 6px 0">{posts}</div>
+                  <div style="height:2px;background:#1e1e2a;border-radius:2px">
+                    <div style="height:2px;width:{bar_pct}%;background:{color};border-radius:2px;opacity:0.7"></div>
+                  </div>
                 </div>
                 </a>
                 """, unsafe_allow_html=True)
@@ -379,25 +477,57 @@ def render_niche_pulse(results: dict, query: str):
 
 active_platform = st.session_state.active_platform
 
-# ── Header ────────────────────────────────────────────────────
-st.markdown("""
-<div style="display:flex;align-items:center;gap:12px;padding:0.25rem 0 0.5rem 0">
-  <div style="position:relative;width:40px;height:40px;flex-shrink:0">
-    <svg width="40" height="40" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="44" height="44" rx="10" fill="#010101"/>
-      <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="white"/>
-      <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#fe2c55" opacity="0.5" transform="translate(1,1)"/>
-      <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#25f4ee" opacity="0.5" transform="translate(-1,-1)"/>
-    </svg>
-  </div>
-  <div>
-    <div style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.5px;line-height:1;color:#fff">
-      Trend<span style="color:#fe2c55">Center</span>
+# ── Header — gradient hero ─────────────────────────────────────
+# Collect top trends for chips
+_chip_data = []
+if active_platform:
+    _chip_data = get_latest_hashtags(platform=active_platform)[:5]
+
+chip_html = ""
+if _chip_data:
+    chips = "".join([
+        f'<a href="{h.get("url","#")}" target="_blank" class="trend-chip">'
+        f'{"#" if active_platform=="tiktok" else ""}{h["name"]}</a>'
+        for h in _chip_data
+    ])
+    chip_html = f'<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:11px;color:#444;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Trending</span>{chips}</div>'
+
+st.markdown(f"""
+<div style="background:linear-gradient(135deg,#1a0830 0%,#0f0a1e 40%,#0a0a12 100%);
+            border-radius:0 0 20px 20px;
+            padding:22px 24px 20px 24px;
+            margin:-1rem -2rem 16px -2rem;
+            position:relative;overflow:hidden">
+
+  <!-- Decorative glow blobs -->
+  <div style="position:absolute;top:-40px;right:60px;width:200px;height:200px;
+              background:radial-gradient(circle,rgba(254,44,85,0.12) 0%,transparent 70%);
+              pointer-events:none"></div>
+  <div style="position:absolute;bottom:-60px;left:100px;width:160px;height:160px;
+              background:radial-gradient(circle,rgba(37,244,238,0.07) 0%,transparent 70%);
+              pointer-events:none"></div>
+
+  <div style="display:flex;align-items:center;gap:14px;position:relative">
+    <div style="position:relative;width:44px;height:44px;flex-shrink:0">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+        <rect width="44" height="44" rx="11" fill="#010101"/>
+        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="white"/>
+        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#fe2c55" opacity="0.55" transform="translate(1,1)"/>
+        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#25f4ee" opacity="0.55" transform="translate(-1,-1)"/>
+      </svg>
     </div>
-    <div style="font-size:12px;color:#555;margin-top:2px">
-      Real-time trends across TikTok · Google · YouTube · Reddit
+    <div>
+      <div style="font-family:'Poppins',sans-serif;font-size:26px;font-weight:900;
+                  letter-spacing:-0.5px;line-height:1;color:#fff">
+        Trend<span style="color:#fe2c55">Center</span>
+      </div>
+      <div style="font-size:12px;color:#555;margin-top:3px">
+        Real-time trends · TikTok &nbsp;·&nbsp; Google &nbsp;·&nbsp; YouTube &nbsp;·&nbsp; Reddit
+      </div>
     </div>
   </div>
+
+  {chip_html}
 </div>
 """, unsafe_allow_html=True)
 
