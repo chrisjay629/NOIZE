@@ -75,7 +75,7 @@ st.set_page_config(
     page_title="Noize — Signal in the noise",
     page_icon="🟢",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ── Session state ─────────────────────────────────────────────────
@@ -164,41 +164,33 @@ html, body, [class*="css"] {
   font-family: var(--body-font) !important;
   background: var(--bg) !important;
 }
-/* Hide the header chrome but KEEP the sidebar collapse/re-open control so the
-   sidebar can never get stuck collapsed (its re-open arrow lives in the header). */
+/* Nav now lives in a horizontal top bar (mobile-friendly), so the left sidebar
+   is fully retired. Hide all header chrome AND the sidebar / its re-open arrow. */
 [data-testid="stHeader"] {
   background: transparent !important;
   box-shadow: none !important;
   pointer-events: none !important;
 }
-/* Hide header chrome (deploy button, menu, status, decoration) but NOT the
-   toolbar itself — the sidebar re-open button lives inside the toolbar, so
-   hiding the toolbar would hide it too. */
 [data-testid="stDecoration"], [data-testid="stStatusWidget"],
-[data-testid="stAppDeployButton"], [data-testid="stMainMenu"] {
+[data-testid="stAppDeployButton"], [data-testid="stMainMenu"],
+[data-testid="stSidebar"], [data-testid="stExpandSidebarButton"] {
   display: none !important;
 }
-/* Streamlit 1.50: the re-open arrow is stExpandSidebarButton (lives in the
-   header). Force it visible + clickable as a lime chip so a collapsed sidebar
-   can always be reopened. */
-[data-testid="stExpandSidebarButton"] {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  position: fixed !important;
-  top: 12px !important;
-  left: 12px !important;
-  z-index: 999999 !important;
-  background: rgba(14,19,27,0.92) !important;
-  border: 1px solid var(--sb-border) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+/* Top nav: keep the button row horizontal and let it scroll on small screens
+   instead of wrapping. Scoped to the keyed container .st-key-noizetopnav. */
+.st-key-noizetopnav [data-testid="stHorizontalBlock"] {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  gap: 6px !important;
+  padding-bottom: 4px !important;
 }
-[data-testid="stExpandSidebarButton"] svg,
-[data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"] {
-  color: var(--lime-t) !important;
-  fill: var(--lime-t) !important;
+.st-key-noizetopnav [data-testid="stColumn"] {
+  min-width: fit-content !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+.st-key-noizetopnav [data-testid="stColumn"] button {
+  white-space: nowrap !important;
 }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
@@ -803,7 +795,7 @@ def render_niche_pulse(results, query):
 
 
 # ═════════════════════════════════════════════════════════════════
-# SIDEBAR
+# TOP NAV  (replaces the left sidebar — mobile-friendly horizontal bar)
 # ═════════════════════════════════════════════════════════════════
 
 NAV_ITEMS = [
@@ -817,58 +809,53 @@ NAV_ITEMS = [
     ("💬","DEBRIEF",       "Chat with Pugson"),
 ]
 
-with st.sidebar:
-    pugson_src  = f"data:image/jpeg;base64,{PUGSON_B64}" if PUGSON_B64 else ""
-    _sb_lime    = "#2a5200" if theme == "day" else "#A3FF12"
-    _sb_img_bd  = "rgba(42,82,0,0.35)" if theme == "day" else "rgba(163,255,18,0.30)"
-    _sb_glow    = "none" if theme == "day" else f"0 0 6px {_sb_lime}"
-    img_tag     = (f'<img src="{pugson_src}" style="width:68px;height:68px;border-radius:50%;border:2px solid {_sb_img_bd};object-fit:cover">'
-                   if pugson_src else
-                   f'<div style="width:68px;height:68px;border-radius:50%;background:var(--surface);border:2px solid {_sb_img_bd};display:flex;align-items:center;justify-content:center;font-size:26px">🐾</div>')
-    st.markdown(f"""
-    <div style="padding:18px 16px 14px 16px;border-bottom:1px solid var(--sb-border)">
-      <div style="display:flex;align-items:center;gap:11px">
-        {img_tag}
-        <div>
-          <div style="font-size:9px;color:var(--tx4);font-weight:700;letter-spacing:0.1em;text-transform:uppercase">Chief Detective</div>
-          <div style="font-size:15px;font-weight:900;color:var(--tx1);font-family:Inter,sans-serif;letter-spacing:-0.3px">PUGSON</div>
-          <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
-            <span style="width:6px;height:6px;border-radius:50%;background:{_sb_lime};display:inline-block;box-shadow:{_sb_glow}"></span>
-            <span style="font-size:9px;color:{_sb_lime};font-weight:700;letter-spacing:0.06em">ONLINE</span>
+active_nav = st.session_state.active_nav
+
+with st.container(key="noizetopnav"):
+    pugson_src = f"data:image/jpeg;base64,{PUGSON_B64}" if PUGSON_B64 else ""
+    _sb_lime   = "#2a5200" if theme == "day" else "#A3FF12"
+    _sb_img_bd = "rgba(42,82,0,0.35)" if theme == "day" else "rgba(163,255,18,0.30)"
+    _sb_glow   = "none" if theme == "day" else f"0 0 6px {_sb_lime}"
+    img_tag    = (f'<img src="{pugson_src}" style="width:40px;height:40px;border-radius:50%;border:2px solid {_sb_img_bd};object-fit:cover">'
+                  if pugson_src else
+                  f'<div style="width:40px;height:40px;border-radius:50%;background:var(--surface);border:2px solid {_sb_img_bd};display:flex;align-items:center;justify-content:center;font-size:20px">🐾</div>')
+
+    tog_label = "☀️ DAY" if theme == "night" else "🌙 NIGHT"
+    tog_tip   = "Switch to Day" if theme == "night" else "Switch to Night"
+
+    # avatar | 8 nav buttons | theme toggle | upgrade
+    top_cols = st.columns([1.6] + [1] * len(NAV_ITEMS) + [1, 1])
+
+    with top_cols[0]:
+        st.markdown(f"""
+        <div style="display:flex;align-items:center;gap:9px;padding:2px 0">
+          {img_tag}
+          <div style="line-height:1.1">
+            <div style="font-size:14px;font-weight:900;color:var(--tx1);font-family:Inter,sans-serif;letter-spacing:-0.3px">PUGSON</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
+              <span style="width:6px;height:6px;border-radius:50%;background:{_sb_lime};display:inline-block;box-shadow:{_sb_glow}"></span>
+              <span style="font-size:8px;color:{_sb_lime};font-weight:700;letter-spacing:0.06em">ONLINE</span>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>""", unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
 
-    active_nav = st.session_state.active_nav
-    st.markdown('<div style="padding:8px 0">', unsafe_allow_html=True)
-    for icon, label, _ in NAV_ITEMS:
-        if st.button(f"{icon}  {label}", key=f"nav_{label}", use_container_width=True, type="secondary"):
-            st.session_state.active_nav = label
+    for i, (icon, label, _) in enumerate(NAV_ITEMS):
+        with top_cols[i + 1]:
+            btn_type = "primary" if active_nav == label else "secondary"
+            if st.button(f"{icon} {label}", key=f"nav_{label}", use_container_width=True, type=btn_type):
+                st.session_state.active_nav = label
+                st.rerun()
+
+    with top_cols[-2]:
+        if st.button(tog_label, key="theme_toggle", help=tog_tip, use_container_width=True, type="secondary"):
+            st.session_state.theme = "day" if theme == "night" else "night"
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    # Theme toggle inside sidebar
-    tog_label = "☀️  DAY MODE" if theme == "night" else "🌙  NIGHT MODE"
-    tog_tip   = "Switch to Day" if theme=="night" else "Switch to Night"
-    if st.button(tog_label, key="theme_toggle", help=tog_tip, use_container_width=True, type="secondary"):
-        st.session_state.theme = "day" if theme=="night" else "night"
-        st.rerun()
+    with top_cols[-1]:
+        if st.button("🛡️ UPGRADE", key="upgrade_cta", help="Unlock advanced tools, historic data & more", use_container_width=True, type="secondary"):
+            st.toast("Command tier coming soon 🛡️")
 
-    _upg_btn_bg  = "#2a5200" if theme == "day" else "#A3FF12"
-    _upg_btn_col = "#ffffff" if theme == "day" else "#080e14"
-    _upg_lbl_col = "#2a5200" if theme == "day" else "#A3FF12"
-    st.markdown(f"""
-    <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 14px;
-                border-top:1px solid var(--sb-border);background:var(--sb-bg)">
-      <div style="background:var(--lime-bg);border:1px solid var(--lime-border);border-radius:10px;padding:11px">
-        <div style="font-size:13px;margin-bottom:3px">🛡️</div>
-        <div style="font-size:10px;font-weight:800;color:{_upg_lbl_col};margin-bottom:3px">UPGRADE TO COMMAND</div>
-        <div style="font-size:9px;color:var(--tx4);margin-bottom:8px;line-height:1.5">Unlock advanced tools,<br>historic data &amp; more.</div>
-        <div style="background:{_upg_btn_bg};color:{_upg_btn_col};font-size:10px;font-weight:800;text-align:center;padding:6px;border-radius:6px;letter-spacing:0.06em;cursor:pointer">UPGRADE NOW</div>
-      </div>
-    </div>
-    <div style="height:155px"></div>""", unsafe_allow_html=True)
+st.markdown("<div style='border-bottom:1px solid var(--sb-border);margin:2px 0 10px 0'></div>", unsafe_allow_html=True)
 
 
 # ═════════════════════════════════════════════════════════════════
