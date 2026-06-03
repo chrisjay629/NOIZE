@@ -266,9 +266,24 @@ def scrape_strange_signals(limit=12):
             seen.add(key)
             sub = c.get("term") if c is not None else ""
             link = l.get("href") if l is not None else ""
+            raw = cont.text if (cont is not None and cont.text) else ""
+            # Pull a real image from the post's RSS content HTML if one exists.
+            image_url = ""
+            if raw:
+                imgs = re.findall(r'<img[^>]+src="([^"]+)"', raw)
+                for src in imgs:
+                    src = src.replace("&amp;", "&")
+                    # prefer real reddit-hosted media/preview images over icons
+                    if any(d in src for d in (
+                        "preview.redd.it", "i.redd.it", "external-preview.redd.it",
+                        "b.thumbs.redditmedia.com", "a.thumbs.redditmedia.com")):
+                        image_url = src
+                        break
+                if not image_url and imgs:
+                    image_url = imgs[0].replace("&amp;", "&")
             body = ""
-            if cont is not None and cont.text:
-                body = re.sub(r"<[^>]+>", " ", cont.text)          # strip HTML
+            if raw:
+                body = re.sub(r"<[^>]+>", " ", raw)                 # strip HTML
                 body = re.split(r"submitted by", body)[0]           # drop RSS boilerplate
                 body = re.sub(r"\s+", " ", body).strip()
             items.append({
@@ -278,6 +293,7 @@ def scrape_strange_signals(limit=12):
                 "rank": len(items) + 1,
                 "permalink": link,
                 "selftext": body[:400],
+                "image_url": image_url,
                 "platform": "reddit",
             })
             if len(items) >= limit:

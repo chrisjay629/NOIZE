@@ -1,6 +1,8 @@
 import os
 import re
 import json
+import base64
+import requests
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -425,6 +427,91 @@ def generate_strange_signals(limit=5):
         else:
             s["summary"] = s["title"]
     return signals
+
+
+def _generate_case_image(signal):
+    """Generate an atmospheric noir image for a story when the post has none.
+    Returns a data-URI string (persists past OpenAI's 1h URL expiry) or ''."""
+    style = {
+        "UFO":       "unidentified lights in a night sky, grainy, eerie",
+        "Paranormal":"a haunted, shadowy interior, cold and unsettling",
+        "Unsolved":  "a cold-case evidence board, dim and mysterious",
+        "Glitch":    "reality glitching, surreal doubled imagery",
+        "Cryptid":   "a dark forest with something half-seen in the trees",
+        "Strange":   "an uncanny, dreamlike scene that feels deeply off",
+    }.get(signal.get("type", "Strange"), "an uncanny, unsettling scene")
+    prompt = (
+        f"A moody, cinematic noir illustration: {style}. "
+        f"Inspired by this strange report: \"{signal.get('title','')[:160]}\". "
+        "Dark teal-and-amber detective palette, film-grain, atmospheric fog, "
+        "no text, no words, no watermark."
+    )
+    try:
+        resp = client.images.generate(
+            model="gpt-image-1-mini", prompt=prompt, size="1024x1024",
+            quality="low", n=1,
+        )
+        d = resp.data[0]
+        # gpt-image returns inline b64; older models may return a hosted url.
+        b64 = getattr(d, "b64_json", None)
+        if not b64:
+            img = requests.get(d.url, timeout=20)
+            img.raise_for_status()
+            b64 = base64.b64encode(img.content).decode("ascii")
+        print("[STRANGE] Generated a case image via gpt-image", flush=True)
+        return f"data:image/png;base64,{b64}"
+    except Exception as e:
+        print(f"[STRANGE] Image generation failed: {e}", flush=True)
+        return ""
+
+
+def generate_case_file(signal):
+    """On demand: turn ONE real strange post into Pugson's original noir
+    case-file write-up (his retelling, not a copy), and make sure it has an
+    image (real post image preferred, DALL-E fallback). Mutates + returns the
+    signal with 'case_headline', 'case_body' (list of paragraphs) and
+    'image_url'. Cached by the caller, so this runs once per story."""
+    if signal.get("case_body"):
+        return signal
+
+    body = (signal.get("selftext") or "")[:700].replace("\n", " ")
+    prompt = (
+        "You are Pugson, a hard-boiled noir detective who writes up strange "
+        "cases from the internet's weirdest corners for an outlet called Noize. "
+        "Below is a REAL Reddit post. Rewrite it as YOUR OWN original short case "
+        "file in an atmospheric noir-detective voice — your framing, your words, "
+        "not a copy. Stay faithful to the actual facts in the post; do NOT invent "
+        "concrete details (names, dates, numbers) that aren't there. If facts are "
+        "thin, lean into the mood and the open questions instead of fabricating.\n\n"
+        f"SUBREDDIT: {signal.get('subreddit','')}\n"
+        f"TITLE: {signal.get('title','')}\n"
+        f"BODY: {body or '(no body text — work from the title)'}\n\n"
+        "Return ONLY JSON (no markdown):\n"
+        '{"headline":"a punchy original headline (max 12 words)",'
+        '"body":["paragraph 1","paragraph 2","paragraph 3"]}'
+        "\nEach paragraph 2-4 sentences. Exactly 3 paragraphs."
+    )
+    headline, paragraphs = signal.get("title", ""), []
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        data = _parse_json_safe(resp.choices[0].message.content) or {}
+        headline = (data.get("headline") or signal.get("title", "")).strip()
+        paragraphs = [p.strip() for p in (data.get("body") or []) if isinstance(p, str) and p.strip()]
+    except Exception as e:
+        print(f"[STRANGE] Case-file GPT failed: {e}", flush=True)
+    if not paragraphs:
+        paragraphs = [signal.get("summary") or signal.get("selftext") or signal.get("title", "")]
+
+    signal["case_headline"] = headline
+    signal["case_body"] = paragraphs
+
+    # Image: prefer the real post image; otherwise generate one (once).
+    if not signal.get("image_url"):
+        signal["image_url"] = _generate_case_image(signal)
+    return signal
 
 
 # ---------- CLI ----------

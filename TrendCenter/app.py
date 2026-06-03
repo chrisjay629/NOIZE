@@ -7,7 +7,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime
 
-from agent import run_agent, generate_blueprint, research_niche_hashtags, niche_pulse, generate_trend_articles, generate_strange_signals
+from agent import run_agent, generate_blueprint, research_niche_hashtags, niche_pulse, generate_trend_articles, generate_strange_signals, generate_case_file
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit
@@ -800,16 +800,30 @@ SIGNAL_TYPE_COLORS = {
 
 
 def get_strange_signals(force=False):
-    """Cached fetch of real weird Reddit stories (refresh every 30 min)."""
+    """The daily drop of 5 real weird Reddit stories (refreshes once a day,
+    or on demand via the Rescan button)."""
     stale = True
     if st.session_state.strange_ts:
-        stale = (datetime.now() - st.session_state.strange_ts).total_seconds() > 1800
+        stale = (datetime.now() - st.session_state.strange_ts).total_seconds() > 86400
     if force or stale or not st.session_state.strange_signals:
         with st.spinner("📡 Scanning the fringe for strange signals…"):
             st.session_state.strange_signals = generate_strange_signals(limit=5)
             st.session_state.strange_ts = datetime.now()
         st.session_state.strange_sel = None
     return st.session_state.strange_signals
+
+
+def ensure_case_file(idx):
+    """Lazily build Pugson's full case write-up (+image) for one signal the
+    first time it's opened, then cache it back into session state."""
+    sigs = st.session_state.strange_signals
+    if not (0 <= idx < len(sigs)):
+        return None
+    if not sigs[idx].get("case_body"):
+        with st.spinner("🕵️ Pugson is writing up the case…"):
+            sigs[idx] = generate_case_file(sigs[idx])
+        st.session_state.strange_signals = sigs
+    return sigs[idx]
 
 
 def render_strange_radar(signals):
@@ -891,28 +905,140 @@ def render_strange_radar(signals):
             if st.button(f"{i+1} · {s['type']}", key=f"strange_btn_{i}", use_container_width=True):
                 st.session_state.strange_sel = i
 
-    # selected case file
+    # selected case file — Pugson's full on-site write-up
     sel = st.session_state.get("strange_sel")
     if sel is not None and 0 <= sel < n:
-        s = signals[sel]
-        col = SIGNAL_TYPE_COLORS.get(s["type"], "#A3FF12")
-        st.markdown(
-            f"<div style='background:var(--surface);border:1px solid {col}55;"
-            f"border-left:3px solid {col};border-radius:12px;padding:16px 18px;margin-top:12px'>"
-            f"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>"
-            f"<span style='font-family:JetBrains Mono,monospace;font-size:9px;font-weight:800;color:{col};"
-            f"letter-spacing:0.1em;background:{col}1a;padding:2px 8px;border-radius:4px'>📡 {s['type'].upper()} SIGNAL · {s['subreddit']}</span>"
-            f"<span style='font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4)'>HOT #{s['rank']}</span>"
-            f"</div>"
-            f"<div style='font-size:16px;font-weight:800;color:var(--tx1);line-height:1.35;margin-bottom:8px;font-family:Poppins,sans-serif'>{s['title']}</div>"
-            f"<div style='font-size:12px;color:var(--tx3);line-height:1.7'>{s.get('summary','')}</div>"
-            f"</div>", unsafe_allow_html=True)
-        st.link_button("🔎 Open the case on Reddit →", s["permalink"], use_container_width=True)
+        s = ensure_case_file(sel) or signals[sel]
+        render_case_file(s)
     else:
         st.markdown(
             "<div style='text-align:center;padding:14px;font-size:12px;color:var(--tx4)'>"
             "Click a blip on the radar (or a button above) to open the case file.</div>",
             unsafe_allow_html=True)
+
+
+def render_case_file(s):
+    """Render Pugson's full noir case write-up: image, headline, body, source."""
+    col = SIGNAL_TYPE_COLORS.get(s["type"], "#A3FF12")
+    img = s.get("image_url")
+    img_html = ""
+    if img:
+        img_html = (
+            f"<div style='position:relative;border-radius:12px;overflow:hidden;margin-bottom:14px;"
+            f"max-height:340px'>"
+            f"<img src='{img}' style='width:100%;display:block;object-fit:cover;max-height:340px'/>"
+            f"<div style='position:absolute;inset:0;background:linear-gradient(180deg,"
+            f"rgba(0,0,0,0) 55%,rgba(0,0,0,0.65) 100%)'></div></div>")
+    paras = "".join(
+        f"<p style='font-size:13.5px;color:var(--tx2);line-height:1.8;margin:0 0 12px'>{p}</p>"
+        for p in (s.get("case_body") or [s.get("summary", "")]))
+    st.markdown(
+        f"<div style='background:var(--surface);border:1px solid {col}55;"
+        f"border-left:3px solid {col};border-radius:14px;padding:18px 20px;margin-top:12px'>"
+        f"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px'>"
+        f"<span style='font-family:JetBrains Mono,monospace;font-size:9px;font-weight:800;color:{col};"
+        f"letter-spacing:0.1em;background:{col}1a;padding:3px 9px;border-radius:4px'>📡 {s['type'].upper()} SIGNAL · {s['subreddit']}</span>"
+        f"<span style='font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4)'>HOT #{s['rank']}</span>"
+        f"</div>"
+        f"{img_html}"
+        f"<div style='font-size:20px;font-weight:800;color:var(--tx1);line-height:1.3;margin-bottom:4px;font-family:Poppins,sans-serif'>{s.get('case_headline') or s['title']}</div>"
+        f"<div style='font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4);letter-spacing:0.08em;margin-bottom:14px'>FILED BY PUGSON · NOIZE FIELD DESK</div>"
+        f"{paras}"
+        f"<div style='font-size:11px;color:var(--tx4);border-top:1px solid var(--border);padding-top:10px;margin-top:6px'>"
+        f"Original report: <span style='color:{col}'>{s['subreddit']}</span> · Pugson's retelling — read the source for the unfiltered account.</div>"
+        f"</div>", unsafe_allow_html=True)
+    st.link_button("🔎 Read the original source →", s["permalink"], use_container_width=True)
+
+
+def render_strange_radar_mini(signals):
+    """Compact live Strange-Signals radar for the right rail. Clicking a blip or
+    a number jumps to the TREND RADAR tab with that case file open."""
+    is_night = (theme == "night")
+    _r_lime  = "#A3FF12" if is_night else "#2a5200"
+    _radar_bg   = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)" if is_night else "background:var(--surface-alt)"
+    _radar_shad = ";box-shadow:0 20px 60px rgba(0,0,0,0.45)" if is_night else ""
+    _radar_bord = "border:1px solid rgba(163,255,18,0.18)" if is_night else "border:1px solid var(--border-2)"
+    _live_glow  = f";text-shadow:0 0 10px {_r_lime}" if is_night else ""
+    st.markdown(
+        f'<div style="{_radar_bg};{_radar_bord};border-radius:14px;padding:14px 14px 10px;margin-bottom:12px{_radar_shad}">'
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
+        '<div style="font-size:9px;font-weight:700;color:var(--lime-t);letter-spacing:0.14em;text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ STRANGE SIGNALS</div>'
+        f'<span style="font-size:8px;color:var(--lime-t);font-weight:700;font-family:JetBrains Mono,monospace;letter-spacing:0.1em{_live_glow}">LIVE</span>'
+        '</div>',
+        unsafe_allow_html=True)
+
+    n = len(signals)
+    if n == 0:
+        st.markdown(
+            "<div style='font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4);"
+            "text-align:center;padding:18px 4px'>No strange signals on the wire.</div></div>",
+            unsafe_allow_html=True)
+        return
+
+    max_rank = max((s["rank"] for s in signals), default=1)
+    thetas, radii, sizes, colors, labels, custom, hovers = [], [], [], [], [], [], []
+    for i, s in enumerate(signals):
+        frac = ((s["rank"] - 1) / (max_rank - 1)) if max_rank > 1 else 0.0
+        radii.append(0.28 + 0.66 * frac)
+        thetas.append((360.0 / n) * i)
+        sizes.append(26 - 9 * frac)
+        colors.append(SIGNAL_TYPE_COLORS.get(s["type"], "#A3FF12"))
+        labels.append(str(i + 1))
+        custom.append(i)
+        hovers.append(f"<b>{s['title'][:60]}</b><br>{s['subreddit']} · {s['type']}")
+
+    fig = go.Figure()
+    if RADAR_BG_B64:
+        fig.update_layout(images=[dict(
+            source=f"data:image/jpeg;base64,{RADAR_BG_B64}",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            xanchor="center", yanchor="middle", sizex=1.05, sizey=1.05,
+            sizing="contain", opacity=0.20 if is_night else 0.10, layer="below")])
+    fig.add_trace(go.Scatterpolar(
+        r=[0, 1.05], theta=[0, 52], mode="lines",
+        line=dict(color="rgba(163,255,18,0.30)", width=1.5),
+        hoverinfo="skip", showlegend=False))
+    fig.add_trace(go.Scatterpolar(
+        r=radii, theta=thetas, mode="markers+text", text=labels,
+        textfont=dict(size=9, color="#06110a", family="JetBrains Mono, monospace"),
+        textposition="middle center",
+        marker=dict(size=sizes, color=colors, opacity=0.95,
+                    line=dict(color="rgba(255,255,255,0.85)", width=1.2)),
+        customdata=custom, hovertext=hovers, hoverinfo="text", showlegend=False))
+    grid_c = "rgba(163,255,18,0.12)" if is_night else "rgba(100,80,40,0.15)"
+    fig.update_layout(
+        polar=dict(bgcolor="rgba(0,0,0,0)",
+                   radialaxis=dict(visible=False, range=[0, 1.12]),
+                   angularaxis=dict(visible=True, showticklabels=False,
+                                    linecolor=grid_c, gridcolor=grid_c, tickcolor=grid_c, nticks=8)),
+        height=180, margin=dict(l=14, r=14, t=6, b=6),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
+    event = st.plotly_chart(
+        fig, use_container_width=True, on_select="rerun",
+        selection_mode="points", key="strange_radar_mini",
+        config={"displayModeBar": False})
+
+    def _open(idx):
+        st.session_state.strange_sel = int(idx)
+        st.session_state.active_nav = "TREND RADAR"
+        st.rerun()
+
+    try:
+        pts = event["selection"]["points"] if event and event.get("selection") else []
+    except Exception:
+        pts = []
+    if pts:
+        cd = pts[0].get("customdata")
+        idx = cd[0] if isinstance(cd, list) else cd
+        if idx is not None:
+            _open(idx)
+
+    bcols = st.columns(n)
+    for i in range(n):
+        with bcols[i]:
+            if st.button(str(i + 1), key=f"strange_mini_btn_{i}", use_container_width=True):
+                _open(i)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_niche_pulse(results, query):
@@ -1118,8 +1244,7 @@ main_col, right_col = st.columns([7, 3], gap="medium")
 # ── RIGHT PANEL ───────────────────────────────────────────────────
 with right_col:
     render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
-    radar_vel = get_hashtag_velocity(platform=active_platform or "tiktok")
-    render_trend_radar(radar_vel, platform=active_platform or "tiktok")
+    render_strange_radar_mini(get_strange_signals())
     _wl_style = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.45)" if theme == "night" else "background:var(--surface-alt);border:1px solid var(--border)"
     st.markdown(
         f'<div style="{_wl_style};border-radius:14px;padding:14px">'
