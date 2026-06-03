@@ -60,11 +60,13 @@ def load_img_b64(path: str, max_width: int = 1400, quality: int = 68) -> str:
         print(f"[IMG] {path}: {e}", flush=True)
         return ""
 
-PUGSON_B64       = load_img_b64("static/pugson.png",       max_width=220,  quality=88)
-BG_STREET_B64    = load_img_b64("static/bg_street.png",    max_width=1600, quality=70)
-BG_DAY_CITY_B64  = load_img_b64("static/bg_day_city.png",  max_width=1600, quality=70)
-BG_CITY_B64      = load_img_b64("static/bg_city.png",      max_width=1600, quality=65)
-NEWSPAPER_B64    = load_img_b64("static/newspaper_bg.png", max_width=1200, quality=65)
+PUGSON_B64           = load_img_b64("static/pugson.png",             max_width=220,  quality=88)
+BG_STREET_B64        = load_img_b64("static/bg_street.png",         max_width=1600, quality=70)
+BG_DAY_CITY_B64      = load_img_b64("static/bg_day_city.png",       max_width=1600, quality=70)
+BG_CITY_B64          = load_img_b64("static/bg_city.png",           max_width=1600, quality=65)
+NEWSPAPER_B64        = load_img_b64("static/newspaper_bg.png",      max_width=1200, quality=65)
+CASE_FOLDER_DARK_B64 = load_img_b64("static/case_folders_dark.png", max_width=240,  quality=82)
+CASE_FOLDER_LIGHT_B64= load_img_b64("static/case_folders_light.png",max_width=240,  quality=82)
 
 # ── Page config ───────────────────────────────────────────────────
 st.set_page_config(
@@ -289,16 +291,31 @@ def case_confidence(rank_int, name):
     noise = hash(name) % 7 - 3
     return max(51, min(99, base + noise))
 
-def mini_sparkline(rank_change, is_new, color):
-    if is_new:           pts = "5,28 15,22 25,17 35,12 55,6"
-    elif rank_change < -3: pts = "5,30 15,24 25,18 35,12 55,6"
-    elif rank_change < 0:  pts = "5,26 15,22 25,19 35,14 55,10"
-    elif rank_change == 0: pts = "5,18 15,17 25,19 35,17 55,18"
-    elif rank_change < 4:  pts = "5,10 15,14 25,18 35,22 55,26"
-    else:                  pts = "5,6  15,12 25,18 35,24 55,30"
-    return (f'<svg width="56" height="36" viewBox="0 0 60 36">'
+def mini_sparkline(rank_change, is_new, color, name=""):
+    import random
+    rng = random.Random(abs(hash(name or "x")) % 99991)
+    W, H, N = 80, 30, 10
+    if is_new or rank_change <= -4:
+        # Sharp upward curve
+        base = [H-2, H-4, H-7, H-10, H-13, H-16, H-19, H-22, H-26, 2]
+    elif rank_change < 0:
+        # Moderate upward
+        base = [H-2, H-5, H-8, H-11, H-13, H-15, H-17, H-19, H-22, H-26]
+    elif rank_change == 0:
+        # Wavy flat
+        base = [H//2+2, H//2-2, H//2+3, H//2-1, H//2+2, H//2-3, H//2+1, H//2-2, H//2+2, H//2]
+    elif rank_change < 4:
+        # Mild downward
+        base = [4, 6, 9, 12, 14, 16, 18, 21, 24, H-2]
+    else:
+        # Sharp downward
+        base = [2, 4, 7, 11, 15, 18, 21, 24, H-4, H-2]
+    ys    = [max(2, min(H-2, v + rng.randint(-3, 3))) for v in base]
+    xs    = [int(i * (W-6) / (N-1)) + 3 for i in range(N)]
+    pts   = " ".join(f"{x},{y}" for x, y in zip(xs, ys))
+    return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}">'
             f'<polyline points="{pts}" fill="none" stroke="{color}" '
-            f'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')
+            f'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>')
 
 def platform_spread_icons(rank_int, primary_platform):
     icons   = {"tiktok": "🎵", "google": "📈", "youtube": "📺", "reddit": "🔴"}
@@ -310,11 +327,18 @@ def platform_spread_icons(rank_int, primary_platform):
     else:               spread = [primary]
     return " ".join(spread)
 
-def velocity_pct_str(rank_change, is_new):
-    if is_new:           return "NEW ★", "#AAFF00"
-    if rank_change < 0:  return f"+{min(999, abs(rank_change)*38+12)}%", "#AAFF00"
-    if rank_change == 0: return "stable", "var(--tx4)"
-    return               f"−{min(99, rank_change*18)}%", "#ff5555"
+def velocity_pct_str(rank_change, is_new, rank_int=10, name=""):
+    import random
+    rng   = random.Random(abs(hash(name or "x")) % 99991)
+    noise = rng.randint(15, 75)
+    if is_new and rank_int <= 3:  return f"+{520 + noise}%", "#ff3b3b"
+    if is_new and rank_int <= 6:  return f"+{340 + noise}%", "#ff9500"
+    if is_new:                    return f"+{200 + noise}%", "#AAFF00"
+    if rank_change <= -5:         return f"+{460 + noise}%", "#ff3b3b"
+    if rank_change <= -3:         return f"+{290 + noise}%", "#ff9500"
+    if rank_change < 0:           return f"+{110 + noise}%", "#AAFF00"
+    if rank_change == 0:          return f"+{8  + noise//4}%", "var(--tx4)"
+    return                               f"−{min(88, rank_change*14 + noise//3)}%", "#666"
 
 def render_velocity_chart(velocity_data, platform="tiktok"):
     if not velocity_data:
@@ -360,6 +384,9 @@ def render_case_cards(data, platform="tiktok"):
     cfg    = PLATFORM_CONFIG.get(platform, {})
     color  = cfg.get("color", "#AAFF00")
     prefix = "#" if platform == "tiktok" else ""
+    # Thumbnail image (case folder placeholder)
+    thumb_b64 = CASE_FOLDER_LIGHT_B64 if theme == "day" else CASE_FOLDER_DARK_B64
+    thumb_src = f"data:image/jpeg;base64,{thumb_b64}" if thumb_b64 else ""
     for row_start in range(0, min(len(data), 9), 3):
         row  = data[row_start:row_start+3]
         cols = st.columns(3, gap="small")
@@ -375,56 +402,54 @@ def render_case_cards(data, platform="tiktok"):
                 posts_lbl = f"{posts} posts" if platform=="tiktok" else posts
                 try:    rank_int = int(str(rank_raw))
                 except: rank_int = 10
-                case_num                      = f"CASE #{(row_start+i+1):04d}"
-                status_lbl, sc, sb            = case_status(h)
-                confidence                    = case_confidence(rank_int, name)
-                sparkline                     = mini_sparkline(change, is_new, sc)
-                spread                        = platform_spread_icons(rank_int, platform)
-                vel_str, vel_col              = velocity_pct_str(change, is_new)
-                st.markdown(f"""
-                <a href="{url}" target="_blank" style="text-decoration:none">
-                <div style="background:var(--surface);border:1px solid var(--border);
-                            border-top:2px solid {sc};border-radius:12px;
-                            padding:14px 14px 12px 14px;margin-bottom:12px;transition:all 0.2s;cursor:pointer"
-                     onmouseover="this.style.boxShadow='0 6px 24px var(--card-hover)';this.style.transform='translateY(-2px)';this.style.borderColor='{sc}'"
-                     onmouseout="this.style.boxShadow='none';this.style.transform='translateY(0)';this.style.borderColor='var(--border)';this.style.borderTopColor='{sc}'">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                    <span style="font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.1em">{case_num}</span>
-                    <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;letter-spacing:0.08em;background:{sb};color:{sc}">{status_lbl}</span>
-                  </div>
-                  <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
-                    <div style="width:36px;height:36px;border-radius:8px;flex-shrink:0;background:var(--surface-alt);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Poppins',sans-serif;font-weight:800;font-size:14px;color:{sc}">{rank_int}</div>
-                    <div style="flex:1;min-width:0">
-                      <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:13px;color:var(--tx1);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{prefix}{name}</div>
-                      <div style="font-size:10px;color:var(--tx4);margin-top:2px">{category}</div>
-                    </div>
-                  </div>
-                  <div style="border-top:1px solid var(--border);padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-bottom:10px">
-                    <div>
-                      <div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Status</div>
-                      <div style="font-size:11px;font-weight:700;color:{sc}">{status_lbl.title()}</div>
-                    </div>
-                    <div>
-                      <div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Source Conf.</div>
-                      <div style="font-size:11px;font-weight:700;color:#AAFF00">{confidence}%</div>
-                    </div>
-                    <div>
-                      <div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Platform Spread</div>
-                      <div style="font-size:12px">{spread}</div>
-                    </div>
-                    <div>
-                      <div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Volume</div>
-                      <div style="font-size:10px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{posts_lbl}</div>
-                    </div>
-                  </div>
-                  <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px">
-                    <div>
-                      <div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2px">Velocity</div>
-                      <div style="display:flex;align-items:center;gap:8px">{sparkline}<span style="font-size:12px;font-weight:800;color:{vel_col}">{vel_str}</span></div>
-                    </div>
-                    <span style="font-size:10px;font-weight:700;color:{sc};letter-spacing:0.04em">VIEW CASE FILE →</span>
-                  </div>
-                </div></a>""", unsafe_allow_html=True)
+                case_num           = f"CASE #{(row_start+i+1):04d}"
+                status_lbl, sc, sb = case_status(h)
+                confidence         = case_confidence(rank_int, name)
+                sparkline          = mini_sparkline(change, is_new, sc, name)
+                spread             = platform_spread_icons(rank_int, platform)
+                vel_str, vel_col   = velocity_pct_str(change, is_new, rank_int, name)
+                # Thumbnail with rank overlay
+                if thumb_src:
+                    thumb_html = (f'<div style="width:78px;height:62px;border-radius:8px;overflow:hidden;flex-shrink:0;position:relative;border:1px solid {sc}33">'
+                                  f'<img src="{thumb_src}" style="width:100%;height:100%;object-fit:cover;opacity:0.55">'
+                                  f'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,{sc}55)"></div>'
+                                  f'<div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-family:Poppins,sans-serif;font-weight:900;font-size:18px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8)">{rank_int}</div>'
+                                  f'</div>')
+                else:
+                    thumb_html = f'<div style="width:36px;height:36px;border-radius:8px;flex-shrink:0;background:var(--surface-alt);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Poppins,sans-serif;font-weight:800;font-size:14px;color:{sc}">{rank_int}</div>'
+                # Paper clip SVG
+                clip_html = (f'<div style="position:absolute;top:-9px;left:20px">'
+                             f'<svg width="14" height="22" viewBox="0 0 14 22" fill="none">'
+                             f'<path d="M7 1 C3.5 1 1 3.5 1 7 L1 17 C1 19.2 2.8 21 5 21 C7.2 21 9 19.2 9 17 L9 7 C9 5.8 8.2 5 7 5 C5.8 5 5 5.8 5 7 L5 16" '
+                             f'stroke="{sc}" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>'
+                             f'</svg></div>')
+                st.markdown(
+                    f'<a href="{url}" target="_blank" style="text-decoration:none">'
+                    f'<div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {sc};border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;transition:all 0.2s;cursor:pointer;position:relative">'
+                    f'{clip_html}'
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+                    f'<span style="font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.1em">{case_num}</span>'
+                    f'<span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;letter-spacing:0.08em;background:{sb};color:{sc}">{status_lbl}</span>'
+                    f'</div>'
+                    f'<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">'
+                    f'{thumb_html}'
+                    f'<div style="flex:1;min-width:0">'
+                    f'<div style="font-family:Poppins,sans-serif;font-weight:700;font-size:13px;color:var(--tx1);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{prefix}{name}</div>'
+                    f'<div style="font-size:10px;color:var(--tx4);margin-top:2px">{category}</div>'
+                    f'</div></div>'
+                    f'<div style="border-top:1px solid var(--border);padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-bottom:10px">'
+                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Status</div><div style="font-size:11px;font-weight:700;color:{sc}">{status_lbl.title()}</div></div>'
+                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Source Conf.</div><div style="font-size:11px;font-weight:700;color:#AAFF00">{confidence}%</div></div>'
+                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Platform Spread</div><div style="font-size:12px">{spread}</div></div>'
+                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Volume</div><div style="font-size:10px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{posts_lbl}</div></div>'
+                    f'</div>'
+                    f'<div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px">'
+                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2px">Velocity</div>'
+                    f'<div style="display:flex;align-items:center;gap:6px">{sparkline}<span style="font-size:12px;font-weight:800;color:{vel_col}">{vel_str}</span></div></div>'
+                    f'<span style="font-size:10px;font-weight:700;color:{sc};letter-spacing:0.04em">VIEW CASE FILE →</span>'
+                    f'</div></div></a>',
+                    unsafe_allow_html=True
+                )
 
 def render_signal_guide():
     levels = [
@@ -457,28 +482,35 @@ def render_detective_briefing(articles):
     leads_html = ""
     for idx, art in enumerate(articles[:3]):
         cat   = art.get("category","News")
-        head  = (art.get("headline","") or "")[:55]
+        head  = (art.get("headline","") or "")[:52]
+        summ  = (art.get("summary","") or "")[:60]
         url   = art.get("url","#")
         picon,pcol,vel = plat_data[idx%len(plat_data)]
-        icon_style  = f"width:26px;height:26px;border-radius:7px;background:{pcol}22;border:1px solid {pcol}44;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"
+        num_style   = f"width:22px;height:22px;border-radius:50%;background:{pcol};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0"
+        icon_style  = f"width:32px;height:32px;border-radius:8px;background:{pcol}22;border:1px solid {pcol}44;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"
         head_style  = "font-size:11px;font-weight:700;color:var(--tx1);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
-        cat_style   = "font-size:9px;color:var(--tx4);margin-top:2px"
-        card_style  = "display:flex;gap:10px;align-items:flex-start;padding:9px 11px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:9px;margin-bottom:6px"
-        vel_style   = "font-size:11px;font-weight:800;color:#AAFF00;flex-shrink:0"
-        leads_html += f'<a href="{url}" target="_blank" style="text-decoration:none"><div style="{card_style}"><div style="{icon_style}">{picon}</div><div style="flex:1;min-width:0"><div style="{head_style}">{head}</div><div style="{cat_style}">{cat_icons.get(cat,"📡")} {cat}</div></div><div style="{vel_style}">↑ {vel}</div></div></a>'
+        cat_style   = "font-size:9px;color:var(--tx4);margin-top:1px"
+        card_style  = f"display:flex;gap:8px;align-items:flex-start;padding:9px 10px;background:var(--surface-2);border:1px solid var(--border-2);border-left:2px solid {pcol};border-radius:9px;margin-bottom:6px"
+        vel_style   = "font-size:11px;font-weight:800;color:#AAFF00;flex-shrink:0;white-space:nowrap"
+        leads_html += (f'<a href="{url}" target="_blank" style="text-decoration:none">'
+                       f'<div style="{card_style}">'
+                       f'<div style="{num_style}">{idx+1}</div>'
+                       f'<div style="{icon_style}">{picon}</div>'
+                       f'<div style="flex:1;min-width:0"><div style="{head_style}">{head}</div><div style="{cat_style}">{cat_icons.get(cat,"📡")} {cat}</div></div>'
+                       f'<div style="{vel_style}">↑ {vel}</div>'
+                       f'</div></a>')
     if not leads_html:
         leads_html = '<div style="color:var(--tx4);font-size:12px;padding:10px">Loading intelligence...</div>'
-    header_style = "font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.12em;text-transform:uppercase"
-    wrap_style   = "background:var(--surface-alt);border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px"
-    hdr_row      = "display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"
-    greet_style  = "font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:2px;font-family:'Poppins',sans-serif"
-    sub_style    = "font-size:11px;color:var(--tx4);margin-bottom:12px"
+    view_btn = '<a href="#" style="display:block;text-align:center;margin-top:10px;padding:8px;background:var(--lime-bg);border:1px solid var(--lime-border);border-radius:8px;font-size:10px;font-weight:700;color:var(--lime-t);text-decoration:none;letter-spacing:0.06em">VIEW FULL BRIEFING →</a>'
     st.markdown(
-        f'<div style="{wrap_style}">'
-        f'<div style="{hdr_row}"><div style="{header_style}">● Detective Briefing</div><span style="font-size:9px;color:var(--tx4)">📋</span></div>'
-        f'<div style="{greet_style}">{greeting}, Detective.</div>'
-        f'<div style="{sub_style}">Here are your top leads.</div>'
+        f'<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px">'
+        f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+        f'<div style="font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.12em;text-transform:uppercase">● Detective Briefing</div>'
+        f'<span style="font-size:9px;color:var(--tx4)">📋</span></div>'
+        f'<div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:2px;font-family:Poppins,sans-serif">{greeting}, Detective.</div>'
+        f'<div style="font-size:11px;color:var(--tx4);margin-bottom:12px">Here are your top leads.</div>'
         f'{leads_html}'
+        f'{view_btn}'
         f'</div>',
         unsafe_allow_html=True
     )
@@ -694,35 +726,35 @@ src_pills = "".join([
     for c in PLATFORM_CONFIG.values()
 ])
 
-st.markdown(f"""
-<div style="{bg_style}border-radius:16px;position:relative;overflow:hidden;margin-bottom:16px;min-height:190px">
-  <div style="position:absolute;inset:0;background:{hero_overlay};border-radius:16px"></div>
-  <div style="position:relative;padding:26px 30px 22px 30px">
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:8px">
-      <svg width="38" height="38" viewBox="0 0 40 40" fill="none">
-        <rect width="40" height="40" rx="10" fill="#111118"/>
-        <rect x="7"  y="20" width="6" height="12" rx="2" fill="#AAFF00"/>
-        <rect x="17" y="11" width="6" height="21" rx="2" fill="#AAFF00"/>
-        <rect x="27" y="15" width="6" height="17" rx="2" fill="#AAFF00"/>
-        <rect x="7"  y="18" width="6" height="3"  rx="1.5" fill="#d4ff66" opacity="0.55"/>
-        <rect x="17" y="9"  width="6" height="3"  rx="1.5" fill="#d4ff66" opacity="0.55"/>
-        <rect x="27" y="13" width="6" height="3"  rx="1.5" fill="#d4ff66" opacity="0.55"/>
-      </svg>
-      <div>
-        <div style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#AAFF00">ze</span></div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:0.2em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>
-      </div>
-    </div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.38);line-height:2;margin-bottom:14px">
-      The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.
-    </div>
-    <div style="display:flex;gap:7px;flex-wrap:wrap">
-      <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.2);letter-spacing:0.12em;text-transform:uppercase;align-self:center">Sources</span>
-      {src_pills}
-    </div>
-    {chips_html}
-  </div>
-</div>""", unsafe_allow_html=True)
+popular_topics = ["AI Tools", "Taylor Swift", "Bitcoin", "Climate Change", "OpenAI", "Gaming"]
+popular_chips  = "".join([
+    f'<span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);padding:4px 12px;border-radius:14px;cursor:pointer;white-space:nowrap">{t}</span>'
+    for t in popular_topics
+])
+
+st.markdown(
+    f'<div style="{bg_style}border-radius:16px;position:relative;overflow:hidden;margin-bottom:16px;min-height:240px">'
+    f'<div style="position:absolute;inset:0;background:{hero_overlay};border-radius:16px"></div>'
+    f'<div style="position:relative;padding:30px 32px 26px 32px">'
+    f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
+    f'<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#111118"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#AAFF00"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#AAFF00"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#AAFF00"/><rect x="7" y="18" width="6" height="3" rx="1.5" fill="#d4ff66" opacity="0.55"/><rect x="17" y="9" width="6" height="3" rx="1.5" fill="#d4ff66" opacity="0.55"/><rect x="27" y="13" width="6" height="3" rx="1.5" fill="#d4ff66" opacity="0.55"/></svg>'
+    f'<div><div style="font-family:Poppins,sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#AAFF00">ze</span></div>'
+    f'<div style="font-size:9px;color:rgba(255,255,255,0.32);letter-spacing:0.2em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
+    f'</div></div>'
+    f'<div style="font-size:12px;color:rgba(255,255,255,0.42);line-height:1.8;margin-bottom:18px">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
+    f'<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px;max-width:560px">'
+    f'<span style="font-size:14px;opacity:0.5">🔍</span>'
+    f'<span style="font-size:13px;color:rgba(255,255,255,0.35)">Investigate any topic, keyword or trend...</span>'
+    f'<div style="margin-left:auto;background:#AAFF00;color:#080810;font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:0.06em;white-space:nowrap">INVESTIGATE →</div>'
+    f'</div>'
+    f'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+    f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap">Popular:</span>'
+    f'{popular_chips}'
+    f'</div>'
+    f'{chips_html}'
+    f'</div></div>',
+    unsafe_allow_html=True
+)
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -854,6 +886,21 @@ with main_col:
 
         render_signal_guide()
 
+        # Quote banner with newspaper bg
+        np_src = f"data:image/jpeg;base64,{NEWSPAPER_B64}" if NEWSPAPER_B64 else ""
+        if np_src:
+            st.markdown(
+                f'<div style="display:flex;align-items:stretch;border-radius:16px;overflow:hidden;margin:8px 0 4px;min-height:130px;border:1px solid var(--border-2)">'
+                f'<div style="flex:1;background:var(--surface-alt);padding:28px 32px;display:flex;flex-direction:column;justify-content:center">'
+                f'<div style="font-size:32px;color:#AAFF00;line-height:0.7;margin-bottom:12px;font-family:Georgia,serif;opacity:0.8">"</div>'
+                f'<div style="font-size:14px;color:var(--tx2);line-height:1.75;font-style:italic">In a world of infinite noise,<br>we find the signal that shapes tomorrow.</div>'
+                f'<div style="font-size:10px;color:var(--tx4);margin-top:10px;letter-spacing:0.04em">— Chief Detective Pugson</div>'
+                f'</div>'
+                f'<div style="width:42%;background-image:url(\'{np_src}\');background-size:cover;background-position:center 30%"></div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
     # ── INVESTIGATIONS ───────────────────────────────────────────
     elif active_nav == "INVESTIGATIONS":
         st.markdown("<div style='font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px'>Cross-Platform Investigations</div>", unsafe_allow_html=True)
@@ -915,20 +962,49 @@ with main_col:
 
     # ── BRIEFINGS ────────────────────────────────────────────────
     elif active_nav == "BRIEFINGS":
-        st.markdown("<div style='font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px'>Daily Intelligence Briefing</div>", unsafe_allow_html=True)
-        for art in articles:
-            cat=art.get("category",""); head=art.get("headline",""); summ=art.get("summary","")
-            tag=art.get("tag",""); color=art.get("color","#AAFF00"); url=art.get("url","#")
-            st.markdown(f"""
-            <a href="{url}" target="_blank" style="text-decoration:none">
-            <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid {color};border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:all 0.15s"
-                 onmouseover="this.style.transform='translateX(3px)'"
-                 onmouseout="this.style.transform='translateX(0)'">
-              <div style="font-size:9px;font-weight:700;color:{color};letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">{cat} · {tag}</div>
-              <div style="font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:6px;font-family:'Poppins',sans-serif">{head}</div>
-              <div style="font-size:12px;color:var(--tx3);line-height:1.7">{summ}</div>
-            </div></a>""", unsafe_allow_html=True)
-        if st.button("🔄 Refresh Briefing",type="secondary"):
+        # Newspaper hero banner
+        np_src = f"data:image/jpeg;base64,{NEWSPAPER_B64}" if NEWSPAPER_B64 else ""
+        date_str = datetime.now().strftime("%B %d, %Y").upper()
+        if np_src:
+            st.markdown(
+                f'<div style="background-image:url(\'{np_src}\');background-size:cover;background-position:center 35%;'
+                f'border-radius:16px;position:relative;overflow:hidden;margin-bottom:20px;min-height:130px;border:1px solid var(--border)">'
+                f'<div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(5,5,12,0.97) 0%,rgba(5,5,12,0.80) 50%,rgba(0,0,0,0.2) 100%);border-radius:16px"></div>'
+                f'<div style="position:relative;padding:26px 30px">'
+                f'<div style="font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px">● Daily Intelligence Report</div>'
+                f'<div style="font-size:26px;font-weight:900;color:#fff;font-family:Poppins,sans-serif;letter-spacing:-0.5px">DAILY BRIEFING</div>'
+                f'<div style="font-size:10px;color:rgba(255,255,255,0.32);margin-top:5px;letter-spacing:0.12em">SIGNALS · TRENDS · CLUES · {date_str}</div>'
+                f'</div></div>',
+                unsafe_allow_html=True
+            )
+        # Article cards
+        cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":"#AAFF00"}
+        cat_icons_b = {"News":"📰","Music & Film":"🎬","Gaming":"🎮"}
+        for i, art in enumerate(articles):
+            cat   = art.get("category","")
+            head  = art.get("headline","")
+            summ  = art.get("summary","")
+            tag   = art.get("tag","")
+            color = art.get("color", cat_colors.get(cat,"#AAFF00"))
+            url   = art.get("url","#")
+            icon  = cat_icons_b.get(cat,"📡")
+            st.markdown(
+                f'<a href="{url}" target="_blank" style="text-decoration:none">'
+                f'<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid {color};border-radius:12px;padding:16px 18px;margin-bottom:12px">'
+                f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+                f'<div style="display:flex;align-items:center;gap:7px">'
+                f'<div style="width:28px;height:28px;border-radius:7px;background:{color}20;border:1px solid {color}40;display:flex;align-items:center;justify-content:center;font-size:14px">{icon}</div>'
+                f'<div><div style="font-size:9px;font-weight:700;color:{color};letter-spacing:0.1em;text-transform:uppercase">{cat}</div>'
+                f'<div style="font-size:8px;color:var(--tx4)">{tag}</div></div></div>'
+                f'<span style="font-size:9px;font-weight:800;color:{color};background:{color}18;padding:2px 8px;border-radius:4px">#{i+1}</span>'
+                f'</div>'
+                f'<div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:7px;font-family:Poppins,sans-serif;line-height:1.35">{head}</div>'
+                f'<div style="font-size:12px;color:var(--tx3);line-height:1.7">{summ}</div>'
+                f'<div style="margin-top:10px;font-size:10px;font-weight:700;color:{color}">READ FULL REPORT →</div>'
+                f'</div></a>',
+                unsafe_allow_html=True
+            )
+        if st.button("🔄 Refresh Briefing", type="secondary"):
             st.session_state.trend_articles=[]; st.session_state.articles_ts=None; st.rerun()
 
     # ── SOURCES ──────────────────────────────────────────────────
