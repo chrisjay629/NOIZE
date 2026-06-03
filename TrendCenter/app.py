@@ -252,37 +252,100 @@ h1, h2, h3, h4 { color: var(--tx1) !important; font-family: 'Poppins', sans-seri
 if theme == "day":
     st.markdown("""
     <style>
+    /* ══════════════════════════════════════════════════
+       DAY MODE  —  Warm parchment × classified dossier
+       ══════════════════════════════════════════════════ */
     :root {
-      --bg:           #f0f0f8;
-      --surface:      #ffffff;
-      --surface-alt:  #f6f6fc;
-      --surface-2:    #f2f2fa;
-      --border:       #d8d8e8;
-      --border-2:     #e4e4f0;
-      --tx1:          #08081a;
-      --tx2:          #484860;
-      --tx3:          #8888a8;
-      --tx4:          #b0b0c8;
-      --sb-bg:        #fafafe;
-      --sb-border:    #dcdcec;
-      --lime-t:       #4a7200;
-      --lime-bg:      rgba(74,114,0,0.06);
-      --lime-border:  rgba(74,114,0,0.18);
-      --amber:        #8b6914;
-      --amber-bg:     rgba(139,105,20,0.06);
-      --amber-border: rgba(139,105,20,0.18);
-      --input-bg:     #ffffff;
-      --input-bd:     #d8d8e8;
-      --pill-bg:      #f2f2f8;
-      --pill-bd:      #d8d8e8;
-      --card-hover:   rgba(0,0,0,0.06);
+      --bg:           #f2ece0;
+      --surface:      #fdfaf4;
+      --surface-alt:  #ede8db;
+      --surface-2:    #e7e1d4;
+      --border:       #cdc8ba;
+      --border-2:     #d8d3c5;
+      --tx1:          #0d1117;
+      --tx2:          #2a2f3a;
+      --tx3:          #616676;
+      --tx4:          #929aab;
+      --sb-bg:        #e7e2d7;
+      --sb-border:    #cbc6b8;
+      --lime-t:       #2a5200;
+      --lime-bg:      rgba(42,82,0,0.07);
+      --lime-border:  rgba(42,82,0,0.20);
+      --amber:        #8a6418;
+      --amber-bg:     rgba(138,100,24,0.09);
+      --amber-border: rgba(138,100,24,0.24);
+      --radar-green:  #2a5200;
+      --input-bg:     #fdfaf4;
+      --input-bd:     #cac5b7;
+      --pill-bg:      #e7e2d7;
+      --pill-bd:      #cdc8ba;
+      --card-hover:   rgba(0,0,0,0.03);
     }
+
+    /* Warm sepia grid texture */
     .stApp {
       background-image:
-        repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(0,0,0,0.015) 48px),
-        repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(0,0,0,0.015) 48px) !important;
+        repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(100,80,40,0.030) 48px),
+        repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(100,80,40,0.030) 48px) !important;
     }
+
+    /* Sidebar nav hover */
     [data-testid="stSidebar"] .stButton > button { color: var(--tx3) !important; }
+    [data-testid="stSidebar"] .stButton > button:hover {
+      background: var(--lime-bg) !important;
+      color: var(--lime-t) !important;
+      border-left-color: var(--lime-t) !important;
+    }
+
+    /* Primary button — deep forest green */
+    .stButton > button[kind="primary"] {
+      background: var(--lime-t) !important;
+      color: #ffffff !important;
+      border: none !important;
+      box-shadow: 0 2px 12px rgba(42,82,0,0.20) !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+      background: #1e3d00 !important;
+      box-shadow: 0 4px 18px rgba(42,82,0,0.30) !important;
+    }
+
+    /* Secondary button */
+    .stButton > button[kind="secondary"]:hover {
+      border-color: rgba(42,82,0,0.30) !important;
+      color: var(--lime-t) !important;
+      background: var(--lime-bg) !important;
+    }
+
+    /* Active tab */
+    [data-testid="stTabs"] button[aria-selected="true"] {
+      color: var(--lime-t) !important;
+      border-bottom: 2px solid var(--lime-t) !important;
+    }
+
+    /* Input focus */
+    [data-testid="stTextInput"] input:focus {
+      border-color: var(--lime-t) !important;
+      box-shadow: 0 0 0 2px rgba(42,82,0,0.10) !important;
+    }
+
+    /* Live dot — no glow on light bg */
+    .dot-live { background: var(--lime-t) !important; box-shadow: none !important; }
+
+    /* Lime badge */
+    .badge-lime { background: var(--lime-bg) !important; color: var(--lime-t) !important; border-color: var(--lime-border) !important; }
+
+    /* Metric container */
+    [data-testid="metric-container"] [data-testid="stMetricValue"] { color: var(--tx1) !important; }
+
+    /* Card hover */
+    .ht-card:hover { border-color: rgba(42,82,0,0.18) !important; }
+
+    /* UPGRADE CTA button in sidebar */
+    [data-testid="stSidebar"] [style*="background:#AAFF00"],
+    [data-testid="stSidebar"] [style*="background: #AAFF00"] {
+      background: var(--lime-t) !important;
+      color: #ffffff !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -309,11 +372,15 @@ def case_status(h):
     is_new  = h.get("is_new", False)
     try:    rank_int = int(str(h.get("current_rank") or h.get("rank") or 10))
     except: rank_int = 10
-    if rank_int == 1:                                return "DOMINATING", "#AAFF00", "rgba(170,255,0,0.12)"
+    # Use readable greens for day mode; neon lime for night
+    _lime   = "#2a5200" if theme == "day" else "#AAFF00"
+    _lime_b = "rgba(42,82,0,0.10)"  if theme == "day" else "rgba(170,255,0,0.12)"
+    _lime_s = "rgba(42,82,0,0.08)"  if theme == "day" else "rgba(170,255,0,0.08)"
+    if rank_int == 1:                                return "DOMINATING", _lime,    _lime_b
     if change < -4 or (is_new and rank_int <= 5):   return "BREAKING",   "#ff3b3b", "rgba(255,59,59,0.12)"
     if change < -1 or is_new:                        return "ESCALATING", "#ff9500", "rgba(255,149,0,0.12)"
     if change < 1:                                   return "TRENDING",   "#4da8ff", "rgba(77,168,255,0.12)"
-    if change < 4:                                   return "ACTIVE",     "#AAFF00", "rgba(170,255,0,0.08)"
+    if change < 4:                                   return "ACTIVE",     _lime,    _lime_s
     return                                                  "FADING",     "#666",    "rgba(80,80,80,0.1)"
 
 def case_confidence(rank_int, name):
@@ -361,12 +428,14 @@ def velocity_pct_str(rank_change, is_new, rank_int=10, name=""):
     import random
     rng   = random.Random(abs(hash(name or "x")) % 99991)
     noise = rng.randint(15, 75)
+    # On light backgrounds #AAFF00 is invisible; use CSS variable so browser resolves correctly
+    _lime = "var(--lime-t)"
     if is_new and rank_int <= 3:  return f"+{520 + noise}%", "#ff3b3b"
     if is_new and rank_int <= 6:  return f"+{340 + noise}%", "#ff9500"
-    if is_new:                    return f"+{200 + noise}%", "#AAFF00"
+    if is_new:                    return f"+{200 + noise}%", _lime
     if rank_change <= -5:         return f"+{460 + noise}%", "#ff3b3b"
     if rank_change <= -3:         return f"+{290 + noise}%", "#ff9500"
-    if rank_change < 0:           return f"+{110 + noise}%", "#AAFF00"
+    if rank_change < 0:           return f"+{110 + noise}%", _lime
     if rank_change == 0:          return f"+{8  + noise//4}%", "var(--tx4)"
     return                               f"−{min(88, rank_change*14 + noise//3)}%", "#666"
 
@@ -473,7 +542,7 @@ def render_case_cards(data, platform="tiktok"):
                     f'</div></div>'
                     f'<div style="border-top:1px solid var(--border);padding-top:9px;display:grid;grid-template-columns:1fr 1fr;gap:7px 8px;margin-bottom:10px">'
                     f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Status</div><div style="font-size:11px;font-weight:700;color:{sc};margin-top:2px">{status_lbl.title()}</div></div>'
-                    f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Confidence</div><div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:#AAFF00;margin-top:2px">{confidence}%</div></div>'
+                    f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Confidence</div><div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:var(--lime-t);margin-top:2px">{confidence}%</div></div>'
                     f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Platform Spread</div><div style="font-size:12px;margin-top:2px">{spread}</div></div>'
                     f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Volume</div><div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">{posts_lbl}</div></div>'
                     f'</div>'
@@ -486,13 +555,14 @@ def render_case_cards(data, platform="tiktok"):
                 )
 
 def render_signal_guide():
+    _dom_col = "#2a5200" if theme == "day" else "#AAFF00"
     levels = [
         ("#555",    "QUIET",     "Early whispers",     1),
         ("#3dd68c", "GROWING",   "Gaining traction",   2),
         ("#fbbf24", "EMERGING",  "Picking up steam",   3),
         ("#ff9500", "TRENDING",  "Going mainstream",   4),
         ("#ff3b3b", "BREAKING",  "Widespread impact",  5),
-        ("#AAFF00", "DOMINATING","All over the net",   6),
+        (_dom_col,  "DOMINATING","All over the net",   6),
     ]
     items = ""
     for col, lbl, sub, strength in levels:
@@ -531,7 +601,7 @@ def render_detective_briefing(articles):
         head_style  = "font-size:11px;font-weight:700;color:var(--tx1);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
         cat_style   = "font-size:9px;color:var(--tx4);margin-top:1px"
         card_style  = f"display:flex;gap:8px;align-items:flex-start;padding:9px 10px;background:var(--surface-2);border:1px solid var(--border-2);border-left:2px solid {pcol};border-radius:9px;margin-bottom:6px"
-        vel_style   = "font-size:11px;font-weight:800;color:#AAFF00;flex-shrink:0;white-space:nowrap"
+        vel_style   = "font-size:11px;font-weight:800;color:var(--lime-t);flex-shrink:0;white-space:nowrap"
         leads_html += (f'<a href="{url}" target="_blank" style="text-decoration:none">'
                        f'<div style="{card_style}">'
                        f'<div style="{num_style}">{idx+1}</div>'
@@ -559,7 +629,8 @@ def render_detective_briefing(articles):
 
 def render_trend_radar(velocity_data, platform="tiktok"):
     categories = ["DOMINATING","BREAKING","TRENDING","EMERGING","QUIET"]
-    cat_colors = ["#AAFF00","#ff3b3b","#4da8ff","#fbbf24","#555"]
+    _rd_lime   = "#2a5200" if theme == "day" else "#AAFF00"
+    cat_colors = [_rd_lime,"#ff3b3b","#4da8ff","#fbbf24","#555"]
     counts = [0,0,0,0,0]
     for h in velocity_data:
         lbl,_,_ = case_status(h)
@@ -579,18 +650,21 @@ def render_trend_radar(velocity_data, platform="tiktok"):
             sizex=1.1, sizey=1.1,
             sizing="contain", opacity=0.13, layer="below"
         )])
+    is_night  = (theme == "night")
+    _r_lime   = "#AAFF00"             if is_night else "#2a5200"
+    _r_fill   = "rgba(170,255,0,0.09)" if is_night else "rgba(42,82,0,0.10)"
+    _r_mkline = "#050508"             if is_night else "#fdfaf4"
     fig.add_trace(go.Scatterpolar(
         r=counts+[counts[0]], theta=categories+[categories[0]],
         fill="toself",
-        fillcolor="rgba(170,255,0,0.09)",
-        line=dict(color="#AAFF00", width=2),
-        marker=dict(color="#AAFF00", size=6, symbol="circle",
-                    line=dict(color="#050508", width=1.5)),
+        fillcolor=_r_fill,
+        line=dict(color=_r_lime, width=2),
+        marker=dict(color=_r_lime, size=6, symbol="circle",
+                    line=dict(color=_r_mkline, width=1.5)),
         name="Signal",
     ))
-    is_night = (theme == "night")
-    grid_c   = "rgba(170,255,0,0.12)" if is_night else "#d8d8e8"
-    tick_c   = "rgba(170,255,0,0.5)"  if is_night else "#888"
+    grid_c   = "rgba(170,255,0,0.12)" if is_night else "rgba(100,80,40,0.15)"
+    tick_c   = "rgba(170,255,0,0.5)"  if is_night else "#777"
     fig.update_layout(
         polar=dict(
             bgcolor="rgba(0,0,0,0)",
@@ -608,8 +682,8 @@ def render_trend_radar(velocity_data, platform="tiktok"):
     st.markdown(
         '<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:14px 14px 10px;margin-bottom:12px">'
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
-        '<div style="font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.14em;text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ TREND RADAR</div>'
-        '<span style="font-size:8px;color:#AAFF00;font-weight:700;font-family:JetBrains Mono,monospace;letter-spacing:0.1em">LIVE</span>'
+        '<div style="font-size:9px;font-weight:700;color:var(--lime-t);letter-spacing:0.14em;text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ TREND RADAR</div>'
+        '<span style="font-size:8px;color:var(--lime-t);font-weight:700;font-family:JetBrains Mono,monospace;letter-spacing:0.1em">LIVE</span>'
         '</div>',
         unsafe_allow_html=True
     )
@@ -711,10 +785,13 @@ NAV_ITEMS = [
 ]
 
 with st.sidebar:
-    pugson_src = f"data:image/jpeg;base64,{PUGSON_B64}" if PUGSON_B64 else ""
-    img_tag    = (f'<img src="{pugson_src}" style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(170,255,0,0.3);object-fit:cover">'
-                  if pugson_src else
-                  '<div style="width:68px;height:68px;border-radius:50%;background:var(--surface);border:2px solid rgba(170,255,0,0.3);display:flex;align-items:center;justify-content:center;font-size:26px">🐾</div>')
+    pugson_src  = f"data:image/jpeg;base64,{PUGSON_B64}" if PUGSON_B64 else ""
+    _sb_lime    = "#2a5200" if theme == "day" else "#AAFF00"
+    _sb_img_bd  = "rgba(42,82,0,0.35)" if theme == "day" else "rgba(170,255,0,0.3)"
+    _sb_glow    = "none" if theme == "day" else f"0 0 6px {_sb_lime}"
+    img_tag     = (f'<img src="{pugson_src}" style="width:68px;height:68px;border-radius:50%;border:2px solid {_sb_img_bd};object-fit:cover">'
+                   if pugson_src else
+                   f'<div style="width:68px;height:68px;border-radius:50%;background:var(--surface);border:2px solid {_sb_img_bd};display:flex;align-items:center;justify-content:center;font-size:26px">🐾</div>')
     st.markdown(f"""
     <div style="padding:18px 16px 14px 16px;border-bottom:1px solid var(--sb-border)">
       <div style="display:flex;align-items:center;gap:11px">
@@ -723,8 +800,8 @@ with st.sidebar:
           <div style="font-size:9px;color:var(--tx4);font-weight:700;letter-spacing:0.1em;text-transform:uppercase">Chief Detective</div>
           <div style="font-size:15px;font-weight:900;color:var(--tx1);font-family:'Poppins',sans-serif;letter-spacing:-0.3px">PUGSON</div>
           <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
-            <span style="width:6px;height:6px;border-radius:50%;background:#AAFF00;display:inline-block;box-shadow:0 0 6px #AAFF00"></span>
-            <span style="font-size:9px;color:#AAFF00;font-weight:700;letter-spacing:0.06em">ONLINE</span>
+            <span style="width:6px;height:6px;border-radius:50%;background:{_sb_lime};display:inline-block;box-shadow:{_sb_glow}"></span>
+            <span style="font-size:9px;color:{_sb_lime};font-weight:700;letter-spacing:0.06em">ONLINE</span>
           </div>
         </div>
       </div>
@@ -738,14 +815,17 @@ with st.sidebar:
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("""
+    _upg_btn_bg  = "#2a5200" if theme == "day" else "#AAFF00"
+    _upg_btn_col = "#ffffff" if theme == "day" else "#080810"
+    _upg_lbl_col = "#2a5200" if theme == "day" else "#AAFF00"
+    st.markdown(f"""
     <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 14px;
                 border-top:1px solid var(--sb-border);background:var(--sb-bg)">
       <div style="background:var(--lime-bg);border:1px solid var(--lime-border);border-radius:10px;padding:11px">
         <div style="font-size:13px;margin-bottom:3px">🛡️</div>
-        <div style="font-size:10px;font-weight:800;color:#AAFF00;margin-bottom:3px">UPGRADE TO COMMAND</div>
+        <div style="font-size:10px;font-weight:800;color:{_upg_lbl_col};margin-bottom:3px">UPGRADE TO COMMAND</div>
         <div style="font-size:9px;color:var(--tx4);margin-bottom:8px;line-height:1.5">Unlock advanced tools,<br>historic data &amp; more.</div>
-        <div style="background:#AAFF00;color:#080810;font-size:10px;font-weight:800;text-align:center;padding:6px;border-radius:6px;letter-spacing:0.06em;cursor:pointer">UPGRADE NOW</div>
+        <div style="background:{_upg_btn_bg};color:{_upg_btn_col};font-size:10px;font-weight:800;text-align:center;padding:6px;border-radius:6px;letter-spacing:0.06em;cursor:pointer">UPGRADE NOW</div>
       </div>
     </div>
     <div style="height:155px"></div>""", unsafe_allow_html=True)
@@ -814,7 +894,7 @@ st.markdown(
     f'<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px;max-width:560px">'
     f'<span style="font-size:14px;opacity:0.5">🔍</span>'
     f'<span style="font-size:13px;color:rgba(255,255,255,0.35)">Investigate any topic, keyword or trend...</span>'
-    f'<div style="margin-left:auto;background:#AAFF00;color:#080810;font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:0.06em;white-space:nowrap">INVESTIGATE →</div>'
+    f'<div style="margin-left:auto;background:#AAFF00;color:#080810;font-size:10px;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0">INVESTIGATE →</div>'
     f'</div>'
     f'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
     f'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap">Popular:</span>'
@@ -886,16 +966,17 @@ with main_col:
             # Welcome — show briefing articles as case previews
             st.markdown(f"""
             <div style="display:flex;align-items:center;gap:8px;margin:14px 0 12px 0">
-              <div style="width:6px;height:6px;border-radius:50%;background:#AAFF00;box-shadow:0 0 8px #AAFF00"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:var(--lime-t);box-shadow:0 0 8px var(--lime-t)"></div>
               <span style="font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase">Cases Opened Today</span>
-              <span style="font-size:9px;font-weight:800;color:#AAFF00;background:var(--lime-bg);border:1px solid var(--lime-border);padding:1px 7px;border-radius:6px">{len(articles)} NEW</span>
+              <span style="font-size:9px;font-weight:800;color:var(--lime-t);background:var(--lime-bg);border:1px solid var(--lime-border);padding:1px 7px;border-radius:6px">{len(articles)} NEW</span>
             </div>""", unsafe_allow_html=True)
             if articles:
                 art_cols = st.columns(3, gap="small")
-                cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":"#AAFF00"}
+                _gaming_col = "#2a5200" if theme == "day" else "#AAFF00"
+                cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":_gaming_col}
                 for i,art in enumerate(articles[:3]):
                     cat   = art.get("category","News")
-                    color = cat_colors.get(cat,"#AAFF00")
+                    color = cat_colors.get(cat, _gaming_col)
                     tag   = art.get("tag","Trending")
                     head  = art.get("headline","")
                     summ  = art.get("summary","")
@@ -935,9 +1016,9 @@ with main_col:
             st.markdown(f"""
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
               <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:6px;height:6px;border-radius:50%;background:#AAFF00;box-shadow:0 0 8px #AAFF00"></div>
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--lime-t);box-shadow:0 0 8px var(--lime-t)"></div>
                 <span style="font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase">Cases Opened Today</span>
-                <span style="font-size:9px;font-weight:800;color:#AAFF00;background:var(--lime-bg);border:1px solid var(--lime-border);padding:1px 7px;border-radius:6px">{len(hashtags)} NEW</span>
+                <span style="font-size:9px;font-weight:800;color:var(--lime-t);background:var(--lime-bg);border:1px solid var(--lime-border);padding:1px 7px;border-radius:6px">{len(hashtags)} NEW</span>
               </div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
                 <span class="status-pill"><span class="{'dot-gpt' if is_gpt else 'dot-live'}"></span>{'AI data' if is_gpt else 'Live'}</span>
@@ -966,7 +1047,7 @@ with main_col:
             st.markdown(
                 f'<div style="display:flex;align-items:stretch;border-radius:16px;overflow:hidden;margin:8px 0 4px;min-height:130px;border:1px solid var(--border-2)">'
                 f'<div style="flex:1;background:var(--surface-alt);padding:28px 32px;display:flex;flex-direction:column;justify-content:center">'
-                f'<div style="font-size:32px;color:#AAFF00;line-height:0.7;margin-bottom:12px;font-family:Georgia,serif;opacity:0.8">"</div>'
+                f'<div style="font-size:32px;color:var(--amber);line-height:0.7;margin-bottom:12px;font-family:Georgia,serif;opacity:0.8">"</div>'
                 f'<div style="font-size:14px;color:var(--tx2);line-height:1.75;font-style:italic">In a world of infinite noise,<br>we find the signal that shapes tomorrow.</div>'
                 f'<div style="font-size:10px;color:var(--tx4);margin-top:10px;letter-spacing:0.04em">— Chief Detective Pugson</div>'
                 f'</div>'
@@ -1052,14 +1133,15 @@ with main_col:
                 unsafe_allow_html=True
             )
         # Article cards
-        cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":"#AAFF00"}
+        _gaming_col_b = "#2a5200" if theme == "day" else "#AAFF00"
+        cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":_gaming_col_b}
         cat_icons_b = {"News":"📰","Music & Film":"🎬","Gaming":"🎮"}
         for i, art in enumerate(articles):
             cat   = art.get("category","")
             head  = art.get("headline","")
             summ  = art.get("summary","")
             tag   = art.get("tag","")
-            color = art.get("color", cat_colors.get(cat,"#AAFF00"))
+            color = art.get("color", cat_colors.get(cat, _gaming_col_b))
             url   = art.get("url","#")
             icon  = cat_icons_b.get(cat,"📡")
             st.markdown(
@@ -1088,7 +1170,8 @@ with main_col:
             age   = get_data_age_minutes(platform=key)
             count = len(get_latest_hashtags(platform=key))
             age_str = f"{int(age)}m ago" if age is not None else "No data"
-            sc    = "#AAFF00" if (age is not None and age<cfg["refresh_minutes"]) else "#ff9500"
+            _src_lime = "#2a5200" if theme == "day" else "#AAFF00"
+            sc    = _src_lime if (age is not None and age<cfg["refresh_minutes"]) else "#ff9500"
             st.markdown(f"""
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px">
               <span style="font-size:22px">{cfg['icon']}</span>
