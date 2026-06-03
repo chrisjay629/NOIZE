@@ -861,23 +861,16 @@ with st.sidebar:
 active_platform = st.session_state.active_platform
 active_nav      = st.session_state.active_nav
 
-# Sidebar narrow mode
+# Sidebar collapse state — hide sidebar or show expand button in main area
 if not st.session_state.sidebar_open:
     st.markdown("""
     <style>
-    section[data-testid="stSidebar"] { width: 0px !important; min-width: 0px !important; overflow: hidden !important; }
+    section[data-testid="stSidebar"] { width:0px !important; min-width:0px !important; overflow:hidden !important; }
     </style>
     """, unsafe_allow_html=True)
-    # Floating re-open button
-    st.markdown("""
-    <style>
-    #sb-reopen { position:fixed;top:50%;left:0;transform:translateY(-50%);z-index:9999;
-      background:#0E131B;border:1px solid rgba(163,255,18,0.3);border-left:none;
-      border-radius:0 8px 8px 0;padding:12px 7px;cursor:pointer;
-      font-size:13px;color:#A3FF12;writing-mode:vertical-rl; }
-    #sb-reopen:hover { background:rgba(163,255,18,0.08); }
-    </style>
-    """, unsafe_allow_html=True)
+    if st.button("☰", key="sb_expand", help="Open sidebar"):
+        st.session_state.sidebar_open = True
+        st.rerun()
 
 # Hero background — day uses golden city, night uses dark city
 if theme == "night":
