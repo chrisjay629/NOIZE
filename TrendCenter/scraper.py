@@ -19,11 +19,13 @@ HEADERS = {
 
 def gpt_fallback_hashtags():
     """When TikTok's page is unavailable, use GPT to generate realistic trending hashtags."""
-    print("[SCRAPER] TikTok Creative Center unavailable — using GPT fallback", flush=True)
+    print("[TIKTOK] Creative Center unavailable — using GPT fallback", flush=True)
+    today = datetime.now().strftime("%B %d, %Y")
     prompt = (
-        "You are a TikTok trend expert. TikTok's Creative Center is temporarily down. "
-        "Generate a realistic list of 20 trending TikTok hashtags that would appear in today's top 20 leaderboard. "
-        "Base this on what's currently popular across entertainment, sports, lifestyle, food, wellness, and pop culture. "
+        f"Today's date is {today}. You are a TikTok trend expert. "
+        "TikTok's Creative Center is temporarily down. "
+        "Generate a realistic list of 20 trending TikTok hashtags for today's leaderboard. "
+        "Base this on what's currently popular in entertainment, sports, lifestyle, food, wellness, and pop culture. "
         "For each hashtag provide:\n"
         "- rank: 1 through 20\n"
         "- name: hashtag without the # symbol\n"
@@ -41,24 +43,26 @@ def gpt_fallback_hashtags():
         now = datetime.now().isoformat()
         hashtags = []
         for h in data:
+            name = h.get("name", "")
             hashtags.append({
                 "rank": str(h.get("rank", "")),
-                "name": h.get("name", ""),
+                "name": name,
                 "posts": h.get("posts", ""),
                 "category": h.get("category", ""),
-                "url": f"https://www.tiktok.com/tag/{h.get('name', '')}",
+                "url": f"https://www.tiktok.com/tag/{name}",
                 "scraped_at": now,
+                "platform": "tiktok",
                 "source": "gpt_fallback"
             })
-        print(f"[SCRAPER] GPT fallback generated {len(hashtags)} hashtags", flush=True)
+        print(f"[TIKTOK] GPT fallback generated {len(hashtags)} hashtags", flush=True)
         return hashtags
     except Exception as e:
-        print(f"[SCRAPER] GPT fallback failed: {e}", flush=True)
+        print(f"[TIKTOK] GPT fallback failed: {e}", flush=True)
         return []
 
 
 def scrape_hashtags():
-    print("[SCRAPER] Starting TikTok scrape", flush=True)
+    print("[TIKTOK] Starting scrape", flush=True)
     hashtags = []
 
     try:
@@ -66,18 +70,16 @@ def scrape_hashtags():
         response.raise_for_status()
         html = response.text
 
-        # Detect maintenance / downtime page
         if "Taking a short break" in html or "Back better and stronger" in html:
-            print("[SCRAPER] TikTok Creative Center is showing maintenance page", flush=True)
+            print("[TIKTOK] Maintenance page detected", flush=True)
             hashtags = gpt_fallback_hashtags()
         else:
             soup = BeautifulSoup(html, "html.parser")
             cards = soup.find_all("a", id="hashtagItemContainer")
-            print(f"[SCRAPER] Found {len(cards)} hashtag cards", flush=True)
+            print(f"[TIKTOK] Found {len(cards)} hashtag cards", flush=True)
 
             if len(cards) == 0:
-                # Page loaded but structure changed — try GPT fallback
-                print("[SCRAPER] Page loaded but found 0 cards — using GPT fallback", flush=True)
+                print("[TIKTOK] 0 cards found — using GPT fallback", flush=True)
                 hashtags = gpt_fallback_hashtags()
             else:
                 for card in cards:
@@ -109,31 +111,27 @@ def scrape_hashtags():
                             "category": category,
                             "url": url,
                             "scraped_at": datetime.now().isoformat(),
+                            "platform": "tiktok",
                             "source": "live"
                         })
                     except Exception as e:
-                        print(f"[SCRAPER] Error parsing card: {e}", flush=True)
+                        print(f"[TIKTOK] Error parsing card: {e}", flush=True)
                         continue
 
     except Exception as e:
-        print(f"[SCRAPER] Request failed: {e} — using GPT fallback", flush=True)
+        print(f"[TIKTOK] Request failed: {e} — using GPT fallback", flush=True)
         hashtags = gpt_fallback_hashtags()
 
     if not hashtags:
-        print("[SCRAPER] No hashtags from any source — aborting save", flush=True)
+        print("[TIKTOK] No hashtags from any source", flush=True)
         return
 
-    # Save to JSON
     with open("hashtags.json", "w", encoding="utf-8") as f:
         json.dump(hashtags, f, indent=2, ensure_ascii=False)
 
-    source_label = hashtags[0].get("source", "live")
-    print(f"[SCRAPER] Parsed {len(hashtags)} hashtags (source: {source_label}) — saving to DB", flush=True)
-    save_snapshot(hashtags)
+    save_snapshot(hashtags, platform="tiktok")
     cleanup_old_snapshots(hours=48)
-    print("\nFirst 5 results:")
-    for h in hashtags[:5]:
-        print(f"  #{h['rank']} - {h['name']} ({h['posts']} posts) [{h['category']}]")
+    print(f"[TIKTOK] Done — {len(hashtags)} hashtags saved (source: {hashtags[0].get('source')})", flush=True)
 
 
 if __name__ == "__main__":

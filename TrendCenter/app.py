@@ -6,20 +6,32 @@ import plotly.graph_objects as go
 from datetime import datetime
 
 from agent import run_agent, generate_blueprint, research_niche_hashtags
-from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH
+from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots
 from scraper import scrape_hashtags
+from platforms import scrape_google, scrape_youtube, scrape_reddit
+
+PLATFORM_CONFIG = {
+    "tiktok":  {"label": "TikTok",         "icon": "🎵", "scraper": scrape_hashtags,  "link_label": "↗ TikTok"},
+    "google":  {"label": "Google Trends",  "icon": "📈", "scraper": scrape_google,    "link_label": "↗ Google"},
+    "youtube": {"label": "YouTube",        "icon": "📺", "scraper": scrape_youtube,   "link_label": "↗ YouTube"},
+    "reddit":  {"label": "Reddit",         "icon": "🔴", "scraper": scrape_reddit,    "link_label": "↗ Reddit"},
+}
 
 def _background_scheduler():
     print("[SCHEDULER] Background scheduler thread started", flush=True)
     while True:
-        print("[SCHEDULER] Beginning scrape...", flush=True)
-        try:
-            scrape_hashtags()
-            print("[SCHEDULER] Scrape completed successfully", flush=True)
-        except Exception as e:
-            print(f"[SCHEDULER] Scrape FAILED: {e}", flush=True)
+        print("[SCHEDULER] Beginning scrape all platforms...", flush=True)
+        for key, cfg in PLATFORM_CONFIG.items():
+            try:
+                results = cfg["scraper"]()
+                if results:
+                    save_snapshot(results, platform=key)
+                    cleanup_old_snapshots(hours=48)
+                print(f"[SCHEDULER] {key} scrape done", flush=True)
+            except Exception as e:
+                print(f"[SCHEDULER] {key} scrape FAILED: {e}", flush=True)
         print("[SCHEDULER] Sleeping for 1 hour", flush=True)
-        time.sleep(3600)  # 1 hour
+        time.sleep(3600)
 
 if "scheduler_started" not in st.session_state:
     st.session_state.scheduler_started = True
@@ -215,27 +227,41 @@ def render_hashtag_cards(velocity_data):
         posts = h.get("posts") or "—"
         rank = h.get("current_rank") or "—"
         name = h['name']
-        web_url = f"https://www.tiktok.com/tag/{name}"
-        app_url = f"tiktok://tag/{name}"
-        onclick = (
-            f"(function(e){{"
-            f"var m=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);"
-            f"if(m){{e.preventDefault();"
-            f"window.location.href='{app_url}';"
-            f"setTimeout(function(){{window.location.href='{web_url}';}},1500);}}"
-            f"}})(event)"
-        )
+        card_url = h.get("url") or f"https://www.tiktok.com/tag/{name}"
+        platform = h.get("platform", "tiktok")
+        link_label = PLATFORM_CONFIG.get(platform, {}).get("link_label", "↗ View")
+
+        # TikTok gets deep-link treatment; others open directly
+        if platform == "tiktok":
+            app_url = f"tiktok://tag/{name}"
+            onclick = (
+                f"(function(e){{"
+                f"var m=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);"
+                f"if(m){{e.preventDefault();"
+                f"window.location.href='{app_url}';"
+                f"setTimeout(function(){{window.location.href='{card_url}';}},1500);}}"
+                f"}})(event)"
+            )
+            name_prefix = "#"
+        else:
+            onclick = ""
+            name_prefix = ""
+
+        posts_label = f"{posts}" if posts else "—"
+        if platform == "tiktok":
+            posts_label += " posts"
+
         st.markdown(f"""
-        <a href="{web_url}" target="_blank" style="text-decoration:none" onclick="{onclick}">
+        <a href="{card_url}" target="_blank" style="text-decoration:none" onclick="{onclick}">
         <div class="ht-card {card_class}" style="cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='#fe2c55'" onmouseout="this.style.borderColor=''">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div>
-              <span style="font-size:16px;font-weight:600">#{name}</span>
+              <span style="font-size:16px;font-weight:600">{name_prefix}{name}</span>
               {badge}
-              <div style="font-size:12px;color:#aaa;margin-top:4px">{posts} posts · {category}</div>
+              <div style="font-size:12px;color:#aaa;margin-top:4px">{posts_label} · {category}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11px;color:#fe2c55">↗ TikTok</span>
+              <span style="font-size:11px;color:#fe2c55">{link_label}</span>
               <span style="font-size:13px;font-weight:500;color:#aaa">#{rank}</span>
             </div>
           </div>
@@ -248,11 +274,14 @@ def render_hashtag_cards(velocity_data):
 init_db()
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "active_platform" not in st.session_state:
+    st.session_state.active_platform = "tiktok"
 
 
 # ── Header ─────────────────────────────────────────────────────
-hashtags = get_latest_hashtags()
-is_gpt_fallback = hashtags and hashtags[0].get("source") == "gpt_fallback"
+active_platform = st.session_state.active_platform
+hashtags = get_latest_hashtags(platform=active_platform)
+is_gpt_fallback = bool(hashtags and hashtags[0].get("source") == "gpt_fallback")
 mins_ago_str = ""
 if hashtags:
     last_scraped = hashtags[0].get("scraped_at", "")
@@ -281,6 +310,19 @@ st.markdown(f"""
   <div style="text-align:right">{mins_ago_str}</div>
 </div>
 """, unsafe_allow_html=True)
+
+# ── Platform Selector ──────────────────────────────────────────
+st.markdown("<div style='margin:0.5rem 0 0.25rem 0;font-size:12px;font-weight:700;letter-spacing:0.1em;color:#777;text-transform:uppercase'>Select Platform</div>", unsafe_allow_html=True)
+pcols = st.columns(4)
+for idx, (key, cfg) in enumerate(PLATFORM_CONFIG.items()):
+    with pcols[idx]:
+        is_active = (active_platform == key)
+        btn_style = "background:#fe2c55;color:#fff;border:none;" if is_active else "background:#1e1e2e;color:#aaa;border:0.5px solid #3a3a4a;"
+        if st.button(f"{cfg['icon']} {cfg['label']}", key=f"plat_{key}", use_container_width=True):
+            st.session_state.active_platform = key
+            st.rerun()
+
+st.markdown("---")
 
 if is_gpt_fallback:
     st.markdown("""
@@ -360,18 +402,22 @@ with tab_dash:
         analyze = st.button("Analyze", type="primary", use_container_width=True)
     with col_scrape:
         if st.button("🔄 Refresh", use_container_width=True):
-            print("[REFRESH] Manual refresh triggered", flush=True)
-            with st.spinner("Scraping TikTok Creative Center..."):
-                scrape_hashtags()
-            print("[REFRESH] Manual refresh completed", flush=True)
-            st.success("Data refreshed!")
+            cfg = PLATFORM_CONFIG[active_platform]
+            print(f"[REFRESH] Manual refresh for {active_platform}", flush=True)
+            with st.spinner(f"Fetching {cfg['label']} trends..."):
+                results = cfg["scraper"]()
+                if results:
+                    save_snapshot(results, platform=active_platform)
+                    cleanup_old_snapshots(hours=48)
+            print("[REFRESH] Done", flush=True)
+            st.success(f"{cfg['icon']} {cfg['label']} data refreshed!")
             st.rerun()
 
     st.markdown("---")
 
     # Metrics
-    velocity_data = get_hashtag_velocity()
-    all_hashtags = get_latest_hashtags()
+    velocity_data = get_hashtag_velocity(platform=active_platform)
+    all_hashtags = get_latest_hashtags(platform=active_platform)
     climbing = [h for h in velocity_data if h.get("rank_change", 0) < 0]
     new_ones = [h for h in velocity_data if h.get("is_new")]
 
@@ -410,9 +456,10 @@ with tab_dash:
 with tab_blueprint:
     st.markdown("**Select the hashtags you want a content blueprint for:**")
 
-    bp_hashtags = get_latest_hashtags()
+    bp_hashtags = get_latest_hashtags(platform=active_platform)
+    cfg_bp = PLATFORM_CONFIG[active_platform]
     if not bp_hashtags:
-        st.info("No hashtags yet — hit Refresh on the Dashboard first.")
+        st.info(f"No {cfg_bp['label']} trends yet — hit Refresh on the Dashboard first.")
     else:
         bp_niche = st.text_input(
             "Your niche (optional)",

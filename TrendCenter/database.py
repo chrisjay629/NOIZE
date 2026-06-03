@@ -14,44 +14,62 @@ def init_db():
             posts TEXT,
             category TEXT,
             url TEXT,
+            platform TEXT DEFAULT 'tiktok',
+            source TEXT DEFAULT 'live',
             scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # Migrate existing tables that don't have platform/source columns
+    for col, default in [("platform", "'tiktok'"), ("source", "'live'")]:
+        try:
+            c.execute(f"ALTER TABLE hashtag_snapshots ADD COLUMN {col} TEXT DEFAULT {default}")
+        except Exception:
+            pass  # Column already exists
     c.execute("CREATE INDEX IF NOT EXISTS idx_name ON hashtag_snapshots(name)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_scraped_at ON hashtag_snapshots(scraped_at)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_platform ON hashtag_snapshots(platform)")
     conn.commit()
     conn.close()
     print("Database initialized.")
 
-def save_snapshot(hashtags):
+def save_snapshot(hashtags, platform="tiktok"):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     for h in hashtags:
         try:
-            rank = int(h["rank"]) if h["rank"] else None
+            rank = int(h["rank"]) if h.get("rank") else None
         except (ValueError, TypeError):
             rank = None
         c.execute("""
-            INSERT INTO hashtag_snapshots (name, rank, posts, category, url)
-            VALUES (?, ?, ?, ?, ?)
-        """, (h["name"], rank, h["posts"], h["category"], h["url"]))
+            INSERT INTO hashtag_snapshots (name, rank, posts, category, url, platform, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            h.get("name"), rank, h.get("posts"), h.get("category"),
+            h.get("url"), h.get("platform", platform), h.get("source", "live")
+        ))
     conn.commit()
     conn.close()
-    print(f"Saved {len(hashtags)} snapshots to database.")
+    print(f"Saved {len(hashtags)} snapshots to database (platform: {platform}).")
 
-def get_latest_hashtags():
+def get_latest_hashtags(platform="tiktok"):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
-        SELECT name, rank, posts, category, url, scraped_at
+        SELECT name, rank, posts, category, url, scraped_at, platform, source
         FROM hashtag_snapshots
-        WHERE scraped_at = (SELECT MAX(scraped_at) FROM hashtag_snapshots)
+        WHERE platform = ?
+          AND scraped_at = (
+              SELECT MAX(scraped_at) FROM hashtag_snapshots WHERE platform = ?
+          )
         ORDER BY rank ASC
-    """)
+    """, (platform, platform))
     rows = c.fetchall()
     conn.close()
     return [
-        {"name": r[0], "rank": r[1], "posts": r[2], "category": r[3], "url": r[4], "scraped_at": r[5]}
+        {
+            "name": r[0], "rank": r[1], "posts": r[2], "category": r[3],
+            "url": r[4], "scraped_at": r[5], "platform": r[6], "source": r[7]
+        }
         for r in rows
     ]
 
@@ -68,43 +86,32 @@ def cleanup_old_snapshots(hours=48):
     print(f"Cleaned up {deleted} old snapshots (older than {hours} hours)")
     return deleted
 
-def get_hashtag_velocity():
-    """
-    Compare the most recent snapshot to a previous one (1+ hours ago)
-    to detect rank movement. Returns hashtags sorted by velocity.
-
-    Negative rank_change = climbing (good — strike now)
-    Positive rank_change = falling (fading)
-    is_new = first time seen in our data
-    """
+def get_hashtag_velocity(platform="tiktok"):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
-    # Get the latest snapshot timestamp
-    c.execute("SELECT MAX(scraped_at) FROM hashtag_snapshots")
+    c.execute("SELECT MAX(scraped_at) FROM hashtag_snapshots WHERE platform = ?", (platform,))
     latest_time = c.fetchone()[0]
 
     if not latest_time:
         conn.close()
         return []
 
-    # Get all hashtags from the latest scrape
     c.execute("""
-        SELECT name, rank, posts, category, url
+        SELECT name, rank, posts, category, url, source
         FROM hashtag_snapshots
-        WHERE scraped_at = ?
-    """, (latest_time,))
+        WHERE scraped_at = ? AND platform = ?
+    """, (latest_time, platform))
     latest = c.fetchall()
 
     velocity_data = []
-    for name, current_rank, posts, category, url in latest:
-        # Find the earliest rank for this hashtag (excluding the latest)
+    for name, current_rank, posts, category, url, source in latest:
         c.execute("""
-            SELECT rank, scraped_at FROM hashtag_snapshots
-            WHERE name = ? AND scraped_at < ?
+            SELECT rank FROM hashtag_snapshots
+            WHERE name = ? AND scraped_at < ? AND platform = ?
             ORDER BY scraped_at ASC
             LIMIT 1
-        """, (name, latest_time))
+        """, (name, latest_time, platform))
         previous = c.fetchone()
 
         if previous:
@@ -124,11 +131,12 @@ def get_hashtag_velocity():
             "is_new": is_new,
             "posts": posts,
             "category": category,
-            "url": url
+            "url": url,
+            "platform": platform,
+            "source": source
         })
 
     conn.close()
-    # Sort by biggest climbers first (most negative rank_change)
     velocity_data.sort(key=lambda x: (not x["is_new"], x["rank_change"]))
     return velocity_data
 
