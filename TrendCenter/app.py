@@ -69,6 +69,7 @@ CASE_FOLDER_DARK_B64 = load_img_b64("static/case_folders_dark.png", max_width=30
 CASE_FOLDER_LIGHT_B64= load_img_b64("static/case_folders_light.png",max_width=300,  quality=85)
 RADAR_BG_B64         = load_img_b64("static/radar_bg.jpg",          max_width=600,  quality=75)
 HUD_BG_B64           = load_img_b64("static/hud_bg.jpg",            max_width=800,  quality=72)
+BG_BODY_B64          = load_img_b64("static/bg_body.jpg",           max_width=1600, quality=70)
 
 # ── Page config ───────────────────────────────────────────────────
 st.set_page_config(
@@ -97,6 +98,21 @@ for k, v in {
         st.session_state[k] = v
 
 theme = st.session_state.theme
+
+# ── Body background texture injection ────────────────────────────
+if BG_BODY_B64:
+    st.markdown(f"""
+    <style>
+    .stApp {{
+      background-image:
+        linear-gradient(rgba(7,11,16,0.80), rgba(7,11,16,0.80)),
+        url('data:image/jpeg;base64,{BG_BODY_B64}') !important;
+      background-size: cover, cover !important;
+      background-attachment: fixed, fixed !important;
+      background-position: center, center !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
 # ── CSS — Bloomberg Terminal × Palantir × Intelligence Agency ────────
 st.markdown("""
