@@ -60,13 +60,15 @@ def load_img_b64(path: str, max_width: int = 1400, quality: int = 68) -> str:
         print(f"[IMG] {path}: {e}", flush=True)
         return ""
 
-PUGSON_B64           = load_img_b64("static/pugson.png",             max_width=220,  quality=88)
+PUGSON_B64           = load_img_b64("static/pugson.png",             max_width=220,  quality=90)
 BG_STREET_B64        = load_img_b64("static/bg_street.png",         max_width=1600, quality=70)
 BG_DAY_CITY_B64      = load_img_b64("static/bg_day_city.png",       max_width=1600, quality=70)
 BG_CITY_B64          = load_img_b64("static/bg_city.png",           max_width=1600, quality=65)
 NEWSPAPER_B64        = load_img_b64("static/newspaper_bg.png",      max_width=1200, quality=65)
-CASE_FOLDER_DARK_B64 = load_img_b64("static/case_folders_dark.png", max_width=240,  quality=82)
-CASE_FOLDER_LIGHT_B64= load_img_b64("static/case_folders_light.png",max_width=240,  quality=82)
+CASE_FOLDER_DARK_B64 = load_img_b64("static/case_folders_dark.png", max_width=300,  quality=85)
+CASE_FOLDER_LIGHT_B64= load_img_b64("static/case_folders_light.png",max_width=300,  quality=85)
+RADAR_BG_B64         = load_img_b64("static/radar_bg.jpg",          max_width=600,  quality=75)
+HUD_BG_B64           = load_img_b64("static/hud_bg.jpg",            max_width=800,  quality=72)
 
 # ── Page config ───────────────────────────────────────────────────
 st.set_page_config(
@@ -96,132 +98,153 @@ for k, v in {
 
 theme = st.session_state.theme
 
-# ── CSS — night defaults (CSS custom properties) ──────────────────
+# ── CSS — Bloomberg Terminal × Detective Agency ───────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-/* ── Night theme defaults ── */
+/* ══════════════════════════════════════════════════
+   NIGHT MODE  —  default CSS custom properties
+   ══════════════════════════════════════════════════ */
 :root {
-  --bg:          #08080e;
-  --surface:     #0d0d16;
-  --surface-alt: #0a0a12;
-  --surface-2:   #111120;
-  --border:      #1a1a28;
-  --border-2:    #16162a;
-  --tx1:         #e8e8f0;
-  --tx2:         #888888;
-  --tx3:         #555555;
-  --tx4:         #333333;
-  --sb-bg:       #05050c;
-  --sb-border:   #111120;
-  --lime-t:      #AAFF00;
-  --lime-bg:     rgba(170,255,0,0.10);
-  --lime-border: rgba(170,255,0,0.25);
-  --input-bg:    #0f0f18;
-  --input-bd:    #2a2a3a;
-  --pill-bg:     #0f0f18;
-  --pill-bd:     #1e1e2a;
-  --card-hover:  rgba(0,0,0,0.5);
+  --bg:           #050508;
+  --surface:      #08080f;
+  --surface-alt:  #0a0a14;
+  --surface-2:    #0d0d1a;
+  --border:       #131326;
+  --border-2:     #0f0f22;
+  --tx1:          #e2e2ee;
+  --tx2:          #8080a0;
+  --tx3:          #484868;
+  --tx4:          #252540;
+  --sb-bg:        #030307;
+  --sb-border:    #0d0d1e;
+  --lime-t:       #AAFF00;
+  --lime-bg:      rgba(170,255,0,0.07);
+  --lime-border:  rgba(170,255,0,0.20);
+  --amber:        #c8a96e;
+  --amber-bg:     rgba(200,169,110,0.08);
+  --amber-border: rgba(200,169,110,0.22);
+  --radar-green:  #00ff88;
+  --input-bg:     #0b0b18;
+  --input-bd:     #1e1e32;
+  --pill-bg:      #0b0b18;
+  --pill-bd:      #181830;
+  --card-hover:   rgba(170,255,0,0.03);
+  --data-font:    'JetBrains Mono', 'Courier New', monospace;
 }
 
+/* ── Base layout ── */
 html, body, [class*="css"] {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   background: var(--bg) !important;
 }
 [data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
-.stApp { background: var(--bg) !important; }
+
+/* Subtle grid texture on main canvas */
+.stApp {
+  background-color: var(--bg) !important;
+  background-image:
+    repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(170,255,0,0.012) 48px),
+    repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(170,255,0,0.012) 48px) !important;
+}
+
 .block-container { padding: 1.2rem 1.6rem 3rem 1.6rem !important; max-width: 100% !important; }
 
-/* Sidebar */
-[data-testid="stSidebar"] { background: var(--sb-bg) !important; border-right: 1px solid var(--sb-border) !important; }
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+  background: var(--sb-bg) !important;
+  border-right: 1px solid var(--sb-border) !important;
+}
 [data-testid="stSidebar"] > div { padding: 0 !important; }
 [data-testid="stSidebarContent"] { padding: 0 !important; }
 
-/* Sidebar buttons */
+/* Sidebar nav buttons */
 [data-testid="stSidebar"] .stButton > button {
   background: transparent !important;
   border: none !important;
-  border-left: 3px solid transparent !important;
+  border-left: 2px solid transparent !important;
   border-radius: 0 !important;
   color: var(--tx3) !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
   font-weight: 700 !important;
-  letter-spacing: 0.06em !important;
+  letter-spacing: 0.10em !important;
   text-align: left !important;
-  padding: 10px 16px !important;
+  padding: 10px 18px !important;
   width: 100% !important;
-  transition: all 0.15s !important;
+  transition: all 0.12s !important;
+  text-transform: uppercase !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
   background: var(--lime-bg) !important;
   color: var(--lime-t) !important;
-  border-left-color: rgba(170,255,0,0.3) !important;
+  border-left-color: #AAFF00 !important;
 }
 
-/* Tabs */
+/* ── Tabs ── */
 [data-testid="stTabs"] { background: transparent !important; }
 [data-testid="stTabs"] [role="tablist"] { border-bottom: 1px solid var(--border) !important; }
 [data-testid="stTabs"] button {
-  color: var(--tx3) !important; font-size: 11px !important; font-weight: 700 !important;
-  letter-spacing: 0.06em !important; text-transform: uppercase !important;
+  color: var(--tx3) !important; font-size: 10px !important; font-weight: 700 !important;
+  letter-spacing: 0.08em !important; text-transform: uppercase !important;
   background: transparent !important; padding: 10px 16px !important;
 }
 [data-testid="stTabs"] button[aria-selected="true"] { color: var(--lime-t) !important; border-bottom: 2px solid #AAFF00 !important; }
 
-/* Inputs */
+/* ── Inputs ── */
 [data-testid="stTextInput"] input {
   background: var(--input-bg) !important; border: 1px solid var(--input-bd) !important;
-  color: var(--tx1) !important; border-radius: 10px !important; font-size: 14px !important;
+  color: var(--tx1) !important; border-radius: 8px !important; font-size: 13px !important;
+  font-family: var(--data-font) !important;
 }
-[data-testid="stTextInput"] input:focus { border-color: #AAFF00 !important; box-shadow: 0 0 0 2px rgba(170,255,0,0.12) !important; }
+[data-testid="stTextInput"] input:focus { border-color: #AAFF00 !important; box-shadow: 0 0 0 2px rgba(170,255,0,0.10) !important; }
 [data-testid="stTextInput"] input::placeholder { color: var(--tx4) !important; }
-[data-testid="stTextInput"] label { color: var(--tx3) !important; font-size: 12px !important; }
+[data-testid="stTextInput"] label { color: var(--tx3) !important; font-size: 11px !important; font-weight: 700 !important; letter-spacing: 0.06em !important; }
 
-/* Main buttons */
-.stButton > button { border-radius: 8px !important; font-size: 12px !important; font-weight: 700 !important; letter-spacing: 0.04em !important; transition: all 0.15s !important; }
-.stButton > button[kind="primary"] { background: #AAFF00 !important; color: #080810 !important; border: none !important; box-shadow: 0 2px 14px rgba(170,255,0,0.25) !important; }
-.stButton > button[kind="primary"]:hover { background: #c2ff33 !important; box-shadow: 0 4px 20px rgba(170,255,0,0.4) !important; transform: translateY(-1px) !important; }
-.stButton > button[kind="secondary"] { background: var(--surface) !important; border: 1px solid var(--border) !important; color: var(--tx2) !important; }
-.stButton > button[kind="secondary"]:hover { border-color: #AAFF00 !important; color: var(--lime-t) !important; background: var(--lime-bg) !important; }
+/* ── Buttons ── */
+.stButton > button { border-radius: 7px !important; font-size: 11px !important; font-weight: 700 !important; letter-spacing: 0.06em !important; transition: all 0.12s !important; text-transform: uppercase !important; }
+.stButton > button[kind="primary"] { background: #AAFF00 !important; color: #050510 !important; border: none !important; box-shadow: 0 2px 16px rgba(170,255,0,0.22) !important; }
+.stButton > button[kind="primary"]:hover { background: #c2ff33 !important; box-shadow: 0 4px 22px rgba(170,255,0,0.35) !important; transform: translateY(-1px) !important; }
+.stButton > button[kind="secondary"] { background: var(--surface) !important; border: 1px solid var(--border) !important; color: var(--tx3) !important; }
+.stButton > button[kind="secondary"]:hover { border-color: rgba(170,255,0,0.4) !important; color: var(--lime-t) !important; background: var(--lime-bg) !important; }
 
-/* Dividers */
+/* ── Utility classes ── */
 hr { border-color: var(--border) !important; }
-
-/* Checkboxes */
-[data-testid="stCheckbox"] label { color: var(--tx2) !important; font-size: 13px !important; }
-
-/* Markdown */
+[data-testid="stCheckbox"] label { color: var(--tx2) !important; font-size: 12px !important; }
 p, li { color: var(--tx2) !important; }
-h1, h2, h3, h4 { color: var(--tx1) !important; }
+h1, h2, h3, h4 { color: var(--tx1) !important; font-family: 'Poppins', sans-serif !important; }
 
-/* ht-card */
-.ht-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; color: var(--tx1); }
-.ht-card * { color: var(--tx1) !important; }
-.ht-card:hover { border-color: rgba(170,255,0,0.3); }
-
-/* Badges */
-.badge { display:inline-block; font-size:9px; padding:2px 7px; border-radius:4px; margin-left:4px; vertical-align:middle; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; }
-.badge-green  { background:rgba(61,214,140,0.12);  color:#3dd68c; }
-.badge-blue   { background:rgba(77,168,255,0.12);  color:#4da8ff; }
-.badge-red    { background:rgba(255,59,59,0.12);   color:#ff5555; }
-.badge-lime   { background:rgba(170,255,0,0.12);   color:#AAFF00; }
-.badge-strike { background:#185fa5; color:#fff; }
-.badge-orange { background:rgba(255,149,0,0.12);   color:#ff9500; }
+/* Data values — monospace */
+.data-val { font-family: var(--data-font); font-size: 11px; font-weight: 600; color: var(--lime-t); }
+.data-label { font-size: 8px; font-weight: 700; color: var(--tx4); letter-spacing: 0.10em; text-transform: uppercase; }
+.amber-label { font-family: var(--data-font); font-size: 9px; font-weight: 600; color: var(--amber); letter-spacing: 0.08em; }
 
 /* Status pills */
-.status-pill { display:inline-flex; align-items:center; gap:5px; font-size:10px; color:var(--tx2); padding:3px 10px; background:var(--pill-bg); border:1px solid var(--pill-bd); border-radius:20px; font-weight:600; }
-.dot-live { width:6px; height:6px; border-radius:50%; background:#AAFF00; display:inline-block; }
-.dot-gpt  { width:6px; height:6px; border-radius:50%; background:#ff9500; display:inline-block; }
+.status-pill { display:inline-flex; align-items:center; gap:5px; font-size:9px; color:var(--tx3); padding:3px 9px; background:var(--pill-bg); border:1px solid var(--pill-bd); border-radius:4px; font-weight:700; letter-spacing:0.06em; font-family:var(--data-font); }
+.dot-live { width:5px; height:5px; border-radius:50%; background:#AAFF00; display:inline-block; box-shadow:0 0 4px #AAFF00; }
+.dot-gpt  { width:5px; height:5px; border-radius:50%; background:#ff9500; display:inline-block; }
+
+/* Badges */
+.badge { display:inline-block; font-size:8px; padding:2px 6px; border-radius:3px; margin-left:4px; vertical-align:middle; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; font-family:var(--data-font); }
+.badge-green  { background:rgba(61,214,140,0.10);  color:#3dd68c; border:1px solid rgba(61,214,140,0.2); }
+.badge-blue   { background:rgba(77,168,255,0.10);  color:#4da8ff; border:1px solid rgba(77,168,255,0.2); }
+.badge-red    { background:rgba(255,59,59,0.10);   color:#ff5555; border:1px solid rgba(255,59,59,0.2); }
+.badge-lime   { background:rgba(170,255,0,0.10);   color:#AAFF00; border:1px solid rgba(170,255,0,0.2); }
+.badge-amber  { background:rgba(200,169,110,0.10); color:#c8a96e; border:1px solid rgba(200,169,110,0.2); }
+.badge-orange { background:rgba(255,149,0,0.10);   color:#ff9500; border:1px solid rgba(255,149,0,0.2); }
 
 /* Plotly */
 .js-plotly-plot { background: transparent !important; }
 
 /* Metrics */
-[data-testid="metric-container"] { background:var(--surface) !important; border-radius:10px !important; border:1px solid var(--border) !important; }
-[data-testid="metric-container"] label { color:var(--tx3) !important; font-size:11px !important; }
-[data-testid="metric-container"] [data-testid="stMetricValue"] { color:var(--tx1) !important; font-size:24px !important; font-weight:800 !important; }
+[data-testid="metric-container"] { background:var(--surface) !important; border-radius:8px !important; border:1px solid var(--border) !important; }
+[data-testid="metric-container"] label { color:var(--tx3) !important; font-size:10px !important; font-weight:700 !important; letter-spacing:0.08em !important; text-transform:uppercase !important; }
+[data-testid="metric-container"] [data-testid="stMetricValue"] { color:var(--tx1) !important; font-size:22px !important; font-weight:800 !important; font-family:var(--data-font) !important; }
+
+/* ── ht-card ── */
+.ht-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+.ht-card:hover { border-color: rgba(170,255,0,0.25); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -230,29 +253,36 @@ if theme == "day":
     st.markdown("""
     <style>
     :root {
-      --bg:          #eeeef6;
-      --surface:     #ffffff;
-      --surface-alt: #f4f4fb;
-      --surface-2:   #f0f0f8;
-      --border:      #dddde8;
-      --border-2:    #e8e8f3;
-      --tx1:         #0d0d1a;
-      --tx2:         #5a5a70;
-      --tx3:         #9898b0;
-      --tx4:         #bbbbcc;
-      --sb-bg:       #ffffff;
-      --sb-border:   #e0e0ec;
-      --lime-t:      #5c8a00;
-      --lime-bg:     rgba(92,138,0,0.07);
-      --lime-border: rgba(92,138,0,0.20);
-      --input-bg:    #ffffff;
-      --input-bd:    #dddde8;
-      --pill-bg:     #f4f4fb;
-      --pill-bd:     #dddde8;
-      --card-hover:  rgba(0,0,0,0.08);
+      --bg:           #f0f0f8;
+      --surface:      #ffffff;
+      --surface-alt:  #f6f6fc;
+      --surface-2:    #f2f2fa;
+      --border:       #d8d8e8;
+      --border-2:     #e4e4f0;
+      --tx1:          #08081a;
+      --tx2:          #484860;
+      --tx3:          #8888a8;
+      --tx4:          #b0b0c8;
+      --sb-bg:        #fafafe;
+      --sb-border:    #dcdcec;
+      --lime-t:       #4a7200;
+      --lime-bg:      rgba(74,114,0,0.06);
+      --lime-border:  rgba(74,114,0,0.18);
+      --amber:        #8b6914;
+      --amber-bg:     rgba(139,105,20,0.06);
+      --amber-border: rgba(139,105,20,0.18);
+      --input-bg:     #ffffff;
+      --input-bd:     #d8d8e8;
+      --pill-bg:      #f2f2f8;
+      --pill-bd:      #d8d8e8;
+      --card-hover:   rgba(0,0,0,0.06);
     }
-    /* Day-specific sidebar button text */
-    [data-testid="stSidebar"] .stButton > button { color: var(--tx2) !important; }
+    .stApp {
+      background-image:
+        repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(0,0,0,0.015) 48px),
+        repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(0,0,0,0.015) 48px) !important;
+    }
+    [data-testid="stSidebar"] .stButton > button { color: var(--tx3) !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -417,62 +447,72 @@ def render_case_cards(data, platform="tiktok"):
                                   f'</div>')
                 else:
                     thumb_html = f'<div style="width:36px;height:36px;border-radius:8px;flex-shrink:0;background:var(--surface-alt);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Poppins,sans-serif;font-weight:800;font-size:14px;color:{sc}">{rank_int}</div>'
-                # Paper clip SVG
+                # Paper clip SVG (colored by status)
                 clip_html = (f'<div style="position:absolute;top:-9px;left:20px">'
                              f'<svg width="14" height="22" viewBox="0 0 14 22" fill="none">'
                              f'<path d="M7 1 C3.5 1 1 3.5 1 7 L1 17 C1 19.2 2.8 21 5 21 C7.2 21 9 19.2 9 17 L9 7 C9 5.8 8.2 5 7 5 C5.8 5 5 5.8 5 7 L5 16" '
-                             f'stroke="{sc}" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>'
+                             f'stroke="{sc}" stroke-width="2.5" stroke-linecap="round" fill="none"/>'
                              f'</svg></div>')
+                # HUD corner brackets
+                br = 'var(--border)'
+                corner_tl = f'<div style="position:absolute;top:6px;left:6px;width:14px;height:14px;border-left:1.5px solid {sc};border-top:1.5px solid {sc};opacity:0.5"></div>'
+                corner_tr = f'<div style="position:absolute;top:6px;right:6px;width:14px;height:14px;border-right:1.5px solid {sc};border-top:1.5px solid {sc};opacity:0.5"></div>'
                 st.markdown(
                     f'<a href="{url}" target="_blank" style="text-decoration:none">'
-                    f'<div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {sc};border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;transition:all 0.2s;cursor:pointer;position:relative">'
-                    f'{clip_html}'
+                    f'<div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {sc};border-radius:10px;padding:14px 14px 12px;margin-bottom:12px;cursor:pointer;position:relative">'
+                    f'{clip_html}{corner_tl}{corner_tr}'
                     f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-                    f'<span style="font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.1em">{case_num}</span>'
-                    f'<span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;letter-spacing:0.08em;background:{sb};color:{sc}">{status_lbl}</span>'
+                    f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:600;color:var(--amber);letter-spacing:0.10em">{case_num}</span>'
+                    f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:800;padding:2px 8px;border-radius:3px;letter-spacing:0.10em;background:{sb};color:{sc}">{status_lbl}</span>'
                     f'</div>'
                     f'<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">'
                     f'{thumb_html}'
                     f'<div style="flex:1;min-width:0">'
                     f'<div style="font-family:Poppins,sans-serif;font-weight:700;font-size:13px;color:var(--tx1);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{prefix}{name}</div>'
-                    f'<div style="font-size:10px;color:var(--tx4);margin-top:2px">{category}</div>'
+                    f'<div style="font-size:9px;color:var(--tx3);margin-top:2px;font-family:JetBrains Mono,monospace;letter-spacing:0.04em">{category.upper()}</div>'
                     f'</div></div>'
-                    f'<div style="border-top:1px solid var(--border);padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-bottom:10px">'
-                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Status</div><div style="font-size:11px;font-weight:700;color:{sc}">{status_lbl.title()}</div></div>'
-                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Source Conf.</div><div style="font-size:11px;font-weight:700;color:#AAFF00">{confidence}%</div></div>'
-                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Platform Spread</div><div style="font-size:12px">{spread}</div></div>'
-                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Volume</div><div style="font-size:10px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{posts_lbl}</div></div>'
+                    f'<div style="border-top:1px solid var(--border);padding-top:9px;display:grid;grid-template-columns:1fr 1fr;gap:7px 8px;margin-bottom:10px">'
+                    f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Status</div><div style="font-size:11px;font-weight:700;color:{sc};margin-top:2px">{status_lbl.title()}</div></div>'
+                    f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Confidence</div><div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:#AAFF00;margin-top:2px">{confidence}%</div></div>'
+                    f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Platform Spread</div><div style="font-size:12px;margin-top:2px">{spread}</div></div>'
+                    f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace">Volume</div><div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">{posts_lbl}</div></div>'
                     f'</div>'
                     f'<div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px">'
-                    f'<div><div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2px">Velocity</div>'
-                    f'<div style="display:flex;align-items:center;gap:6px">{sparkline}<span style="font-size:12px;font-weight:800;color:{vel_col}">{vel_str}</span></div></div>'
-                    f'<span style="font-size:10px;font-weight:700;color:{sc};letter-spacing:0.04em">VIEW CASE FILE →</span>'
+                    f'<div><div style="font-size:7.5px;font-weight:700;color:var(--tx4);letter-spacing:0.10em;text-transform:uppercase;font-family:JetBrains Mono,monospace;margin-bottom:3px">Velocity</div>'
+                    f'<div style="display:flex;align-items:center;gap:5px">{sparkline}<span style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:{vel_col}">{vel_str}</span></div></div>'
+                    f'<span style="font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:{sc};letter-spacing:0.08em">OPEN FILE ›</span>'
                     f'</div></div></a>',
                     unsafe_allow_html=True
                 )
 
 def render_signal_guide():
     levels = [
-        ("🔵","QUIET SIGNAL",  "#444",    "Early whispers"),
-        ("🟢","GROWING RUMOR", "#3dd68c", "Gaining attention"),
-        ("🟡","EMERGING STORY","#fbbf24", "Picking up steam"),
-        ("🟠","TRENDING",      "#ff9500", "Going mainstream"),
-        ("🔴","BREAKING",      "#ff3b3b", "Widespread impact"),
-        ("🔥","DOMINATING",    "#ff5500", "All over the internet"),
+        ("#555",    "QUIET",     "Early whispers",     1),
+        ("#3dd68c", "GROWING",   "Gaining traction",   2),
+        ("#fbbf24", "EMERGING",  "Picking up steam",   3),
+        ("#ff9500", "TRENDING",  "Going mainstream",   4),
+        ("#ff3b3b", "BREAKING",  "Widespread impact",  5),
+        ("#AAFF00", "DOMINATING","All over the net",   6),
     ]
-    items = "".join([
-        f'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">'
-        f'<span style="font-size:18px">{icon}</span>'
-        f'<span style="font-size:8px;font-weight:800;color:{col};letter-spacing:0.06em;text-align:center">{lbl}</span>'
-        f'<span style="font-size:9px;color:var(--tx4);text-align:center">{sub}</span>'
-        f'</div>'
-        for icon,lbl,col,sub in levels
-    ])
-    st.markdown(f"""
-    <div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:14px 18px;margin:16px 0 8px 0">
-      <div style="font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px">Signal Strength Guide</div>
-      <div style="display:flex;align-items:flex-start;gap:0">{items}</div>
-    </div>""", unsafe_allow_html=True)
+    items = ""
+    for col, lbl, sub, strength in levels:
+        # Stacked bars representing signal strength
+        bars = "".join([
+            f'<div style="width:4px;height:{6+k*4}px;border-radius:2px;background:{"" if k >= strength else col};border:1px solid {col if k < strength else "var(--border)"};opacity:{1 if k < strength else 0.25}"></div>'
+            for k in range(6)
+        ])
+        items += (f'<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0">'
+                  f'<div style="display:flex;align-items:flex-end;gap:2px;height:36px">{bars}</div>'
+                  f'<div style="font-size:7.5px;font-weight:800;color:{col};letter-spacing:0.06em;text-align:center;font-family:JetBrains Mono,monospace;line-height:1.2">{lbl}</div>'
+                  f'<div style="font-size:8px;color:var(--tx4);text-align:center;line-height:1.3">{sub}</div>'
+                  f'</div>')
+    st.markdown(
+        f'<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:16px 18px;margin:16px 0 8px">'
+        f'<div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;font-family:JetBrains Mono,monospace">── Signal Strength Index ──</div>'
+        f'<div style="display:flex;align-items:flex-end;gap:0">{items}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 def render_detective_briefing(articles):
     hour     = datetime.now().hour
@@ -502,13 +542,15 @@ def render_detective_briefing(articles):
     if not leads_html:
         leads_html = '<div style="color:var(--tx4);font-size:12px;padding:10px">Loading intelligence...</div>'
     view_btn = '<a href="#" style="display:block;text-align:center;margin-top:10px;padding:8px;background:var(--lime-bg);border:1px solid var(--lime-border);border-radius:8px;font-size:10px;font-weight:700;color:var(--lime-t);text-decoration:none;letter-spacing:0.06em">VIEW FULL BRIEFING →</a>'
+    ts_str = datetime.now().strftime("%H:%M · %b %d")
     st.markdown(
-        f'<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px">'
-        f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-        f'<div style="font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.12em;text-transform:uppercase">● Detective Briefing</div>'
-        f'<span style="font-size:9px;color:var(--tx4)">📋</span></div>'
-        f'<div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:2px;font-family:Poppins,sans-serif">{greeting}, Detective.</div>'
-        f'<div style="font-size:11px;color:var(--tx4);margin-bottom:12px">Here are your top leads.</div>'
+        f'<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:16px;margin-bottom:12px">'
+        f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+        f'<div style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--amber);letter-spacing:0.16em;text-transform:uppercase">▸ INTEL REPORT</div>'
+        f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--tx4);letter-spacing:0.06em">{ts_str}</span>'
+        f'</div>'
+        f'<div style="font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:1px;font-family:Poppins,sans-serif">{greeting}, Detective.</div>'
+        f'<div style="font-size:10px;color:var(--tx3);margin-bottom:12px;font-family:JetBrains Mono,monospace">3 LEADS ACTIVE · PRIORITY CLEARANCE</div>'
         f'{leads_html}'
         f'{view_btn}'
         f'</div>',
@@ -517,47 +559,74 @@ def render_detective_briefing(articles):
 
 def render_trend_radar(velocity_data, platform="tiktok"):
     categories = ["DOMINATING","BREAKING","TRENDING","EMERGING","QUIET"]
-    cat_colors = ["#AAFF00","#ff3b3b","#4da8ff","#fbbf24","#444"]
+    cat_colors = ["#AAFF00","#ff3b3b","#4da8ff","#fbbf24","#555"]
     counts = [0,0,0,0,0]
     for h in velocity_data:
         lbl,_,_ = case_status(h)
-        if   lbl=="DOMINATING":           counts[0]+=1
-        elif lbl=="BREAKING":             counts[1]+=1
+        if   lbl=="DOMINATING":                counts[0]+=1
+        elif lbl=="BREAKING":                  counts[1]+=1
         elif lbl in ("TRENDING","ESCALATING"): counts[2]+=1
-        elif lbl=="ACTIVE":               counts[3]+=1
-        else:                             counts[4]+=1
+        elif lbl=="ACTIVE":                    counts[3]+=1
+        else:                                  counts[4]+=1
     if sum(counts)==0: counts=[1,2,5,8,4]
     fig = go.Figure()
+    # Radar background image
+    if RADAR_BG_B64:
+        fig.update_layout(images=[dict(
+            source=f"data:image/jpeg;base64,{RADAR_BG_B64}",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor="center", yanchor="middle",
+            sizex=1.1, sizey=1.1,
+            sizing="contain", opacity=0.13, layer="below"
+        )])
     fig.add_trace(go.Scatterpolar(
         r=counts+[counts[0]], theta=categories+[categories[0]],
-        fill="toself", fillcolor="rgba(170,255,0,0.07)",
-        line=dict(color="#AAFF00",width=1.5), marker=dict(color="#AAFF00",size=5), name="Signal",
+        fill="toself",
+        fillcolor="rgba(170,255,0,0.09)",
+        line=dict(color="#AAFF00", width=2),
+        marker=dict(color="#AAFF00", size=6, symbol="circle",
+                    line=dict(color="#050508", width=1.5)),
+        name="Signal",
     ))
-    grid_c = "#1a1a28" if theme=="night" else "#dddde8"
+    is_night = (theme == "night")
+    grid_c   = "rgba(170,255,0,0.12)" if is_night else "#d8d8e8"
+    tick_c   = "rgba(170,255,0,0.5)"  if is_night else "#888"
     fig.update_layout(
         polar=dict(
             bgcolor="rgba(0,0,0,0)",
-            radialaxis=dict(visible=False),
-            angularaxis=dict(tickfont=dict(size=8,color=grid_c), linecolor=grid_c, gridcolor=grid_c),
+            radialaxis=dict(visible=False, range=[0, max(counts)+2]),
+            angularaxis=dict(
+                tickfont=dict(size=8, color=tick_c, family="JetBrains Mono, monospace"),
+                linecolor=grid_c, gridcolor=grid_c, tickcolor=grid_c,
+            ),
         ),
-        height=180, margin=dict(l=10,r=10,t=10,b=10),
-        paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+        height=190, margin=dict(l=12,r=12,t=8,b=8),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
     )
-    st.markdown("""
-    <div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:14px;padding:14px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.12em;text-transform:uppercase">● Trend Radar</div>
-        <span style="font-size:9px;color:#AAFF00;font-weight:700">LIVE</span>
-      </div>""", unsafe_allow_html=True)
+    # Radar panel header
+    st.markdown(
+        '<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:14px 14px 10px;margin-bottom:12px">'
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
+        '<div style="font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.14em;text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ TREND RADAR</div>'
+        '<span style="font-size:8px;color:#AAFF00;font-weight:700;font-family:JetBrains Mono,monospace;letter-spacing:0.1em">LIVE</span>'
+        '</div>',
+        unsafe_allow_html=True
+    )
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-    legend = "".join([
-        f'<div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0">'
-        f'<div style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:{cat_colors[i]};display:inline-block"></span>'
-        f'<span style="font-size:9px;color:var(--tx3);font-weight:700">{categories[i]}</span></div>'
-        f'<span style="font-size:9px;font-weight:700;color:{cat_colors[i]}">{counts[i]}</span></div>'
-        for i in range(len(categories))
-    ])
-    st.markdown(f"<div style='padding:0 4px'>{legend}</div></div>", unsafe_allow_html=True)
+    # Legend with bar indicators
+    legend = ""
+    total  = max(1, sum(counts))
+    for i in range(len(categories)):
+        pct = int(counts[i] / total * 100)
+        bar = f'<div style="height:2px;background:var(--border);border-radius:1px;flex:1"><div style="height:2px;background:{cat_colors[i]};border-radius:1px;width:{pct}%"></div></div>'
+        legend += (f'<div style="display:flex;align-items:center;gap:7px;padding:3px 0">'
+                   f'<span style="width:5px;height:5px;border-radius:50%;background:{cat_colors[i]};flex-shrink:0;display:inline-block"></span>'
+                   f'<span style="font-size:8px;color:var(--tx3);font-weight:700;font-family:JetBrains Mono,monospace;letter-spacing:0.06em;width:88px">{categories[i]}</span>'
+                   f'{bar}'
+                   f'<span style="font-size:9px;font-weight:700;color:{cat_colors[i]};font-family:JetBrains Mono,monospace;width:14px;text-align:right">{counts[i]}</span>'
+                   f'</div>')
+    st.markdown(f'<div style="padding:0 2px 2px">{legend}</div></div>', unsafe_allow_html=True)
 
 def render_niche_pulse(results, query):
     st.markdown(f"""
@@ -781,14 +850,20 @@ with right_col:
     render_detective_briefing(articles)
     radar_vel = get_hashtag_velocity(platform=active_platform or "tiktok")
     render_trend_radar(radar_vel, platform=active_platform or "tiktok")
-    st.markdown("""
-    <div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:14px;padding:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-size:9px;font-weight:700;color:var(--tx3);letter-spacing:0.12em;text-transform:uppercase">Watchlist</div>
-        <span style="font-size:9px;font-weight:700;color:#AAFF00;cursor:pointer">MANAGE</span>
-      </div>
-      <div style="font-size:11px;color:var(--tx4);text-align:center;padding:10px 0">No topics saved yet.<br><span style="color:#AAFF00;cursor:pointer">+ Add a topic</span></div>
-    </div>""", unsafe_allow_html=True)
+    st.markdown(
+        '<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:14px">'
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+        '<div style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--tx3);letter-spacing:0.14em;text-transform:uppercase">WATCHLIST</div>'
+        '<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em">MANAGE</span>'
+        '</div>'
+        '<div style="text-align:center;padding:14px 0">'
+        '<div style="font-size:22px;margin-bottom:6px;opacity:0.3">◎</div>'
+        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4);margin-bottom:8px;letter-spacing:0.04em">No signals tracked yet</div>'
+        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em">+ ADD SIGNAL</div>'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
 # ── MAIN CONTENT ──────────────────────────────────────────────────
 with main_col:
@@ -826,20 +901,19 @@ with main_col:
                     summ  = art.get("summary","")
                     url   = art.get("url","#")
                     with art_cols[i]:
-                        st.markdown(f"""
-                        <a href="{url}" target="_blank" style="text-decoration:none">
-                        <div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {color};
-                                    border-radius:12px;padding:14px;transition:all 0.2s"
-                             onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='{color}50'"
-                             onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border)';this.style.borderTopColor='{color}'">
-                          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                            <span style="font-size:9px;color:var(--tx4);font-weight:700">CASE #{i+1:04d}</span>
-                            <span style="font-size:9px;font-weight:800;color:{color};background:{color}18;padding:2px 7px;border-radius:4px">{tag.upper()}</span>
-                          </div>
-                          <div style="font-size:13px;font-weight:700;color:var(--tx1);line-height:1.35;margin-bottom:7px;font-family:'Poppins',sans-serif">{head}</div>
-                          <div style="font-size:11px;color:var(--tx3);line-height:1.6">{summ}</div>
-                          <div style="margin-top:10px;font-size:10px;font-weight:700;color:{color}">VIEW CASE FILE →</div>
-                        </div></a>""", unsafe_allow_html=True)
+                        st.markdown(
+                            f'<a href="{url}" target="_blank" style="text-decoration:none">'
+                            f'<div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {color};border-radius:10px;padding:14px;height:100%">'
+                            f'<div style="display:flex;justify-content:space-between;margin-bottom:8px">'
+                            f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--amber);font-weight:600;letter-spacing:0.10em">CASE #{i+1:04d}</span>'
+                            f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:800;color:{color};background:{color}18;padding:2px 7px;border-radius:3px;letter-spacing:0.08em">{tag.upper()}</span>'
+                            f'</div>'
+                            f'<div style="font-size:13px;font-weight:700;color:var(--tx1);line-height:1.35;margin-bottom:7px;font-family:Poppins,sans-serif">{head}</div>'
+                            f'<div style="font-size:11px;color:var(--tx3);line-height:1.65">{summ}</div>'
+                            f'<div style="margin-top:12px;font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:{color};letter-spacing:0.08em">OPEN FILE ›</div>'
+                            f'</div></a>',
+                            unsafe_allow_html=True
+                        )
             st.markdown("<div style='margin:14px 0 4px;border-top:1px solid var(--border)'></div>", unsafe_allow_html=True)
             st.markdown("<div style='font-size:11px;color:var(--tx4);text-align:center;padding:4px 0'>Select a source above to open live case files</div>", unsafe_allow_html=True)
 
