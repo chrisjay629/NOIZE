@@ -572,7 +572,7 @@ def render_signal_guide():
         unsafe_allow_html=True
     )
 
-def render_detective_briefing(articles):
+def render_detective_briefing(articles, panel_bg_override=None):
     hour     = datetime.now().hour
     greeting = "Good morning" if hour<12 else ("Good afternoon" if hour<18 else "Good evening")
     cat_icons = {"News":"📰","Music & Film":"🎬","Gaming":"🎮"}
@@ -601,8 +601,12 @@ def render_detective_briefing(articles):
         leads_html = '<div style="color:var(--tx4);font-size:12px;padding:10px">Loading intelligence...</div>'
     view_btn = '<a href="#" style="display:block;text-align:center;margin-top:10px;padding:8px;background:var(--lime-bg);border:1px solid var(--lime-border);border-radius:8px;font-size:10px;font-weight:700;color:var(--lime-t);text-decoration:none;letter-spacing:0.06em">VIEW FULL BRIEFING →</a>'
     ts_str      = datetime.now().strftime("%H:%M · %b %d")
-    panel_bg    = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)" if theme == "night" else "background:var(--surface-alt)"
-    panel_shad  = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else ""
+    if panel_bg_override:
+        panel_bg   = panel_bg_override
+        panel_shad = ""
+    else:
+        panel_bg   = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)" if theme == "night" else "background:var(--surface-alt)"
+        panel_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else ""
     st.markdown(
         f'<div style="{panel_bg};border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px{panel_shad}">'
         f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
@@ -908,9 +912,7 @@ main_col, right_col = st.columns([7, 3], gap="medium")
 
 # ── RIGHT PANEL ───────────────────────────────────────────────────
 with right_col:
-    st.markdown(f'<div style="{_briefing_bg_style}border-radius:12px 12px 0 0;">', unsafe_allow_html=True)
-    render_detective_briefing(articles)
-    st.markdown('</div>', unsafe_allow_html=True)
+    render_detective_briefing(articles, panel_bg_override=_briefing_bg_style if _briefing_bg_style else None)
     radar_vel = get_hashtag_velocity(platform=active_platform or "tiktok")
     render_trend_radar(radar_vel, platform=active_platform or "tiktok")
     _wl_style = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.45)" if theme == "night" else "background:var(--surface-alt);border:1px solid var(--border)"
