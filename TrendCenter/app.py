@@ -67,6 +67,7 @@ NEWSPAPER_B64        = load_img_b64("static/newspaper_bg.png",      max_width=12
 CASE_FOLDER_DARK_B64 = load_img_b64("static/case_folders_dark.png", max_width=300,  quality=85)
 CASE_FOLDER_LIGHT_B64= load_img_b64("static/case_folders_light.png",max_width=300,  quality=85)
 RADAR_BG_B64         = load_img_b64("static/radar_bg.jpg",          max_width=600,  quality=75)
+RADAR_MAP_B64        = load_img_b64("static/radar_map.png",         max_width=700,  quality=80)
 HUD_BG_B64           = load_img_b64("static/hud_bg.jpg",            max_width=800,  quality=72)
 BG_BODY_B64          = load_img_b64("static/bg_body.jpg",           max_width=1600, quality=70)
 
@@ -798,6 +799,62 @@ SIGNAL_TYPE_COLORS = {
     "Cryptid":    "#ff7a3b",
 }
 
+# emoji used in the classified-files list (one per signal type)
+SIGNAL_TYPE_EMOJI = {
+    "UFO": "🛸", "Strange": "❔", "Paranormal": "👻",
+    "Unsolved": "🔎", "Glitch": "🌀", "Cryptid": "🐾",
+}
+
+
+def _hex_rgba(hex_color, alpha):
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+
+
+def _add_radar_bg(fig, is_night):
+    """Drop the dark world map (preferred) behind the polar grid."""
+    if RADAR_MAP_B64:
+        fig.update_layout(images=[dict(
+            source=f"data:image/png;base64,{RADAR_MAP_B64}",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            xanchor="center", yanchor="middle", sizex=1.0, sizey=1.0,
+            sizing="contain", opacity=0.5 if is_night else 0.32, layer="below")])
+    elif RADAR_BG_B64:
+        fig.update_layout(images=[dict(
+            source=f"data:image/jpeg;base64,{RADAR_BG_B64}",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            xanchor="center", yanchor="middle", sizex=1.05, sizey=1.05,
+            sizing="contain", opacity=0.22 if is_night else 0.12, layer="below")])
+
+
+def _add_target_blips(fig, radii, thetas, sizes, colors, labels, custom, hovers, text_size=11):
+    """Layered 'locked-on' blips: outer halo ring + glow + solid numbered core.
+    customdata is set on every layer so a click anywhere resolves the index."""
+    halo_c = [_hex_rgba(c, 0.16) for c in colors]
+    glow_c = [_hex_rgba(c, 0.34) for c in colors]
+    # outer halo ring
+    fig.add_trace(go.Scatterpolar(
+        r=radii, theta=thetas, mode="markers",
+        marker=dict(size=[s * 2.5 for s in sizes], color="rgba(0,0,0,0)",
+                    line=dict(color=halo_c, width=2)),
+        customdata=custom, hoverinfo="skip", showlegend=False))
+    # soft glow
+    fig.add_trace(go.Scatterpolar(
+        r=radii, theta=thetas, mode="markers",
+        marker=dict(size=[s * 1.6 for s in sizes], color=glow_c,
+                    line=dict(color="rgba(0,0,0,0)", width=0)),
+        customdata=custom, hoverinfo="skip", showlegend=False))
+    # solid numbered core
+    fig.add_trace(go.Scatterpolar(
+        r=radii, theta=thetas, mode="markers+text",
+        text=labels,
+        textfont=dict(size=text_size, color="#06110a", family="JetBrains Mono, monospace"),
+        textposition="middle center",
+        marker=dict(size=sizes, color=colors, opacity=1.0,
+                    line=dict(color="rgba(255,255,255,0.9)", width=1.6)),
+        customdata=custom, hovertext=hovers, hoverinfo="text", showlegend=False))
+
 
 def get_strange_signals(force=False):
     """The daily drop of 5 real weird Reddit stories (refreshes once a day,
@@ -848,25 +905,15 @@ def render_strange_radar(signals):
 
     is_night = (theme == "night")
     fig = go.Figure()
-    if RADAR_BG_B64:
-        fig.update_layout(images=[dict(
-            source=f"data:image/jpeg;base64,{RADAR_BG_B64}",
-            xref="paper", yref="paper", x=0.5, y=0.5,
-            xanchor="center", yanchor="middle", sizex=1.05, sizey=1.05,
-            sizing="contain", opacity=0.22 if is_night else 0.12, layer="below")])
+    _add_radar_bg(fig, is_night)
     # faint sweep pointer
     fig.add_trace(go.Scatterpolar(
         r=[0, 1.05], theta=[0, 52], mode="lines",
         line=dict(color="rgba(163,255,18,0.35)", width=2),
         hoverinfo="skip", showlegend=False))
-    # the blips
-    fig.add_trace(go.Scatterpolar(
-        r=radii, theta=thetas, mode="markers+text",
-        text=labels, textfont=dict(size=11, color="#06110a", family="JetBrains Mono, monospace"),
-        textposition="middle center",
-        marker=dict(size=sizes, color=colors, opacity=0.95,
-                    line=dict(color="rgba(255,255,255,0.85)", width=1.5)),
-        customdata=custom, hovertext=hovers, hoverinfo="text", showlegend=False))
+    # target-lock blips: outer halo + glow + solid numbered core
+    _add_target_blips(fig, radii, thetas, sizes, colors, labels, custom, hovers,
+                      text_size=11)
     grid_c = "rgba(163,255,18,0.14)" if is_night else "rgba(100,80,40,0.18)"
     fig.update_layout(
         polar=dict(
@@ -988,23 +1035,13 @@ def render_strange_radar_mini(signals):
         hovers.append(f"<b>{s['title'][:60]}</b><br>{s['subreddit']} · {s['type']}")
 
     fig = go.Figure()
-    if RADAR_BG_B64:
-        fig.update_layout(images=[dict(
-            source=f"data:image/jpeg;base64,{RADAR_BG_B64}",
-            xref="paper", yref="paper", x=0.5, y=0.5,
-            xanchor="center", yanchor="middle", sizex=1.05, sizey=1.05,
-            sizing="contain", opacity=0.20 if is_night else 0.10, layer="below")])
+    _add_radar_bg(fig, is_night)
     fig.add_trace(go.Scatterpolar(
         r=[0, 1.05], theta=[0, 52], mode="lines",
         line=dict(color="rgba(163,255,18,0.30)", width=1.5),
         hoverinfo="skip", showlegend=False))
-    fig.add_trace(go.Scatterpolar(
-        r=radii, theta=thetas, mode="markers+text", text=labels,
-        textfont=dict(size=9, color="#06110a", family="JetBrains Mono, monospace"),
-        textposition="middle center",
-        marker=dict(size=sizes, color=colors, opacity=0.95,
-                    line=dict(color="rgba(255,255,255,0.85)", width=1.2)),
-        customdata=custom, hovertext=hovers, hoverinfo="text", showlegend=False))
+    _add_target_blips(fig, radii, thetas, sizes, colors, labels, custom, hovers,
+                      text_size=9)
     grid_c = "rgba(163,255,18,0.12)" if is_night else "rgba(100,80,40,0.15)"
     fig.update_layout(
         polar=dict(bgcolor="rgba(0,0,0,0)",
@@ -1039,6 +1076,66 @@ def render_strange_radar_mini(signals):
             if st.button(str(i + 1), key=f"strange_mini_btn_{i}", use_container_width=True):
                 _open(i)
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+def _redact_title(title, keep=3, maxlen=42):
+    """Black out most of a title for a 'classified leak' look — keeps the first
+    few words as a teaser, redacts the rest with █ blocks."""
+    words = title.replace("…", "").split()
+    out = []
+    for j, w in enumerate(words):
+        if j < keep:
+            out.append(w)
+        else:
+            out.append("█" * max(2, min(len(w), 6)))
+    s = " ".join(out)
+    return (s[:maxlen] + "…") if len(s) > maxlen else s
+
+
+def render_strange_watchlist(signals):
+    """The right-rail 'classified files' panel — a clickable, redacted dossier
+    list of today's 5 strange cases. Clicking opens that case file."""
+    is_night = (theme == "night")
+    _panel = ("background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);"
+              "-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);"
+              "box-shadow:0 20px 60px rgba(0,0,0,0.45)"
+              if is_night else "background:var(--surface-alt);border:1px solid var(--border)")
+    st.markdown(
+        "<style>"
+        ".st-key-strangefiles{border-radius:14px;padding:12px 12px 8px;margin-top:2px;" + _panel + "}"
+        ".st-key-strangefiles [data-testid='stVerticalBlock']{gap:5px}"
+        ".st-key-strangefiles button{justify-content:flex-start!important;text-align:left!important;"
+        "background:rgba(163,255,18,0.03)!important;border:1px solid var(--border)!important;"
+        "border-left:2px solid var(--lime-t)!important;border-radius:8px!important;"
+        "padding:7px 10px!important;min-height:0!important}"
+        ".st-key-strangefiles button p{font-family:'JetBrains Mono',monospace!important;"
+        "font-size:10px!important;font-weight:600!important;color:var(--tx2)!important;"
+        "letter-spacing:0.01em!important;text-align:left!important;margin:0!important}"
+        ".st-key-strangefiles button:hover{border-color:var(--lime-t)!important;"
+        "box-shadow:0 0 14px rgba(163,255,18,0.15)!important}"
+        ".st-key-strangefiles button:hover p{color:var(--tx1)!important}"
+        "</style>",
+        unsafe_allow_html=True)
+    with st.container(key="strangefiles"):
+        st.markdown(
+            "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px'>"
+            "<div style='font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--tx3);letter-spacing:0.14em;text-transform:uppercase'>🔒 CLASSIFIED FILES</div>"
+            f"<span style='font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--lime-t);letter-spacing:0.08em'>{len(signals)} OPEN</span>"
+            "</div>",
+            unsafe_allow_html=True)
+        if not signals:
+            st.markdown(
+                "<div style='font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4);"
+                "text-align:center;padding:14px 4px'>No files on the wire yet.</div>",
+                unsafe_allow_html=True)
+            return
+        for i, s in enumerate(signals):
+            emoji = SIGNAL_TYPE_EMOJI.get(s["type"], "❔")
+            label = f"{emoji}  #{s['rank']}  {_redact_title(s['title'])}"
+            if st.button(label, key=f"sf_{i}", use_container_width=True):
+                st.session_state.strange_sel = i
+                st.session_state.active_nav = "TREND RADAR"
+                st.rerun()
 
 
 def render_niche_pulse(results, query):
@@ -1244,22 +1341,9 @@ main_col, right_col = st.columns([7, 3], gap="medium")
 # ── RIGHT PANEL ───────────────────────────────────────────────────
 with right_col:
     render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
-    render_strange_radar_mini(get_strange_signals())
-    _wl_style = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.45)" if theme == "night" else "background:var(--surface-alt);border:1px solid var(--border)"
-    st.markdown(
-        f'<div style="{_wl_style};border-radius:14px;padding:14px">'
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-        '<div style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--tx3);letter-spacing:0.14em;text-transform:uppercase">⭐ WATCHLIST</div>'
-        '<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em">MANAGE →</span>'
-        '</div>'
-        '<div style="text-align:center;padding:14px 0">'
-        '<div style="font-size:22px;margin-bottom:6px;opacity:0.25">◎</div>'
-        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--tx4);margin-bottom:10px;letter-spacing:0.04em;line-height:1.6">No signals tracked yet.<br>Add a topic to monitor.</div>'
-        '<div style="font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:var(--lime-t);cursor:pointer;letter-spacing:0.08em;background:var(--lime-bg);border:1px solid var(--lime-border);padding:5px 10px;border-radius:6px;display:inline-block">+ ADD SIGNAL</div>'
-        '</div>'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    _strange = get_strange_signals()
+    render_strange_radar_mini(_strange)
+    render_strange_watchlist(_strange)
 
 # ── MAIN CONTENT ──────────────────────────────────────────────────
 with main_col:
