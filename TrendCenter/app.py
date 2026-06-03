@@ -1083,6 +1083,30 @@ with main_col:
             st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
             render_case_cards(velocity_data if velocity_data else hashtags, platform=active_platform)
 
+            # ── Inline blueprint builder — select trends right here ──
+            bp_source = velocity_data if velocity_data else hashtags
+            if bp_source:
+                st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px'>🎬 Build a Blueprint</div>"
+                    f"<div style='font-size:11px;color:var(--tx3);margin-bottom:10px;line-height:1.6'>Highlight the {cfg['icon']} {cfg['label']} trends you want, then generate a production blueprint.</div>",
+                    unsafe_allow_html=True
+                )
+                cf_niche = st.text_input("Your niche (optional)", placeholder="e.g. fitness, fashion, food...", key=f"cf_bp_niche_{active_platform}")
+                cf_selected = []
+                cf_pfx = "#" if active_platform == "tiktok" else ""
+                cf_cols = st.columns(2)
+                for i, h in enumerate(bp_source):
+                    with cf_cols[i % 2]:
+                        if st.checkbox(f"{cf_pfx}{h['name']}", key=f"cf_bp_{active_platform}_{i}"):
+                            cf_selected.append(h["name"])
+                if st.button("🎬 Generate Blueprint", type="primary", use_container_width=True,
+                             disabled=len(cf_selected) == 0, key=f"cf_gen_bp_{active_platform}"):
+                    with st.spinner("Building intelligence file..."):
+                        cf_bp = generate_blueprint(cf_selected, cf_niche.strip() or "content creator")
+                    st.markdown("---")
+                    st.markdown(cf_bp)
+
         render_signal_guide()
 
         # Quote banner with newspaper bg
