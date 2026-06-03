@@ -122,13 +122,61 @@ def scrape_google():
         return _gpt_fallback("google")
 
 
-# ── YOUTUBE ── GPT-powered (no free public API without key) ─────
+# ── YOUTUBE ── YouTube Data API v3 ─────────────────────────────
 
 def scrape_youtube():
-    print("[YOUTUBE] Starting (GPT-powered)", flush=True)
-    # YouTube requires an API key for trending data
-    # GPT fallback gives realistic results in the meantime
-    return _gpt_fallback("youtube")
+    print("[YOUTUBE] Starting scrape via Data API v3", flush=True)
+    api_key = os.getenv("YOUTUBE_API_KEY")
+    if not api_key:
+        print("[YOUTUBE] No API key found — using GPT fallback", flush=True)
+        return _gpt_fallback("youtube")
+    try:
+        r = requests.get(
+            "https://www.googleapis.com/youtube/v3/videos",
+            params={
+                "part": "snippet,statistics",
+                "chart": "mostPopular",
+                "regionCode": "US",
+                "maxResults": 20,
+                "key": api_key,
+            },
+            timeout=15
+        )
+        r.raise_for_status()
+        data = r.json()
+        items = data.get("items", [])
+        if not items:
+            raise ValueError("No items returned from YouTube API")
+
+        results = []
+        for i, item in enumerate(items):
+            snippet = item.get("snippet", {})
+            stats = item.get("statistics", {})
+            title = snippet.get("title", "")
+            channel = snippet.get("channelTitle", "YouTube")
+            video_id = item.get("id", "")
+            views = int(stats.get("viewCount", 0))
+            if views >= 1_000_000:
+                views_str = f"{views/1_000_000:.1f}M views"
+            elif views >= 1_000:
+                views_str = f"{views/1_000:.0f}K views"
+            else:
+                views_str = f"{views} views"
+            results.append({
+                "rank": str(i + 1),
+                "name": title,
+                "posts": views_str,
+                "category": channel,
+                "url": f"https://www.youtube.com/watch?v={video_id}",
+                "scraped_at": datetime.now().isoformat(),
+                "platform": "youtube",
+                "source": "live"
+            })
+        print(f"[YOUTUBE] Got {len(results)} trending videos", flush=True)
+        return results
+    except Exception as e:
+        print(f"[YOUTUBE] API failed: {e} — using GPT fallback", flush=True)
+        return _gpt_fallback("youtube")
 
 
 # ── REDDIT ── RSS feed, no API key needed ───────────────────────
