@@ -252,6 +252,7 @@ if "chat_history" not in st.session_state:
 
 # ── Header ─────────────────────────────────────────────────────
 hashtags = get_latest_hashtags()
+is_gpt_fallback = hashtags and hashtags[0].get("source") == "gpt_fallback"
 mins_ago_str = ""
 if hashtags:
     last_scraped = hashtags[0].get("scraped_at", "")
@@ -278,6 +279,16 @@ st.markdown(f"""
     </span>
   </div>
   <div style="text-align:right">{mins_ago_str}</div>
+</div>
+""", unsafe_allow_html=True)
+
+if is_gpt_fallback:
+    st.markdown("""
+<div style="background:#2a1a00;border:1px solid #f5a623;border-radius:10px;padding:12px 16px;margin-bottom:0.75rem;display:flex;align-items:center;gap:10px">
+  <span style="font-size:18px">⚠️</span>
+  <div style="font-size:13px;color:#f5a623;line-height:1.5">
+    <b>TikTok Creative Center is temporarily down.</b> Showing AI-generated trend suggestions as a stand-in. Data will automatically switch back to live TikTok data when their site comes back up — just hit Refresh.
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
