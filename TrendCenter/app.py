@@ -948,7 +948,7 @@ with main_col:
 
     # ── HERO content — background comes from shared wrapper CSS ──
     st.markdown(
-        f'<div style="position:relative;z-index:2;padding:28px 32px 200px 32px">'
+        f'<div style="position:relative;z-index:2;padding:28px 32px 28px 32px">'
         f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'
         f'<svg width="38" height="38" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="rgba(13,21,32,0.7)"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/></svg>'
         f'<div><div style="font-family:Inter,sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.6)">ze</span></div>'
