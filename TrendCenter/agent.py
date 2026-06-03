@@ -1,5 +1,7 @@
 import os
+import re
 import json
+from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
 from database import get_latest_hashtags, get_hashtag_velocity
@@ -229,6 +231,105 @@ def run_agent(user_message):
                 "tool_call_id": tool_call.id,
                 "content": json.dumps(result) if not isinstance(result, str) else result
             })
+
+# ── NICHE PULSE ─────────────────────────────────────────────────
+
+def _parse_json_safe(text):
+    text = text.strip()
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
+    return json.loads(text.strip())
+
+
+def _filter_top3_for_niche(platform_data, niche, platform_key):
+    """Use GPT to pick the 3 most relevant trends from a platform for a given niche."""
+    names = [h["name"] for h in platform_data[:20]]
+    prompt = (
+        f"From these {platform_key} trending topics: {json.dumps(names)}\n"
+        f"Pick the 3 most interesting or relevant ones for a creator who makes '{niche}' content.\n"
+        f"If none are directly related, pick the 3 most creatively connectable.\n"
+        f"Return ONLY a JSON array of exactly 3 names exactly as they appear:\n"
+        f'["name1", "name2", "name3"]'
+    )
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        selected_names = _parse_json_safe(resp.choices[0].message.content)
+        name_map = {h["name"]: h for h in platform_data}
+        selected = [name_map[n] for n in selected_names if n in name_map]
+        # Pad to 3 if GPT names didn't match exactly
+        if len(selected) < 3:
+            for h in platform_data:
+                if h not in selected:
+                    selected.append(h)
+                if len(selected) >= 3:
+                    break
+        return selected[:3]
+    except Exception as e:
+        print(f"[NICHE PULSE] {platform_key} filter failed: {e}", flush=True)
+        return platform_data[:3]
+
+
+def _gpt_niche_fallback(niche, platform):
+    """Generate 3 niche-relevant trends for a platform when no live data exists."""
+    today = datetime.now().strftime("%B %d, %Y")
+    platform_contexts = {
+        "tiktok":  ("TikTok hashtags",         '{"rank":"1","name":"...","posts":"2.4M","category":"Entertainment"}'),
+        "google":  ("Google Search trends",     '{"rank":"1","name":"...","posts":"500K+ searches","category":"News"}'),
+        "youtube": ("YouTube trending videos",  '{"rank":"1","name":"...","posts":"4.2M views","category":"Gaming"}'),
+        "reddit":  ("Reddit hot posts",         '{"rank":"1","name":"...","posts":"89K upvotes","category":"r/all"}'),
+    }
+    url_builders = {
+        "tiktok":  lambda n: f"https://www.tiktok.com/tag/{n.replace(' ','')}",
+        "google":  lambda n: f"https://www.google.com/search?q={n.replace(' ','+')}",
+        "youtube": lambda n: f"https://www.youtube.com/results?search_query={n.replace(' ','+')}",
+        "reddit":  lambda n: f"https://www.reddit.com/search/?q={n.replace(' ','+')}&sort=hot",
+    }
+    ctx, example = platform_contexts.get(platform, ("trends", '{"rank":"1","name":"...","posts":"—","category":"—"}'))
+    prompt = (
+        f"Today is {today}. A content creator makes '{niche}' content.\n"
+        f"Generate 3 currently trending {ctx} that would be relevant or interesting for them.\n"
+        f"Return ONLY a JSON array of exactly 3 items:\n"
+        f"[{example}]"
+    )
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        data = _parse_json_safe(resp.choices[0].message.content)
+        now = datetime.now().isoformat()
+        builder = url_builders.get(platform, lambda n: f"https://www.google.com/search?q={n}")
+        return [{
+            "rank": str(h.get("rank", i + 1)),
+            "name": h.get("name", ""),
+            "posts": h.get("posts", ""),
+            "category": h.get("category", ""),
+            "url": builder(h.get("name", "")),
+            "scraped_at": now,
+            "platform": platform,
+            "source": "gpt_fallback",
+        } for i, h in enumerate(data[:3])]
+    except Exception as e:
+        print(f"[NICHE PULSE] GPT fallback for {platform} failed: {e}", flush=True)
+        return []
+
+
+def niche_pulse(niche: str) -> dict:
+    """Cross-platform niche search. Returns {platform_key: [3 trend dicts]}."""
+    platforms = ["tiktok", "google", "youtube", "reddit"]
+    results = {}
+    for key in platforms:
+        platform_data = get_latest_hashtags(platform=key)
+        if not platform_data:
+            print(f"[NICHE PULSE] No data for {key} — using GPT fallback", flush=True)
+            results[key] = _gpt_niche_fallback(niche, key)
+        else:
+            results[key] = _filter_top3_for_niche(platform_data, niche, key)
+    return results
+
 
 # ---------- CLI ----------
 

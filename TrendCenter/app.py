@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime
 
-from agent import run_agent, generate_blueprint, research_niche_hashtags
+from agent import run_agent, generate_blueprint, research_niche_hashtags, niche_pulse
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit
@@ -151,6 +151,10 @@ if "nr_results" not in st.session_state:
     st.session_state.nr_results = []
 if "nr_topic_label" not in st.session_state:
     st.session_state.nr_topic_label = ""
+if "pulse_results" not in st.session_state:
+    st.session_state.pulse_results = None
+if "pulse_query" not in st.session_state:
+    st.session_state.pulse_query = ""
 
 
 # ── Fetch on platform click ────────────────────────────────────
@@ -278,6 +282,97 @@ def render_cards(data, platform="tiktok"):
         """, unsafe_allow_html=True)
 
 
+def render_niche_pulse(results: dict, query: str):
+    """Renders the cross-platform niche pulse grid + chart."""
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <span style="font-size:16px;font-weight:700;color:#ccc">🔍 Niche Pulse:</span>
+      <span style="font-size:16px;font-weight:700;color:#fff">"{query}"</span>
+      <span style="font-size:11px;color:#444;margin-left:4px">Top 3 trends per platform</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    pulse_cols = st.columns(4)
+    chart_items = []  # For combined chart
+
+    for idx, (key, cfg) in enumerate(PLATFORM_CONFIG.items()):
+        trends = results.get(key, [])
+        color  = cfg["color"]
+        is_gpt = any(t.get("source") == "gpt_fallback" for t in trends)
+        src_label = "🤖 AI suggestions" if is_gpt else "🟢 Live data"
+
+        with pulse_cols[idx]:
+            st.markdown(f"""
+            <div style="background:{color}18;border:1px solid {color}55;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+              <div style="font-size:13px;font-weight:700;color:{color}">{cfg['icon']} {cfg['label']}</div>
+              <div style="font-size:10px;color:#555;margin-top:1px">{src_label}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for t in trends:
+                name  = t.get("name", "")
+                posts = t.get("posts", "—")
+                rank  = t.get("rank") or t.get("current_rank") or "—"
+                url   = t.get("url", "#")
+                prefix = "#" if key == "tiktok" else ""
+                disp_name = name[:22] + ("…" if len(name) > 22 else "")
+
+                st.markdown(f"""
+                <a href="{url}" target="_blank" style="text-decoration:none">
+                <div style="background:#16161f;border:0.5px solid #2a2a3c;border-radius:8px;padding:8px 10px;margin-bottom:6px;transition:border-color 0.15s"
+                     onmouseover="this.style.borderColor='{color}'" onmouseout="this.style.borderColor='#2a2a3c'">
+                  <div style="font-size:12px;font-weight:600;color:#ddd">{prefix}{disp_name}</div>
+                  <div style="font-size:10px;color:#555;margin-top:2px">{posts}</div>
+                </div>
+                </a>
+                """, unsafe_allow_html=True)
+
+                try:
+                    rank_val = int(str(rank).replace("#", "").strip())
+                except (ValueError, TypeError):
+                    rank_val = 10
+
+                chart_items.append({
+                    "label": f"{cfg['icon']} {name[:16]}{'…' if len(name)>16 else ''}",
+                    "platform": cfg["label"],
+                    "rank": rank_val,
+                    "color": color,
+                })
+
+    # Combined horizontal bar chart
+    if chart_items:
+        st.markdown("<div style='font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 6px 0'>Trend prominence across platforms</div>", unsafe_allow_html=True)
+
+        # Sort by platform order then rank
+        order = list(PLATFORM_CONFIG.keys())
+        chart_items.sort(key=lambda x: (
+            next((i for i, k in enumerate(order) if PLATFORM_CONFIG[k]["label"] == x["platform"]), 99),
+            x["rank"]
+        ))
+
+        fig = go.Figure(go.Bar(
+            x=[max(0, 21 - item["rank"]) for item in chart_items],
+            y=[item["label"] for item in chart_items],
+            orientation="h",
+            marker_color=[item["color"] for item in chart_items],
+            text=[f" #{item['rank']}" for item in chart_items],
+            textposition="outside",
+            textfont=dict(size=10, color="#aaa"),
+            hovertemplate="%{y}<br>Rank #%{customdata}<extra></extra>",
+            customdata=[item["rank"] for item in chart_items],
+        ))
+        fig.update_layout(
+            xaxis=dict(title="Prominence (higher = better ranked)", gridcolor="#1e1e2e", color="#444", tickfont=dict(size=9), range=[0, 24]),
+            yaxis=dict(color="#aaa", tickfont=dict(size=10), autorange="reversed"),
+            height=max(200, len(chart_items) * 26 + 40),
+            margin=dict(l=0, r=40, t=6, b=0),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            showlegend=False,
+        )
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+
 # ══════════════════════════════════════════════════════════════
 # PAGE LAYOUT
 # ══════════════════════════════════════════════════════════════
@@ -320,7 +415,34 @@ for idx, (key, cfg) in enumerate(PLATFORM_CONFIG.items()):
             st.session_state.do_fetch = True
             st.rerun()
 
-st.markdown("<div style='margin:8px 0 4px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin:8px 0 8px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
+
+# ── Niche Pulse Search (always visible) ───────────────────────
+np_col1, np_col2, np_col3 = st.columns([5, 1, 1])
+with np_col1:
+    pulse_niche = st.text_input(
+        "niche_pulse_input",
+        placeholder="🔍  Search a niche across all platforms — e.g. pokemon, fitness, cooking...",
+        label_visibility="collapsed",
+        key="pulse_niche_input"
+    )
+with np_col2:
+    pulse_search = st.button("Analyze All", type="primary", use_container_width=True)
+with np_col3:
+    if st.button("✕ Clear", use_container_width=True, disabled=not st.session_state.pulse_results):
+        st.session_state.pulse_results = None
+        st.session_state.pulse_query = ""
+        st.rerun()
+
+if pulse_search and pulse_niche.strip():
+    with st.spinner(f"Scanning all 4 platforms for '{pulse_niche.strip()}'..."):
+        st.session_state.pulse_results = niche_pulse(pulse_niche.strip())
+        st.session_state.pulse_query = pulse_niche.strip()
+
+# Show pulse results if active
+if st.session_state.pulse_results:
+    render_niche_pulse(st.session_state.pulse_results, st.session_state.pulse_query)
+    st.markdown("<div style='margin:12px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
 
 
 # ── Main content ───────────────────────────────────────────────
@@ -390,20 +512,6 @@ else:
     with left_col:
         st.markdown(f"<div style='font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px'>Rank velocity</div>", unsafe_allow_html=True)
         render_velocity_chart(velocity_data, platform=active_platform)
-
-        # Niche analyze below chart
-        st.markdown("<div style='margin:12px 0 6px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px'>Filter by niche</div>", unsafe_allow_html=True)
-        niche = st.text_input("niche", placeholder="fitness, fashion, gaming...", label_visibility="collapsed", key="niche_filter")
-        analyze = st.button("🔍 Analyze", type="primary", use_container_width=True)
-        if analyze and niche:
-            with st.spinner("Analyzing..."):
-                answer = run_agent(
-                    f"I make {niche} content. Looking at these trending topics: "
-                    f"{[h['name'] for h in hashtags[:20]]}. "
-                    "Which ones fit my niche and why? Give me 2 content ideas for the top 3."
-                )
-            st.markdown(f"<div style='font-size:13px;color:#ccc;line-height:1.6;margin-top:8px'>{answer}</div>", unsafe_allow_html=True)
 
     with right_col:
         display_data = velocity_data[:10] if velocity_data else hashtags[:10]
