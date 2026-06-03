@@ -167,15 +167,15 @@ html, body, [class*="css"] {
 [data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
-/* Always keep sidebar and its toggle button visible */
-[data-testid="stSidebar"] {
+/* Always keep sidebar open — hide collapse button, force position */
+section[data-testid="stSidebar"] {
+  transform: translateX(0) !important;
+  min-width: 244px !important;
   display: block !important;
-  visibility: visible !important;
-  transform: none !important;
 }
+[data-testid="stSidebarCollapseButton"],
 [data-testid="stSidebarCollapsedControl"] {
-  display: flex !important;
-  visibility: visible !important;
+  display: none !important;
 }
 
 .stApp {
