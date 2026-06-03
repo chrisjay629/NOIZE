@@ -897,22 +897,29 @@ articles = st.session_state.trend_articles
 
 _bottom_fade_color = "7,11,16" if theme == "night" else "26,37,56"
 
-# Hero background style — fixed to viewport so center + right panel
-# show the same continuous image without bleeding into the cards below.
-_hero_bg = (
-    f"background-image:{hero_overlay},url('data:image/jpeg;base64,{hero_b64}');"
-    "background-size:cover;"
-    "background-attachment:fixed;"
-    "background-position:65% top;"
-) if hero_b64 else ""
-_hero_img_style = f"position:relative;z-index:2;{_hero_bg}"
-_briefing_bg_style = _hero_bg  # same image, viewport-fixed → seamless continuation
+# Full-width hero background strip — fixed pixel height, pulled under
+# the columns via negative margin. Cannot bleed past its own height.
+if hero_b64:
+    st.markdown(f"""
+    <div style="
+        height:380px;
+        margin-bottom:-380px;
+        background-image:{hero_overlay},url('data:image/jpeg;base64,{hero_b64}');
+        background-size:cover;
+        background-position:65% center;
+        border-radius:12px;
+        position:relative;
+        z-index:0;
+    "></div>
+    """, unsafe_allow_html=True)
+
+_hero_img_style = "position:relative;z-index:1;"
 
 main_col, right_col = st.columns([7, 3], gap="medium")
 
 # ── RIGHT PANEL ───────────────────────────────────────────────────
 with right_col:
-    render_detective_briefing(articles, panel_bg_override=_briefing_bg_style if _briefing_bg_style else None)
+    render_detective_briefing(articles)
     radar_vel = get_hashtag_velocity(platform=active_platform or "tiktok")
     render_trend_radar(radar_vel, platform=active_platform or "tiktok")
     _wl_style = "background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.45)" if theme == "night" else "background:var(--surface-alt);border:1px solid var(--border)"
