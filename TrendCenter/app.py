@@ -460,34 +460,28 @@ def render_detective_briefing(articles):
         head  = (art.get("headline","") or "")[:55]
         url   = art.get("url","#")
         picon,pcol,vel = plat_data[idx%len(plat_data)]
-        leads_html += f"""
-        <a href="{url}" target="_blank" style="text-decoration:none">
-        <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 11px;
-                    background:var(--surface-2);border:1px solid var(--border-2);border-radius:9px;
-                    margin-bottom:6px;transition:all 0.15s"
-             onmouseover="this.style.borderColor='var(--lime-border)'"
-             onmouseout="this.style.borderColor='var(--border-2)'">
-          <div style="width:26px;height:26px;border-radius:7px;background:{pcol}22;border:1px solid {pcol}44;
-                      display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">{picon}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:11px;font-weight:700;color:var(--tx1);line-height:1.35;
-                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{head}</div>
-            <div style="font-size:9px;color:var(--tx4);margin-top:2px">{cat_icons.get(cat,'📡')} {cat}</div>
-          </div>
-          <div style="font-size:11px;font-weight:800;color:#AAFF00;flex-shrink:0">↑ {vel}</div>
-        </div></a>"""
+        icon_style  = f"width:26px;height:26px;border-radius:7px;background:{pcol}22;border:1px solid {pcol}44;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"
+        head_style  = "font-size:11px;font-weight:700;color:var(--tx1);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+        cat_style   = "font-size:9px;color:var(--tx4);margin-top:2px"
+        card_style  = "display:flex;gap:10px;align-items:flex-start;padding:9px 11px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:9px;margin-bottom:6px"
+        vel_style   = "font-size:11px;font-weight:800;color:#AAFF00;flex-shrink:0"
+        leads_html += f'<a href="{url}" target="_blank" style="text-decoration:none"><div style="{card_style}"><div style="{icon_style}">{picon}</div><div style="flex:1;min-width:0"><div style="{head_style}">{head}</div><div style="{cat_style}">{cat_icons.get(cat,"📡")} {cat}</div></div><div style="{vel_style}">↑ {vel}</div></div></a>'
     if not leads_html:
         leads_html = '<div style="color:var(--tx4);font-size:12px;padding:10px">Loading intelligence...</div>'
-    st.markdown(f"""
-    <div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.12em;text-transform:uppercase">● Detective Briefing</div>
-        <span style="font-size:9px;color:var(--tx4)">📋</span>
-      </div>
-      <div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:2px;font-family:'Poppins',sans-serif">{greeting}, Detective.</div>
-      <div style="font-size:11px;color:var(--tx4);margin-bottom:12px">Here are your top leads.</div>
-      {leads_html}
-    </div>""", unsafe_allow_html=True)
+    header_style = "font-size:9px;font-weight:700;color:#AAFF00;letter-spacing:0.12em;text-transform:uppercase"
+    wrap_style   = "background:var(--surface-alt);border:1px solid var(--border-2);border-radius:14px;padding:16px;margin-bottom:12px"
+    hdr_row      = "display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"
+    greet_style  = "font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:2px;font-family:'Poppins',sans-serif"
+    sub_style    = "font-size:11px;color:var(--tx4);margin-bottom:12px"
+    st.markdown(
+        f'<div style="{wrap_style}">'
+        f'<div style="{hdr_row}"><div style="{header_style}">● Detective Briefing</div><span style="font-size:9px;color:var(--tx4)">📋</span></div>'
+        f'<div style="{greet_style}">{greeting}, Detective.</div>'
+        f'<div style="{sub_style}">Here are your top leads.</div>'
+        f'{leads_html}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 def render_trend_radar(velocity_data, platform="tiktok"):
     categories = ["DOMINATING","BREAKING","TRENDING","EMERGING","QUIET"]
