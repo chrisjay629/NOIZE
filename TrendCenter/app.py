@@ -888,19 +888,11 @@ st.markdown(f"""
 /* Hero spans center + right column — creates shared atmosphere */
 [data-testid="stHorizontalBlock"]:first-of-type {{
   background-image: {_hero_overlay_css}, url('data:image/jpeg;base64,{hero_b64 or ""}');
-  background-size: cover;
-  background-position: 65% 20%;
+  background-size: 100% 380px, 100% 380px;
+  background-repeat: no-repeat, no-repeat;
+  background-position: top, 65% top;
   border-radius: 12px 12px 0 0;
-  overflow: hidden;
   position: relative;
-}}
-[data-testid="stHorizontalBlock"]:first-of-type::after {{
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0; height: 120px;
-  background: linear-gradient(180deg, transparent 0%, #070B10 100%);
-  pointer-events: none;
-  z-index: 0;
 }}
 </style>
 <script>
