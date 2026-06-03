@@ -96,9 +96,7 @@ for k, v in {
     if k not in st.session_state:
         st.session_state[k] = v
 
-# Day mode removed — dark ops center only
-st.session_state.theme = "night"
-theme = "night"
+theme = st.session_state.theme
 
 # ── CSS — Bloomberg Terminal × Palantir × Intelligence Agency ────────
 st.markdown("""
@@ -140,23 +138,23 @@ st.markdown("""
   --shadow-card:  0 20px 60px rgba(0,0,0,0.50), 0 1px 0 rgba(255,255,255,0.04) inset, 0 0 0 1px rgba(255,255,255,0.03);
   --shadow-panel: 0 8px 40px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset;
   --glow-edge:    0 0 0 1px rgba(163,255,18,0.18), 0 4px 20px rgba(163,255,18,0.08);
+  --app-grid:
+    radial-gradient(circle at 50% 0%, rgba(18,24,38,0.90) 0%, transparent 65%),
+    repeating-linear-gradient(0deg,  transparent, transparent 47px, rgba(163,255,18,0.014) 48px),
+    repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(163,255,18,0.014) 48px);
 }
 
 /* ── Base layout ── */
 html, body, [class*="css"] {
   font-family: var(--body-font) !important;
-  background: #070B10 !important;
+  background: var(--bg) !important;
 }
 [data-testid="stHeader"] { display: none !important; }
-[data-testid="stAppViewContainer"] { background: #070B10 !important; }
+[data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
-/* Deep operations center — grid + atmospheric depth */
 .stApp {
-  background-color: #070B10 !important;
-  background-image:
-    radial-gradient(circle at 50% 0%, rgba(18,24,38,0.90) 0%, transparent 65%),
-    repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(163,255,18,0.014) 48px),
-    repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(163,255,18,0.014) 48px) !important;
+  background-color: var(--bg) !important;
+  background-image: var(--app-grid) !important;
 }
 
 .block-container { padding: 1.2rem 1.6rem 3rem 1.6rem !important; max-width: 100% !important; }
@@ -288,6 +286,39 @@ h1, h2, h3, h4 { color: var(--tx1) !important; font-family: var(--body-font) !im
 .ht-card:hover { border-color: rgba(163,255,18,0.22); box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(163,255,18,0.08); }
 </style>
 """, unsafe_allow_html=True)
+
+# ── Day mode override ─────────────────────────────────────────────
+if theme == "day":
+    st.markdown("""
+    <style>
+    :root {
+      --bg:           #1a2538;
+      --surface:      #f0e4cc;
+      --surface-alt:  #203048;
+      --surface-2:    #1e2d42;
+      --border:       rgba(255,255,255,0.10);
+      --border-2:     rgba(255,255,255,0.07);
+      --tx1:          #1a1f2e;
+      --tx2:          #2e3650;
+      --tx3:          #8890a8;
+      --tx4:          #5a6480;
+      --input-bg:     #f0e4cc;
+      --input-bd:     rgba(0,0,0,0.15);
+      --pill-bg:      #253048;
+      --pill-bd:      rgba(255,255,255,0.10);
+      --lime-t:       #A3FF12;
+      --lime-bg:      rgba(163,255,18,0.08);
+      --lime-border:  rgba(163,255,18,0.22);
+      --amber:        #c8a96e;
+      --shadow-card:  0 4px 20px rgba(0,0,0,0.30);
+      --app-grid:
+        repeating-linear-gradient(0deg,  transparent, transparent 47px, rgba(255,255,255,0.018) 48px),
+        repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(255,255,255,0.018) 48px);
+    }
+    html, body, [class*="css"], [data-testid="stAppViewContainer"] { background: #1a2538 !important; }
+    .stApp { background-color: #1a2538 !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ── Fetch on demand ───────────────────────────────────────────────
 if st.session_state.do_fetch and st.session_state.active_platform:
@@ -795,13 +826,13 @@ with tog_r:
         st.session_state.theme = "day" if theme=="night" else "night"
         st.rerun()
 
-# Hero background — always the golden waterfront city; overlay depth varies by theme
-hero_b64 = BG_DAY_CITY_B64 or BG_STREET_B64  # fallback if day city not loaded
+# Hero background — day uses golden city, night uses noir rainy street
 if theme == "night":
-    # Deep command-center overlay: very dark left, lets golden city glow through on right
+    hero_b64 = BG_STREET_B64 or BG_DAY_CITY_B64
     hero_overlay = "linear-gradient(to right,rgba(7,9,13,0.97) 0%,rgba(7,9,13,0.90) 38%,rgba(7,9,13,0.60) 65%,rgba(7,9,13,0.18) 100%)"
 else:
-    hero_overlay = "linear-gradient(to right,rgba(10,15,35,0.92) 0%,rgba(10,15,35,0.68) 45%,rgba(10,15,35,0.28) 100%)"
+    hero_b64 = BG_DAY_CITY_B64 or BG_STREET_B64
+    hero_overlay = "linear-gradient(to right,rgba(15,22,45,0.88) 0%,rgba(15,22,45,0.60) 50%,rgba(15,22,45,0.15) 100%)"
 
 bg_style = (f"background-image:url('data:image/jpeg;base64,{hero_b64}');background-size:cover;background-position:center 45%;"
             if hero_b64 else "background:var(--surface-alt);")
