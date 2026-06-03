@@ -919,7 +919,7 @@ st.markdown(f"""
     if (!tgt) return;
     var x = (e.clientX / window.innerWidth  - 0.5) * -8;
     var y = (e.clientY / window.innerHeight - 0.5) * -6;
-    tgt.style.backgroundPosition = 'calc(65% + '+x+'px) calc(20% + '+y+'px), calc(65% + '+x+'px) calc(20% + '+y+'px)';
+    tgt.style.backgroundPosition = 'top left, calc(65% + '+x+'px) calc('+y+'px)';
   }});
 }})();
 </script>
