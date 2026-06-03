@@ -280,6 +280,25 @@ if "active_platform" not in st.session_state:
 
 # ── Header ─────────────────────────────────────────────────────
 active_platform = st.session_state.active_platform
+
+# Auto-load if platform has no data yet
+if "loaded_platforms" not in st.session_state:
+    st.session_state.loaded_platforms = set()
+
+if active_platform not in st.session_state.loaded_platforms:
+    existing = get_latest_hashtags(platform=active_platform)
+    if not existing:
+        cfg_auto = PLATFORM_CONFIG[active_platform]
+        with st.spinner(f"Loading {cfg_auto['icon']} {cfg_auto['label']} trends..."):
+            try:
+                results = cfg_auto["scraper"]()
+                if results:
+                    save_snapshot(results, platform=active_platform)
+                    cleanup_old_snapshots(hours=48)
+            except Exception as e:
+                print(f"[AUTO-LOAD] {active_platform} failed: {e}", flush=True)
+    st.session_state.loaded_platforms.add(active_platform)
+
 hashtags = get_latest_hashtags(platform=active_platform)
 is_gpt_fallback = bool(hashtags and hashtags[0].get("source") == "gpt_fallback")
 mins_ago_str = ""
