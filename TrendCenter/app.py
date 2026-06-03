@@ -167,6 +167,17 @@ html, body, [class*="css"] {
 [data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
+/* Always keep sidebar and its toggle button visible */
+[data-testid="stSidebar"] {
+  display: block !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+[data-testid="stSidebarCollapsedControl"] {
+  display: flex !important;
+  visibility: visible !important;
+}
+
 .stApp {
   background-color: var(--bg) !important;
 }
