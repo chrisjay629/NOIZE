@@ -1321,11 +1321,37 @@ _briefing_panel_bg = (
     "background-size:cover;background-position:right center;"
 ) if hero_b64 else None
 
+# ── MOBILE-ONLY LAYOUT REORDER ────────────────────────────────────
+# On desktop the page is a 7/3 two-column split (main | right rail). Below
+# 640px Streamlit stacks the columns, which dumps the whole right rail
+# (briefing, radar, classified files) at the very bottom. This CSS — scoped
+# to the split block and gated behind @media (max-width:640px) — flattens the
+# two columns into one flex column and reorders the blocks so they read:
+#   1 Hero · 2 Briefing · 3 Case content · 4 Radar · 5 Classified · 6 Signal index
+# Desktop (>640px) gets NO rule and is left exactly as-is.
+_SPLIT = '[data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .st-key-strangefiles)'
+st.markdown(
+    "<style>@media (max-width:640px){"
+    # stack + flatten the two columns so every inner block is a flex item
+    f"{_SPLIT}{{flex-direction:column!important;flex-wrap:nowrap!important}}"
+    f"{_SPLIT} > [data-testid=\"stColumn\"]{{display:contents!important}}"
+    f"{_SPLIT} > [data-testid=\"stColumn\"] > [data-testid=\"stVerticalBlock\"]{{display:contents!important}}"
+    # reorder: hero(-2) → briefing(-1) → [case content 0] → radar/classified(0) → signal index(1)
+    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-herowrap){{order:-2!important}}"
+    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-briefingwrap){{order:-1!important}}"
+    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-cf_bottom){{order:1!important}}"
+    "}</style>",
+    unsafe_allow_html=True,
+)
+
 main_col, right_col = st.columns([7, 3], gap="medium")
 
 # ── RIGHT PANEL ───────────────────────────────────────────────────
 with right_col:
-    render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
+    # Wrapped in a keyed container so the mobile-only CSS reorder can lift the
+    # briefing up to sit right under the hero (item 2). Desktop is untouched.
+    with st.container(key="briefingwrap"):
+        render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
     _strange = get_strange_signals()
     render_strange_radar_mini(_strange)
     render_strange_watchlist(_strange)
@@ -1517,22 +1543,25 @@ with main_col:
                     st.markdown("---")
                     st.markdown(cf_bp)
 
-        render_signal_guide()
+        # Signal-strength index + quote banner. Wrapped in a keyed container
+        # so the mobile-only CSS reorder can push it to the bottom (item 6).
+        with st.container(key="cf_bottom"):
+            render_signal_guide()
 
-        # Quote banner with newspaper bg
-        np_src = f"data:image/jpeg;base64,{NEWSPAPER_B64}" if NEWSPAPER_B64 else ""
-        if np_src:
-            st.markdown(
-                f'<div style="display:flex;align-items:stretch;border-radius:16px;overflow:hidden;margin:8px 0 4px;min-height:130px;border:1px solid var(--border-2)">'
-                f'<div style="flex:1;background:var(--surface-alt);padding:28px 32px;display:flex;flex-direction:column;justify-content:center">'
-                f'<div style="font-size:32px;color:var(--amber);line-height:0.7;margin-bottom:12px;font-family:Georgia,serif;opacity:0.8">"</div>'
-                f'<div style="font-size:14px;color:var(--tx2);line-height:1.75;font-style:italic">In a world of infinite noise,<br>we find the signal that shapes tomorrow.</div>'
-                f'<div style="font-size:10px;color:var(--tx4);margin-top:10px;letter-spacing:0.04em">— Chief Detective Pugson</div>'
-                f'</div>'
-                f'<div style="width:42%;background-image:url(\'{np_src}\');background-size:cover;background-position:center 30%"></div>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
+            # Quote banner with newspaper bg
+            np_src = f"data:image/jpeg;base64,{NEWSPAPER_B64}" if NEWSPAPER_B64 else ""
+            if np_src:
+                st.markdown(
+                    f'<div style="display:flex;align-items:stretch;border-radius:16px;overflow:hidden;margin:8px 0 4px;min-height:130px;border:1px solid var(--border-2)">'
+                    f'<div style="flex:1;background:var(--surface-alt);padding:28px 32px;display:flex;flex-direction:column;justify-content:center">'
+                    f'<div style="font-size:32px;color:var(--amber);line-height:0.7;margin-bottom:12px;font-family:Georgia,serif;opacity:0.8">"</div>'
+                    f'<div style="font-size:14px;color:var(--tx2);line-height:1.75;font-style:italic">In a world of infinite noise,<br>we find the signal that shapes tomorrow.</div>'
+                    f'<div style="font-size:10px;color:var(--tx4);margin-top:10px;letter-spacing:0.04em">— Chief Detective Pugson</div>'
+                    f'</div>'
+                    f'<div style="width:42%;background-image:url(\'{np_src}\');background-size:cover;background-position:center 30%"></div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
 
     # ── TREND RADAR ── Strange Signals ──────────────────────────
     elif active_nav == "TREND RADAR":
