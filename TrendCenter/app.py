@@ -284,6 +284,13 @@ h1, h2, h3, h4 { color: var(--tx1) !important; font-family: var(--body-font) !im
 /* ── ht-card ── */
 .ht-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; box-shadow: var(--shadow-card); }
 .ht-card:hover { border-color: rgba(163,255,18,0.22); box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(163,255,18,0.08); }
+
+/* ── Hero overlap — columns float over bottom of hero ── */
+.hero-overlap-anchor + div {
+  margin-top: -120px !important;
+  position: relative !important;
+  z-index: 5 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -834,7 +841,7 @@ else:
     hero_b64 = BG_DAY_CITY_B64 or BG_STREET_B64
     hero_overlay = "linear-gradient(to right,rgba(15,22,45,0.88) 0%,rgba(15,22,45,0.60) 50%,rgba(15,22,45,0.15) 100%)"
 
-bg_style = (f"background-image:url('data:image/jpeg;base64,{hero_b64}');background-size:cover;background-position:center center;"
+bg_style = (f"background-image:url('data:image/jpeg;base64,{hero_b64}');background-size:cover;background-position:65% 20%;"
             if hero_b64 else "background:var(--surface-alt);")
 
 # Trend chips
@@ -906,6 +913,7 @@ articles = st.session_state.trend_articles
 # MAIN  +  RIGHT PANEL
 # ═════════════════════════════════════════════════════════════════
 
+st.markdown('<div class="hero-overlap-anchor"></div>', unsafe_allow_html=True)
 main_col, right_col = st.columns([7, 3], gap="medium")
 
 # ── RIGHT PANEL ───────────────────────────────────────────────────
