@@ -893,11 +893,34 @@ articles = st.session_state.trend_articles
 
 _bottom_fade_color = "7,11,16" if theme == "night" else "26,37,56"
 
-_hero_img_style = (
-    f"background-image:{hero_overlay},url('data:image/jpeg;base64,{hero_b64}');"
-    "background-size:cover;background-position:65% center;"
-    if hero_b64 else ""
-)
+_hero_img_style = "position:relative;z-index:2;"
+
+# Inject hero background as ::before pseudo-element — spans both columns,
+# fixed 220px height so it never bleeds into the cards below.
+if hero_b64:
+    st.markdown(f"""
+    <style>
+    [data-testid="stHorizontalBlock"]:first-of-type {{
+      position: relative;
+    }}
+    [data-testid="stHorizontalBlock"]:first-of-type::before {{
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 220px;
+      background-image: {hero_overlay}, url('data:image/jpeg;base64,{hero_b64}');
+      background-size: cover;
+      background-position: 65% center;
+      border-radius: 12px 12px 0 0;
+      z-index: 0;
+      pointer-events: none;
+    }}
+    [data-testid="stHorizontalBlock"]:first-of-type > div {{
+      position: relative;
+      z-index: 1;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
 main_col, right_col = st.columns([7, 3], gap="medium")
 
