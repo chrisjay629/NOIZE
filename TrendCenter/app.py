@@ -109,10 +109,10 @@ st.markdown("""
    Borders: rgba(255,255,255,0.08) · Green: #A3FF12
    ══════════════════════════════════════════════════════════════ */
 :root {
-  --bg:           #070B10;
-  --surface:      #0E131B;
-  --surface-alt:  #151B24;
-  --surface-2:    #0E131B;
+  --bg:           #1c1c1c;
+  --surface:      #272727;
+  --surface-alt:  #2e2e2e;
+  --surface-2:    #272727;
   --border:       rgba(255,255,255,0.08);
   --border-2:     rgba(255,255,255,0.06);
   --tx1:          #F5F7FA;
@@ -161,7 +161,7 @@ html, body, [class*="css"] {
 
 /* ── Sidebar — Command Center ── */
 [data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #080C12 0%, #0E131B 100%) !important;
+  background: linear-gradient(180deg, #141414 0%, #1c1c1c 100%) !important;
   border-right: 1px solid var(--sb-border) !important;
   box-shadow: 4px 0 32px rgba(0,0,0,0.6) !important;
 }
@@ -458,7 +458,7 @@ def render_case_cards(data, platform="tiktok"):
     thumb_b64 = CASE_FOLDER_LIGHT_B64 if theme == "day" else CASE_FOLDER_DARK_B64
     thumb_src = f"data:image/jpeg;base64,{thumb_b64}" if thumb_b64 else ""
     # Premium card shadow: deeper in night mode
-    card_bg     = "#171F29" if theme == "night" else "var(--surface)"
+    card_bg     = "#272727" if theme == "night" else "var(--surface)"
     card_shadow = "0 20px 60px rgba(0,0,0,0.50),0 1px 0 rgba(255,255,255,0.04) inset,0 0 0 1px rgba(255,255,255,0.04)" if theme == "night" else "0 2px 12px rgba(0,0,0,0.10)"
     for row_start in range(0, min(len(data), 9), 3):
         row  = data[row_start:row_start+3]
@@ -654,7 +654,7 @@ def render_trend_radar(velocity_data, platform="tiktok"):
         showlegend=False,
     )
     # Radar panel header — glass treatment in night mode
-    _radar_bg   = "background:rgba(8,12,18,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if is_night else "background:var(--surface-alt)"
+    _radar_bg   = "background:rgba(20,20,20,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)" if is_night else "background:var(--surface-alt)"
     _radar_shad = ";box-shadow:0 8px 40px rgba(0,0,0,0.55),0 0 0 1px rgba(163,255,18,0.12)" if is_night else ""
     _radar_bord = "border:1px solid rgba(163,255,18,0.15)" if is_night else "border:1px solid var(--border-2)"
     _live_glow  = f";text-shadow:0 0 10px {_r_lime}" if is_night else ""
