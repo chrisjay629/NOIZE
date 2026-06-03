@@ -105,7 +105,7 @@ if BG_BODY_B64:
     <style>
     .stApp {{
       background-image:
-        linear-gradient(rgba(7,11,16,0.80), rgba(7,11,16,0.80)),
+        linear-gradient(rgba(7,11,16,0.50), rgba(7,11,16,0.50)),
         url('data:image/jpeg;base64,{BG_BODY_B64}') !important;
       background-size: cover, cover !important;
       background-attachment: fixed, fixed !important;
@@ -170,7 +170,6 @@ html, body, [class*="css"] {
 
 .stApp {
   background-color: var(--bg) !important;
-  background-image: var(--app-grid) !important;
 }
 
 .block-container { padding: 0.75rem 1.2rem 2rem 1.2rem !important; max-width: 100% !important; }
