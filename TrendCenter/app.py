@@ -93,6 +93,7 @@ for k, v in {
     "articles_ts":     None,
     "active_nav":      "CASE FILES",
     "theme":           "night",
+    "sidebar_open":    True,
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -168,50 +169,13 @@ html, body, [class*="css"] {
 [data-testid="stHeader"] { display: none !important; }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
-/* Sidebar — collapsible, native Streamlit controls re-enabled */
+/* Sidebar — always on screen, never hidden by Streamlit */
 section[data-testid="stSidebar"] {
-  transition: all 0.25s ease !important;
+  transform: translateX(0) !important;
+  transition: width 0.25s ease !important;
 }
-/* Collapse button (inside sidebar) */
-[data-testid="stSidebarCollapseButton"] {
-  display: flex !important;
-  position: absolute !important;
-  top: 12px !important;
-  right: 12px !important;
-  z-index: 999 !important;
-}
-[data-testid="stSidebarCollapseButton"] button {
-  background: var(--surface-alt) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--tx2) !important;
-  border-radius: 8px !important;
-  width: 32px !important; height: 32px !important;
-}
-[data-testid="stSidebarCollapseButton"] button:hover {
-  background: var(--lime-bg) !important;
-  color: var(--lime-t) !important;
-  border-color: var(--lime-border) !important;
-}
-/* Expand button (shown when sidebar is collapsed) */
-[data-testid="stSidebarCollapsedControl"] {
-  display: flex !important;
-  position: fixed !important;
-  top: 50% !important;
-  left: 0 !important;
-  z-index: 9999 !important;
-}
-[data-testid="stSidebarCollapsedControl"] button {
-  background: var(--surface-alt) !important;
-  border: 1px solid var(--border) !important;
-  border-left: none !important;
-  border-radius: 0 8px 8px 0 !important;
-  color: var(--lime-t) !important;
-  padding: 10px 6px !important;
-}
-[data-testid="stSidebarCollapsedControl"] button:hover {
-  background: var(--lime-bg) !important;
-  border-color: var(--lime-border) !important;
-}
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapsedControl"] { display: none !important; }
 
 .stApp {
   background-color: var(--bg) !important;
@@ -867,6 +831,13 @@ with st.sidebar:
         st.session_state.theme = "day" if theme=="night" else "night"
         st.rerun()
 
+    # Collapse / expand toggle
+    sb_open = st.session_state.sidebar_open
+    sb_lbl  = "◀  COLLAPSE" if sb_open else "▶  EXPAND"
+    if st.button(sb_lbl, key="sb_toggle", use_container_width=True, type="secondary"):
+        st.session_state.sidebar_open = not sb_open
+        st.rerun()
+
     _upg_btn_bg  = "#2a5200" if theme == "day" else "#A3FF12"
     _upg_btn_col = "#ffffff" if theme == "day" else "#080e14"
     _upg_lbl_col = "#2a5200" if theme == "day" else "#A3FF12"
@@ -889,6 +860,24 @@ with st.sidebar:
 
 active_platform = st.session_state.active_platform
 active_nav      = st.session_state.active_nav
+
+# Sidebar narrow mode
+if not st.session_state.sidebar_open:
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] { width: 0px !important; min-width: 0px !important; overflow: hidden !important; }
+    </style>
+    """, unsafe_allow_html=True)
+    # Floating re-open button
+    st.markdown("""
+    <style>
+    #sb-reopen { position:fixed;top:50%;left:0;transform:translateY(-50%);z-index:9999;
+      background:#0E131B;border:1px solid rgba(163,255,18,0.3);border-left:none;
+      border-radius:0 8px 8px 0;padding:12px 7px;cursor:pointer;
+      font-size:13px;color:#A3FF12;writing-mode:vertical-rl; }
+    #sb-reopen:hover { background:rgba(163,255,18,0.08); }
+    </style>
+    """, unsafe_allow_html=True)
 
 # Hero background — day uses golden city, night uses dark city
 if theme == "night":
