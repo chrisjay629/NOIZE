@@ -56,10 +56,10 @@ st.markdown("""
   html, body, [class*="css"] { font-family: -apple-system, system-ui, sans-serif; }
 
   .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-    background-color: #0a0a12 !important;
+    background-color: #111118 !important;
   }
-  [data-testid="stSidebar"] { background-color: #0f0f1a !important; }
-  .block-container { padding: 0 2rem 2rem 2rem; max-width: 1200px; }
+  [data-testid="stSidebar"] { background-color: #16161f !important; }
+  .block-container { padding: 1rem 2rem 2rem 2rem; max-width: 1200px; }
 
   html, body, p, span, div, label, h1, h2, h3 { color: #e0e0e0; }
 
@@ -85,8 +85,8 @@ st.markdown("""
 
   /* Old cards (kept for blueprint/niche tabs) */
   .ht-card {
-    background: #13131e;
-    border: 0.5px solid #252535;
+    background: #1c1c2a;
+    border: 0.5px solid #2e2e42;
     border-radius: 10px;
     padding: 10px 14px;
     margin-bottom: 8px;
@@ -120,10 +120,10 @@ st.markdown("""
     align-items: center;
     gap: 5px;
     font-size: 11px;
-    color: #555;
+    color: #666;
     padding: 3px 10px;
-    background: #13131e;
-    border: 0.5px solid #252535;
+    background: #1c1c2a;
+    border: 0.5px solid #2e2e42;
     border-radius: 20px;
   }
   .dot-live { width:6px;height:6px;border-radius:50%;background:#1d9e75;display:inline-block; }
@@ -311,9 +311,9 @@ def render_cards(data, platform="tiktok"):
             circle_color  = color
             circle_border = f"{color}66"
         else:
-            circle_bg     = "#1a1a26"
-            circle_color  = "#555"
-            circle_border = "#333"
+            circle_bg     = "#22223a"
+            circle_color  = "#666"
+            circle_border = "#383848"
 
         # Card opacity for falling trends
         card_opacity = "0.55" if change > 5 else "1"
@@ -322,7 +322,7 @@ def render_cards(data, platform="tiktok"):
 
         st.markdown(f"""
         <a href="{url}" target="_blank" style="text-decoration:none">
-        <div style="background:#13131e;border:{card_border};border-radius:14px;
+        <div style="background:#1c1c2a;border:{card_border};border-radius:14px;
                     padding:14px 16px;margin-bottom:9px;
                     display:flex;align-items:center;gap:14px;
                     cursor:pointer;opacity:{card_opacity};
@@ -350,7 +350,7 @@ def render_cards(data, platform="tiktok"):
               {posts_label} &nbsp;·&nbsp; {category}
             </div>
             <!-- Prominence bar (like YouGov's Fame bar) -->
-            <div style="height:3px;background:#1e1e2a;border-radius:3px">
+            <div style="height:3px;background:#25253a;border-radius:3px">
               <div style="height:3px;width:{bar_pct}%;
                           background:linear-gradient(90deg,{color},{color}55);
                           border-radius:3px"></div>
@@ -410,7 +410,7 @@ def render_niche_pulse(results: dict, query: str):
 
                 st.markdown(f"""
                 <a href="{url}" target="_blank" style="text-decoration:none">
-                <div style="background:#13131e;border:0.5px solid #252535;border-radius:10px;
+                <div style="background:#1c1c28;border:0.5px solid #2e2e42;border-radius:10px;
                             padding:10px 12px;margin-bottom:6px;transition:all 0.15s"
                      onmouseover="this.style.borderColor='{color}';this.style.transform='translateY(-1px)'"
                      onmouseout="this.style.borderColor='#252535';this.style.transform='translateY(0)'">
@@ -493,10 +493,10 @@ if _chip_data:
     chip_html = f'<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:11px;color:#444;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Trending</span>{chips}</div>'
 
 st.markdown(f"""
-<div style="background:linear-gradient(135deg,#1a0830 0%,#0f0a1e 40%,#0a0a12 100%);
-            border-radius:0 0 20px 20px;
+<div style="background:linear-gradient(135deg,#2a1045 0%,#1a1030 50%,#111118 100%);
+            border-radius:16px;
             padding:22px 24px 20px 24px;
-            margin:-1rem -2rem 16px -2rem;
+            margin-bottom:16px;
             position:relative;overflow:hidden">
 
   <!-- Decorative glow blobs -->
