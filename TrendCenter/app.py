@@ -834,7 +834,7 @@ else:
     hero_b64 = BG_DAY_CITY_B64 or BG_STREET_B64
     hero_overlay = "linear-gradient(to right,rgba(15,22,45,0.88) 0%,rgba(15,22,45,0.60) 50%,rgba(15,22,45,0.15) 100%)"
 
-bg_style = (f"background-image:url('data:image/jpeg;base64,{hero_b64}');background-size:cover;background-position:center 45%;"
+bg_style = (f"background-image:url('data:image/jpeg;base64,{hero_b64}');background-size:cover;background-position:center center;"
             if hero_b64 else "background:var(--surface-alt);")
 
 # Trend chips
@@ -860,11 +860,12 @@ popular_chips  = "".join([
     for t in popular_topics
 ])
 
+_bottom_fade_color = "28,28,28" if theme == "night" else "26,37,56"
 st.markdown(
-    f'<div style="{bg_style}border-radius:16px 16px 0 0;position:relative;overflow:hidden;margin-bottom:0;min-height:240px">'
+    f'<div style="{bg_style}border-radius:16px 16px 0 0;position:relative;overflow:hidden;margin-bottom:0;min-height:420px">'
     f'<div style="position:absolute;inset:0;background:{hero_overlay}"></div>'
-    f'<div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(180deg,rgba(7,11,16,0) 0%,rgba(7,11,16,1.0) 100%)"></div>'
-    f'<div style="position:relative;padding:30px 32px 26px 32px">'
+    f'<div style="position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(180deg,rgba({_bottom_fade_color},0) 0%,rgba({_bottom_fade_color},1.0) 100%)"></div>'
+    f'<div style="position:relative;padding:36px 40px 32px 40px">'
     f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
     f'<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#0d1520"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/><rect x="7" y="18" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="17" y="9" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/><rect x="27" y="13" width="6" height="3" rx="1.5" fill="#C6FF5A" opacity="0.55"/></svg>'
     f'<div><div style="font-family:Inter,sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.5)">ze</span></div>'
