@@ -795,6 +795,13 @@ with st.sidebar:
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # Theme toggle inside sidebar
+    tog_label = "☀️  DAY MODE" if theme == "night" else "🌙  NIGHT MODE"
+    tog_tip   = "Switch to Day" if theme=="night" else "Switch to Night"
+    if st.button(tog_label, key="theme_toggle", help=tog_tip, use_container_width=True, type="secondary"):
+        st.session_state.theme = "day" if theme=="night" else "night"
+        st.rerun()
+
     _upg_btn_bg  = "#2a5200" if theme == "day" else "#A3FF12"
     _upg_btn_col = "#ffffff" if theme == "day" else "#080e14"
     _upg_lbl_col = "#2a5200" if theme == "day" else "#A3FF12"
@@ -817,15 +824,6 @@ with st.sidebar:
 
 active_platform = st.session_state.active_platform
 active_nav      = st.session_state.active_nav
-
-# Theme toggle — top right above hero
-tog_l, tog_r = st.columns([11, 1])
-with tog_r:
-    tog_label = "☀️" if theme == "night" else "🌙"
-    tog_tip   = "Switch to Day" if theme=="night" else "Switch to Night"
-    if st.button(tog_label, key="theme_toggle", help=tog_tip, type="secondary"):
-        st.session_state.theme = "day" if theme=="night" else "night"
-        st.rerun()
 
 # Hero background — day uses golden city, night uses noir rainy street
 if theme == "night":
