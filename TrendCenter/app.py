@@ -192,24 +192,62 @@ html, body, [class*="css"] {
 .st-key-noizetopnav [data-testid="stColumn"] button {
   white-space: nowrap !important;
 }
-/* Hero search: keep the INVESTIGATE button on one line. */
-.st-key-herosearch button {
-  white-space: nowrap !important;
+/* ── Hero glassy search — overlaid on the city image ── */
+/* Glassy translucent input bar */
+.st-key-herowrap [data-baseweb="input"],
+.st-key-herowrap [data-baseweb="base-input"],
+.st-key-herowrap [data-testid="stTextInput"] > div > div {
+  background: rgba(0,0,0,0.38) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 10px !important;
 }
-/* Popular chips: horizontal scroll on small screens instead of wrapping text. */
+.st-key-herowrap [data-testid="stTextInput"] input {
+  color: #fff !important;
+}
+.st-key-herowrap [data-testid="stTextInput"] input::placeholder {
+  color: rgba(255,255,255,0.40) !important;
+}
+/* INVESTIGATE: keep the lime pill on one line */
+.st-key-herowrap button[kind="primary"] {
+  white-space: nowrap !important;
+  border-radius: 10px !important;
+}
+/* Popular chips → small translucent pills that scroll horizontally.
+   Column sizing scoped to .st-key-herochips so the search input row is
+   NOT shrunk. */
 .st-key-herochips [data-testid="stHorizontalBlock"] {
   flex-wrap: nowrap !important;
   overflow-x: auto !important;
-  gap: 6px !important;
-  padding-bottom: 4px !important;
+  gap: 8px !important;
+  padding-bottom: 2px !important;
 }
 .st-key-herochips [data-testid="stColumn"] {
   min-width: fit-content !important;
   width: auto !important;
   flex: 0 0 auto !important;
 }
-.st-key-herochips [data-testid="stColumn"] button {
+.st-key-herowrap button[kind="secondary"] {
+  background: rgba(255,255,255,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  color: rgba(255,255,255,0.85) !important;
+  border-radius: 16px !important;
+  padding: 2px 12px !important;
+  min-height: 0 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
   white-space: nowrap !important;
+}
+.st-key-herowrap button[kind="secondary"]:hover {
+  border-color: rgba(163,255,18,0.55) !important;
+  color: #fff !important;
+}
+/* keep the popular-chip row horizontal + scrollable, but DON'T squash the
+   search row (which has the wide text input) — target only the chip row via
+   the 6-column layout is hard, so just let the row wrap gracefully */
+.st-key-herowrap [data-testid="stHorizontalBlock"] {
+  gap: 8px !important;
 }
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
@@ -970,23 +1008,32 @@ with right_col:
 # ── MAIN CONTENT ──────────────────────────────────────────────────
 with main_col:
 
-    # ── HERO content ── (logo + tagline; search below is a real widget)
+    # ── HERO — glassy search + chips overlaid on the city image ──
+    # The image is set as the wrapper's background so the real Streamlit
+    # widgets render as its children, ON TOP of the image (old look).
+    _hero_bg_css = (
+        f"background-image:{hero_overlay},url('data:image/jpeg;base64,{hero_b64}');"
+        "background-size:cover;background-position:65% center;"
+    ) if hero_b64 else "background:var(--surface-alt);"
     st.markdown(
-        f'<div style="position:relative;z-index:2;padding:20px 28px 14px 28px;border-radius:12px 12px 0 0;{_hero_img_style}">'
-        f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'
-        f'<svg width="38" height="38" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="rgba(13,21,32,0.7)"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/></svg>'
-        f'<div><div style="font-family:Inter,sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.6)">ze</span></div>'
-        f'<div style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.22em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
-        f'</div></div>'
-        f'<div style="font-size:11px;color:rgba(255,255,255,0.40);line-height:1.8;font-family:Inter,sans-serif">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>'
-        f'{chips_html}'
-        f'</div>',
-        unsafe_allow_html=True
+        f"<style>.st-key-herowrap{{{_hero_bg_css}"
+        "border-radius:14px;padding:20px 26px 18px 26px;"
+        "border:1px solid rgba(255,255,255,0.06);"
+        "box-shadow:0 16px 50px rgba(0,0,0,0.45);margin-bottom:12px}</style>",
+        unsafe_allow_html=True,
     )
+    with st.container(key="herowrap"):
+        st.markdown(
+            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'
+            '<svg width="38" height="38" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="rgba(13,21,32,0.7)"/><rect x="7" y="20" width="6" height="12" rx="2" fill="#A3FF12"/><rect x="17" y="11" width="6" height="21" rx="2" fill="#A3FF12"/><rect x="27" y="15" width="6" height="17" rx="2" fill="#A3FF12"/></svg>'
+            '<div><div style="font-family:Inter,sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">Noi<span style="color:#A3FF12;text-shadow:0 0 20px rgba(163,255,18,0.6)">ze</span></div>'
+            '<div style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.22em;text-transform:uppercase;margin-top:1px">Signal in the noise</div>'
+            '</div></div>'
+            '<div style="font-size:11px;color:rgba(255,255,255,0.40);line-height:1.8;font-family:Inter,sans-serif;margin-bottom:12px">The internet is noisy.&nbsp;·&nbsp;We find what matters.&nbsp;·&nbsp;You stay ahead.</div>',
+            unsafe_allow_html=True,
+        )
 
-    # ── HERO search — real, working cross-platform investigation ──
-    with st.container(key="herosearch"):
-        hcol1, hcol2 = st.columns([4, 1.6], vertical_alignment="center")
+        hcol1, hcol2 = st.columns([4, 1.5], vertical_alignment="center")
         with hcol1:
             hero_topic = st.text_input(
                 "hero_topic", placeholder="Investigate any topic, keyword or trend...",
@@ -994,14 +1041,19 @@ with main_col:
         with hcol2:
             hero_go = st.button("🔍 INVESTIGATE", type="primary", use_container_width=True, key="hero_go")
 
-    st.markdown("<div style='font-size:9px;font-weight:700;color:var(--tx4);text-transform:uppercase;letter-spacing:0.12em;margin:6px 0 4px'>Popular</div>", unsafe_allow_html=True)
-    with st.container(key="herochips"):
+        st.markdown(
+            "<div style='font-size:9px;font-weight:700;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:0.12em;margin:6px 0 2px'>Popular</div>",
+            unsafe_allow_html=True)
         chip_clicked = None
-        pc_cols = st.columns(len(popular_topics))
-        for i, t in enumerate(popular_topics):
-            with pc_cols[i]:
-                if st.button(t, key=f"pop_{i}", use_container_width=True, type="secondary"):
-                    chip_clicked = t
+        with st.container(key="herochips"):
+            pc_cols = st.columns(len(popular_topics))
+            for i, t in enumerate(popular_topics):
+                with pc_cols[i]:
+                    if st.button(t, key=f"pop_{i}", use_container_width=True, type="secondary"):
+                        chip_clicked = t
+
+        if chips_html:
+            st.markdown(chips_html, unsafe_allow_html=True)
 
     # Resolve the query from the search box or a popular chip, run the search.
     _hero_query = None
