@@ -331,6 +331,58 @@ def niche_pulse(niche: str) -> dict:
     return results
 
 
+# ── AUTO TREND ARTICLES ─────────────────────────────────────────
+
+def generate_trend_articles() -> list:
+    """Generates 3 mini trending news blurbs (News, Music & Film, Gaming).
+    Uses live trending data from the DB as context when available."""
+    today = datetime.now().strftime("%B %d, %Y")
+
+    # Pull live context from DB
+    google_trends = get_latest_hashtags(platform="google")[:8]
+    tiktok_trends = get_latest_hashtags(platform="tiktok")[:8]
+    combined = google_trends or tiktok_trends
+    trend_ctx = ""
+    if combined:
+        names = [h["name"] for h in combined]
+        trend_ctx = f"Currently trending topics include: {', '.join(names)}. Use these as inspiration where relevant."
+
+    prompt = (
+        f"Today is {today}. {trend_ctx}\n\n"
+        "Write 3 short trending news blurbs for a real-time trend app called Noize. "
+        "One for each category: News, Music & Film, Gaming. "
+        "Each should feel like a punchy breaking news headline + 2-sentence summary — "
+        "specific, current, and engaging. Do NOT make things up that are factually wrong; "
+        "lean on plausible current events.\n\n"
+        "Return ONLY a valid JSON array (no markdown):\n"
+        '[\n'
+        '  {"category":"News","headline":"...","summary":"...","tag":"Breaking","search_query":"..."},\n'
+        '  {"category":"Music & Film","headline":"...","summary":"...","tag":"Trending","search_query":"..."},\n'
+        '  {"category":"Gaming","headline":"...","summary":"...","tag":"Hot","search_query":"..."}\n'
+        ']'
+    )
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        articles = _parse_json_safe(resp.choices[0].message.content)
+        # Attach search URLs
+        cat_colors = {
+            "News":         "#4285f4",
+            "Music & Film": "#fe2c55",
+            "Gaming":       "#AAFF00",
+        }
+        for a in articles:
+            q = a.get("search_query", a.get("headline", ""))
+            a["url"]   = f"https://www.google.com/search?q={q.replace(' ', '+')}"
+            a["color"] = cat_colors.get(a.get("category", ""), "#AAFF00")
+        return articles[:3]
+    except Exception as e:
+        print(f"[TREND ARTICLES] Failed: {e}", flush=True)
+        return []
+
+
 # ---------- CLI ----------
 
 if __name__ == "__main__":

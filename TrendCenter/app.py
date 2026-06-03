@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime
 
-from agent import run_agent, generate_blueprint, research_niche_hashtags, niche_pulse
+from agent import run_agent, generate_blueprint, research_niche_hashtags, niche_pulse, generate_trend_articles
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit
@@ -44,8 +44,8 @@ if not _scheduler_started.is_set():
 
 # ── Page config ────────────────────────────────────────────────
 st.set_page_config(
-    page_title="TrendCenter",
-    page_icon="📈",
+    page_title="Noize — Signal in the noise",
+    page_icon="🟢",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -55,13 +55,13 @@ st.markdown("""
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&display=swap');
   html, body, [class*="css"] { font-family: -apple-system, system-ui, sans-serif; }
 
-  /* ── Light page background ── */
+  /* ── Page background ── */
   .stApp, [data-testid="stAppViewContainer"] { background: #f0f0f7 !important; }
   [data-testid="stHeader"] { display: none !important; }
   [data-testid="stSidebar"] { background: #fff !important; }
   .block-container { padding: 1.5rem 2rem 3rem 2rem !important; max-width: 1200px; }
 
-  /* ── Text: dark on light bg ── */
+  /* ── Text ── */
   html, body { color: #1a1a2e; }
   [data-testid="stMarkdown"] { color: #1a1a2e; }
   p, label, h1, h2, h3, h4 { color: #1a1a2e !important; }
@@ -70,7 +70,7 @@ st.markdown("""
   [data-testid="stTabs"] { background: transparent !important; }
   [data-testid="stTabs"] [role="tablist"] { border-bottom: 2px solid #e4e4f0 !important; }
   [data-testid="stTabs"] button { color: #999 !important; font-size: 13px !important; font-weight: 700 !important; background: transparent !important; }
-  [data-testid="stTabs"] button[aria-selected="true"] { color: #fe2c55 !important; border-bottom-color: #fe2c55 !important; }
+  [data-testid="stTabs"] button[aria-selected="true"] { color: #88cc00 !important; border-bottom-color: #AAFF00 !important; }
 
   /* ── Inputs ── */
   [data-testid="stTextInput"] input {
@@ -82,8 +82,8 @@ st.markdown("""
     box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
   }
   [data-testid="stTextInput"] input:focus {
-    border-color: #fe2c55 !important;
-    box-shadow: 0 0 0 3px rgba(254,44,85,0.1) !important;
+    border-color: #AAFF00 !important;
+    box-shadow: 0 0 0 3px rgba(170,255,0,0.15) !important;
   }
   [data-testid="stTextInput"] input::placeholder { color: #bbb !important; }
 
@@ -97,14 +97,25 @@ st.markdown("""
     font-weight: 700 !important;
     transition: all 0.15s !important;
   }
+  .stButton > button[kind="primary"] {
+    background: #AAFF00 !important;
+    color: #0D0D12 !important;
+    border: none !important;
+    box-shadow: 0 2px 12px rgba(170,255,0,0.3) !important;
+  }
+  .stButton > button[kind="primary"]:hover {
+    background: #c2ff33 !important;
+    box-shadow: 0 4px 20px rgba(170,255,0,0.45) !important;
+    transform: translateY(-1px) !important;
+  }
   .stButton > button[kind="secondary"] {
     background: #fff !important;
     border: 1.5px solid #e0e0ec !important;
     color: #444 !important;
   }
   .stButton > button[kind="secondary"]:hover {
-    border-color: #fe2c55 !important;
-    color: #fe2c55 !important;
+    border-color: #AAFF00 !important;
+    color: #6b9900 !important;
   }
 
   /* ── Cards (Blueprint / Niche tabs) ── */
@@ -120,7 +131,7 @@ st.markdown("""
     color: #1a1a2e;
   }
   .ht-card * { color: #1a1a2e !important; }
-  .ht-card:hover { border-color: #fe2c55; box-shadow: 0 4px 16px rgba(254,44,85,0.1); transform: translateY(-1px); }
+  .ht-card:hover { border-color: #AAFF00; box-shadow: 0 4px 16px rgba(170,255,0,0.15); transform: translateY(-1px); }
   .ht-card.featured { border: 1.5px solid #185fa5; }
   .ht-card.faded { opacity: 0.5; }
 
@@ -138,6 +149,7 @@ st.markdown("""
   .badge-green  { background: #e8f8f0; color: #0a6b42; }
   .badge-blue   { background: #e8f0ff; color: #1a4db5; }
   .badge-red    { background: #fff0f2; color: #c0203d; }
+  .badge-lime   { background: #f0ffe0; color: #4a7a00; }
   .badge-strike { background: #185fa5; color: #fff; }
 
   /* ── Status pills ── */
@@ -156,20 +168,21 @@ st.markdown("""
   .dot-live { width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block; }
   .dot-gpt  { width:6px;height:6px;border-radius:50%;background:#ea8c00;display:inline-block; }
 
-  /* ── Trend chips ── */
+  /* ── Trend chips (on dark hero) ── */
   .trend-chip {
     display: inline-block;
-    background: rgba(255,255,255,0.18);
-    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(170,255,0,0.12);
+    border: 1px solid rgba(170,255,0,0.3);
     border-radius: 20px;
     padding: 4px 14px;
     font-size: 12px;
-    color: rgba(255,255,255,0.9);
+    color: rgba(170,255,0,0.9);
     cursor: pointer;
     transition: all 0.15s;
     text-decoration: none;
+    font-weight: 600;
   }
-  .trend-chip:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.6); color: #fff; }
+  .trend-chip:hover { background: rgba(170,255,0,0.22); border-color: rgba(170,255,0,0.6); color: #AAFF00; }
 
   /* Section labels */
   .section-label {
@@ -213,6 +226,10 @@ if "pulse_results" not in st.session_state:
     st.session_state.pulse_results = None
 if "pulse_query" not in st.session_state:
     st.session_state.pulse_query = ""
+if "trend_articles" not in st.session_state:
+    st.session_state.trend_articles = []
+if "articles_ts" not in st.session_state:
+    st.session_state.articles_ts = None
 
 
 # ── Fetch on platform click ────────────────────────────────────
@@ -529,38 +546,43 @@ if _chip_data:
     chip_html = f'<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:0.1em;text-transform:uppercase">Trending</span>{chips}</div>'
 
 st.markdown(f"""
-<div style="background:linear-gradient(135deg,#7c3aed 0%,#db2777 55%,#fe2c55 80%,#ff6b35 100%);
+<div style="background:#0D0D12;
             border-radius:20px;
-            padding:28px 28px 24px 28px;
+            padding:26px 28px 22px 28px;
             margin-bottom:18px;
             position:relative;overflow:hidden;
-            box-shadow:0 8px 32px rgba(219,39,119,0.25)">
+            border:1px solid rgba(170,255,0,0.14);
+            box-shadow:0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(170,255,0,0.08)">
 
-  <!-- Decorative glow blobs -->
-  <div style="position:absolute;top:-50px;right:80px;width:220px;height:220px;
-              background:radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 70%);
+  <!-- Lime glow blobs -->
+  <div style="position:absolute;top:-60px;right:60px;width:260px;height:260px;
+              background:radial-gradient(circle,rgba(170,255,0,0.07) 0%,transparent 65%);
               pointer-events:none"></div>
-  <div style="position:absolute;bottom:-40px;left:60px;width:180px;height:180px;
-              background:radial-gradient(circle,rgba(255,255,255,0.07) 0%,transparent 70%);
+  <div style="position:absolute;bottom:-50px;left:40px;width:200px;height:200px;
+              background:radial-gradient(circle,rgba(170,255,0,0.04) 0%,transparent 65%);
               pointer-events:none"></div>
 
   <div style="display:flex;align-items:center;gap:14px;position:relative">
-    <div style="position:relative;width:44px;height:44px;flex-shrink:0">
-      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-        <rect width="44" height="44" rx="11" fill="#010101"/>
-        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="white"/>
-        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#fe2c55" opacity="0.55" transform="translate(1,1)"/>
-        <path d="M28.5 10h-4v15.5a4.5 4.5 0 1 1-4.5-4.5c.39 0 .77.05 1.13.14V16.9A9 9 0 1 0 29.5 25.5V17.3a13.4 13.4 0 0 0 6 1.7v-4a9.4 9.4 0 0 1-7-5z" fill="#25f4ee" opacity="0.55" transform="translate(-1,-1)"/>
+    <!-- Equalizer bars logo -->
+    <div style="flex-shrink:0">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="44" height="44" rx="11" fill="#1a1a22"/>
+        <rect x="9"  y="22" width="7" height="13" rx="2" fill="#AAFF00"/>
+        <rect x="19" y="13" width="7" height="22" rx="2" fill="#AAFF00"/>
+        <rect x="29" y="17" width="7" height="18" rx="2" fill="#AAFF00"/>
+        <!-- top cap glow -->
+        <rect x="9"  y="20" width="7" height="3" rx="1.5" fill="#d4ff66" opacity="0.6"/>
+        <rect x="19" y="11" width="7" height="3" rx="1.5" fill="#d4ff66" opacity="0.6"/>
+        <rect x="29" y="15" width="7" height="3" rx="1.5" fill="#d4ff66" opacity="0.6"/>
       </svg>
     </div>
     <div>
-      <div style="font-family:'Poppins',sans-serif;font-size:26px;font-weight:900;
-                  letter-spacing:-0.5px;line-height:1;color:#fff;
-                  text-shadow:0 1px 8px rgba(0,0,0,0.15)">
-        Trend<span style="color:rgba(255,255,255,0.85)">Center</span>
+      <div style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:900;
+                  letter-spacing:-1px;line-height:1;color:#fff">
+        Noi<span style="color:#AAFF00">ze</span>
       </div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.72);margin-top:4px;font-weight:500;letter-spacing:0.01em">
-        Real-time trends &nbsp;·&nbsp; TikTok &nbsp;·&nbsp; Google &nbsp;·&nbsp; YouTube &nbsp;·&nbsp; Reddit
+      <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:4px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase">
+        Signal in the noise &nbsp;·&nbsp; TikTok &nbsp;·&nbsp; Google &nbsp;·&nbsp; YouTube &nbsp;·&nbsp; Reddit
       </div>
     </div>
   </div>
@@ -588,14 +610,82 @@ st.markdown("<div style='margin:8px 0 8px 0;border-top:1px solid #e4e4f0'></div>
 # ── Main content ───────────────────────────────────────────────
 if not active_platform:
     # Welcome state
+    # ── Auto trend articles (cached 30 min) ──────────────────
+    articles_stale = True
+    if st.session_state.articles_ts:
+        age_secs = (datetime.now() - st.session_state.articles_ts).total_seconds()
+        articles_stale = age_secs > 1800  # 30 min
+
+    if articles_stale or not st.session_state.trend_articles:
+        with st.spinner("Loading today's trending stories..."):
+            st.session_state.trend_articles = generate_trend_articles()
+            st.session_state.articles_ts = datetime.now()
+
+    articles = st.session_state.trend_articles
+
     st.markdown("""
-    <div style="text-align:center;padding:70px 20px 50px 20px">
-      <div style="font-size:52px;margin-bottom:14px">📡</div>
-      <div style="font-size:22px;font-weight:800;color:#1a1a2e;margin-bottom:8px;font-family:'Poppins',sans-serif">What's trending right now?</div>
-      <div style="font-size:14px;color:#666;line-height:1.8;max-width:420px;margin:0 auto">
-        Pick a platform above to see the top 20 trends in real time.<br>
-        Use the tools below to build content, research niches, or chat with the AI.
-      </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;margin-top:10px">
+      <div style="width:6px;height:6px;border-radius:50%;background:#AAFF00;
+                  box-shadow:0 0 8px #AAFF00;"></div>
+      <span style="font-size:11px;font-weight:700;color:#888;letter-spacing:0.1em;text-transform:uppercase">
+        Trending right now
+      </span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if articles:
+        art_cols = st.columns(3)
+        cat_icons = {"News": "📰", "Music & Film": "🎬", "Gaming": "🎮"}
+        for i, art in enumerate(articles[:3]):
+            cat   = art.get("category", "News")
+            icon  = cat_icons.get(cat, "📡")
+            color = art.get("color", "#AAFF00")
+            tag   = art.get("tag", "Trending")
+            head  = art.get("headline", "")
+            summ  = art.get("summary", "")
+            url   = art.get("url", "#")
+
+            # Tag colors
+            tag_styles = {
+                "Breaking": ("background:#fff0f2;color:#c0203d", "🔴"),
+                "Trending":  ("background:#f0ffe0;color:#4a7a00",  "🟢"),
+                "Hot":       ("background:#fff8ec;color:#92400e",  "🔥"),
+            }
+            tag_style, tag_dot = tag_styles.get(tag, ("background:#f0f0f7;color:#666", "•"))
+
+            with art_cols[i]:
+                st.markdown(f"""
+                <a href="{url}" target="_blank" style="text-decoration:none">
+                <div style="background:#fff;border:1px solid #eaecf4;border-top:3px solid {color};
+                            border-radius:14px;padding:16px;height:100%;
+                            box-shadow:0 2px 8px rgba(0,0,0,0.06);
+                            transition:all 0.2s;cursor:pointer"
+                     onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)'"
+                     onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <span style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em">{icon} {cat}</span>
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;{tag_style}">{tag_dot} {tag}</span>
+                  </div>
+                  <div style="font-size:14px;font-weight:700;color:#0d0d1a;line-height:1.35;
+                              margin-bottom:8px;font-family:'Poppins',sans-serif">{head}</div>
+                  <div style="font-size:12px;color:#666;line-height:1.6">{summ}</div>
+                  <div style="margin-top:12px;font-size:11px;font-weight:700;color:{color}">Read more ↗</div>
+                </div>
+                </a>
+                """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:36px;margin-bottom:10px">📡</div>
+          <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:6px;font-family:'Poppins',sans-serif">What's trending right now?</div>
+          <div style="font-size:13px;color:#888">Select a platform above to dive in.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:16px 0 4px 0;border-top:1px solid #e4e4f0'></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align:center;padding:4px 0 10px 0">
+      <span style="font-size:12px;color:#aaa">Select a platform above to see the full top 20 &nbsp;·&nbsp; Use the tabs below for deeper tools</span>
     </div>
     """, unsafe_allow_html=True)
 
