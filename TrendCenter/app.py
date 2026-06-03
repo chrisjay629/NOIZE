@@ -169,13 +169,8 @@ html, body, [class*="css"] {
    re-open (»») control it contains stays reachable. */
 [data-testid="stHeader"] {
   background: transparent !important;
-  height: 0 !important;
-  min-height: 0 !important;
   box-shadow: none !important;
   pointer-events: none !important;
-}
-[data-testid="stHeader"] [data-testid="stSidebarCollapsedControl"] {
-  pointer-events: auto !important;
 }
 /* Hide the toolbar/decoration but NOT the sidebar control */
 [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] {
@@ -184,13 +179,34 @@ html, body, [class*="css"] {
 [data-testid="stAppViewContainer"] { background: var(--bg) !important; }
 
 /* Keep Streamlit's native collapse («) and re-open (»») controls usable.
-   The app header is hidden, so force the collapsed re-open control visible. */
-[data-testid="stSidebarCollapseButton"] { display: flex !important; }
+   The app header is transparent/click-through, so pin the re-open control to
+   the top-left, force it visible, and give it a visible chip so users can
+   always bring the sidebar back (incl. mobile). */
+[data-testid="stSidebarCollapseButton"] {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
 [data-testid="stSidebarCollapsedControl"] {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
-  z-index: 1000 !important;
+  position: fixed !important;
+  top: 12px !important;
+  left: 12px !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+  background: rgba(14,19,27,0.92) !important;
+  border: 1px solid var(--sb-border) !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+}
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="stSidebarCollapsedControl"] svg {
+  color: var(--lime-t) !important;
+  fill: var(--lime-t) !important;
+  opacity: 1 !important;
 }
 
 .stApp {
