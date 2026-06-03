@@ -267,7 +267,7 @@ def render_velocity_chart(velocity_data, platform="tiktok"):
                 x=[r[0] for r in rows],
                 y=[r[1] for r in rows],
                 mode="lines+markers",
-                name=f"#{name}",
+                name=f"{'#' if platform == 'tiktok' else ''}{name}",
                 line=dict(width=2),
                 marker=dict(size=5),
             ))
@@ -406,10 +406,10 @@ def render_cards(data, platform="tiktok"):
 def render_niche_pulse(results: dict, query: str):
     """Renders the cross-platform niche pulse grid + chart."""
     st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <span style="font-size:16px;font-weight:700;color:#ccc">🔍 Niche Pulse:</span>
-      <span style="font-size:16px;font-weight:700;color:#fff">"{query}"</span>
-      <span style="font-size:11px;color:#444;margin-left:4px">Top 3 trends per platform</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:15px;font-weight:700;color:#888">🔍 Niche Pulse</span>
+      <span style="font-size:15px;font-weight:800;color:#1a1a2e;font-family:'Poppins',sans-serif">"{query}"</span>
+      <span style="font-size:11px;font-weight:700;color:#aaa;letter-spacing:0.06em;text-transform:uppercase">Top 3 per platform</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -426,7 +426,7 @@ def render_niche_pulse(results: dict, query: str):
             st.markdown(f"""
             <div style="background:{color}18;border:1px solid {color}55;border-radius:10px;padding:10px 12px;margin-bottom:8px">
               <div style="font-size:13px;font-weight:700;color:{color}">{cfg['icon']} {cfg['label']}</div>
-              <div style="font-size:10px;color:#555;margin-top:1px">{src_label}</div>
+              <div style="font-size:10px;color:#888;margin-top:1px">{src_label}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -475,7 +475,7 @@ def render_niche_pulse(results: dict, query: str):
 
     # Combined horizontal bar chart
     if chart_items:
-        st.markdown("<div style='font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 6px 0'>Trend prominence across platforms</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin:14px 0 6px 0'>Trend prominence across platforms</div>", unsafe_allow_html=True)
 
         # Sort by platform order then rank
         order = list(PLATFORM_CONFIG.keys())
@@ -526,7 +526,7 @@ if _chip_data:
         f'{"#" if active_platform=="tiktok" else ""}{h["name"]}</a>'
         for h in _chip_data
     ])
-    chip_html = f'<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:11px;color:#444;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Trending</span>{chips}</div>'
+    chip_html = f'<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:0.1em;text-transform:uppercase">Trending</span>{chips}</div>'
 
 st.markdown(f"""
 <div style="background:linear-gradient(135deg,#7c3aed 0%,#db2777 55%,#fe2c55 80%,#ff6b35 100%);
@@ -555,11 +555,12 @@ st.markdown(f"""
     </div>
     <div>
       <div style="font-family:'Poppins',sans-serif;font-size:26px;font-weight:900;
-                  letter-spacing:-0.5px;line-height:1;color:#fff">
-        Trend<span style="color:#fe2c55">Center</span>
+                  letter-spacing:-0.5px;line-height:1;color:#fff;
+                  text-shadow:0 1px 8px rgba(0,0,0,0.15)">
+        Trend<span style="color:rgba(255,255,255,0.85)">Center</span>
       </div>
-      <div style="font-size:12px;color:#555;margin-top:3px">
-        Real-time trends · TikTok &nbsp;·&nbsp; Google &nbsp;·&nbsp; YouTube &nbsp;·&nbsp; Reddit
+      <div style="font-size:12px;color:rgba(255,255,255,0.72);margin-top:4px;font-weight:500;letter-spacing:0.01em">
+        Real-time trends &nbsp;·&nbsp; TikTok &nbsp;·&nbsp; Google &nbsp;·&nbsp; YouTube &nbsp;·&nbsp; Reddit
       </div>
     </div>
   </div>
@@ -569,7 +570,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ── Platform Selector ──────────────────────────────────────────
-st.markdown("<div style='font-size:11px;font-weight:700;letter-spacing:0.08em;color:#444;text-transform:uppercase;margin-bottom:6px'>Click a platform to load trends</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size:11px;font-weight:700;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:6px'>Select a platform</div>", unsafe_allow_html=True)
 
 pcols = st.columns(4)
 for idx, (key, cfg) in enumerate(PLATFORM_CONFIG.items()):
@@ -582,7 +583,7 @@ for idx, (key, cfg) in enumerate(PLATFORM_CONFIG.items()):
             st.session_state.do_fetch = True
             st.rerun()
 
-st.markdown("<div style='margin:8px 0 8px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin:8px 0 8px 0;border-top:1px solid #e4e4f0'></div>", unsafe_allow_html=True)
 
 # ── Main content ───────────────────────────────────────────────
 if not active_platform:
@@ -590,8 +591,8 @@ if not active_platform:
     st.markdown("""
     <div style="text-align:center;padding:70px 20px 50px 20px">
       <div style="font-size:52px;margin-bottom:14px">📡</div>
-      <div style="font-size:22px;font-weight:700;color:#ccc;margin-bottom:8px">What's trending right now?</div>
-      <div style="font-size:14px;color:#555;line-height:1.7;max-width:420px;margin:0 auto">
+      <div style="font-size:22px;font-weight:800;color:#1a1a2e;margin-bottom:8px;font-family:'Poppins',sans-serif">What's trending right now?</div>
+      <div style="font-size:14px;color:#666;line-height:1.8;max-width:420px;margin:0 auto">
         Pick a platform above to see the top 20 trends in real time.<br>
         Use the tools below to build content, research niches, or chat with the AI.
       </div>
@@ -637,9 +638,9 @@ else:
     if is_gpt:
         platform_name = cfg["label"]
         st.markdown(f"""
-        <div style="background:#1f1500;border:1px solid #f5a623;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+        <div style="background:#fff8ec;border:1px solid #f5a623;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
           <span>⚠️</span>
-          <div style="font-size:12px;color:#f5a623;line-height:1.5">
+          <div style="font-size:12px;color:#92400e;line-height:1.5">
             <b>{platform_name} is temporarily unavailable.</b> Showing AI-generated trend suggestions. Hit 🔄 {platform_name} above to check for live data.
           </div>
         </div>
@@ -649,17 +650,17 @@ else:
     left_col, right_col = st.columns([4, 6], gap="large")
 
     with left_col:
-        st.markdown(f"<div style='font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px'>Rank velocity</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px'>Rank velocity</div>", unsafe_allow_html=True)
         render_velocity_chart(velocity_data, platform=active_platform)
 
     with right_col:
         display_data = velocity_data[:10] if velocity_data else hashtags[:10]
-        st.markdown(f"<div style='font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px'>Trending now — top 10</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px'>Trending now — top 10</div>", unsafe_allow_html=True)
         render_cards(display_data, platform=active_platform)
 
 
 # ── Feature tabs (always visible) ─────────────────────────────
-st.markdown("<div style='margin:16px 0 4px 0;border-top:0.5px solid #2a2a3a'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin:16px 0 4px 0;border-top:1px solid #e4e4f0'></div>", unsafe_allow_html=True)
 tab_all, tab_bp, tab_niche, tab_chat = st.tabs(["🌐 All Platforms", "🎬 Blueprint Generator", "🔍 Niche Research", "💬 Ask the Agent"])
 
 
@@ -667,7 +668,7 @@ tab_all, tab_bp, tab_niche, tab_chat = st.tabs(["🌐 All Platforms", "🎬 Blue
 # ALL PLATFORMS TAB
 # ═══════════════════════════════════════════════════════════════
 with tab_all:
-    st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:14px'>Type any topic and see the top 3 trending stories or hashtags from <b style='color:#ccc'>all 4 platforms</b> at once. Falls back to AI if a platform has no live data.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:13px;color:#666;margin-bottom:14px;line-height:1.6'>Type any topic and see the top 3 trending stories or hashtags from <b style='color:#1a1a2e'>all 4 platforms</b> at once. Falls back to AI if a platform has no live data.</div>", unsafe_allow_html=True)
 
     ap_col1, ap_col2 = st.columns([5, 1])
     with ap_col1:
@@ -696,8 +697,8 @@ with tab_all:
         st.markdown("""
         <div style="text-align:center;padding:40px 20px">
           <div style="font-size:36px;margin-bottom:10px">🌐</div>
-          <div style="font-size:15px;font-weight:600;color:#aaa;margin-bottom:6px">Search any topic</div>
-          <div style="font-size:13px;color:#555">Type a topic above and hit Search to see what's trending across all platforms right now.</div>
+          <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:6px;font-family:'Poppins',sans-serif">Search any topic</div>
+          <div style="font-size:13px;color:#888;line-height:1.7">Type a topic above and hit Search to see what's trending across all platforms right now.</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -714,7 +715,7 @@ with tab_bp:
         if not bp_hashtags:
             st.info(f"No {cfg_bp['label']} trends yet — click 🔄 {cfg_bp['label']} above to load.")
         else:
-            st.markdown(f"<div style='font-size:13px;color:#aaa;margin-bottom:12px'>Select trends from <b style='color:{cfg_bp['color']}'>{cfg_bp['icon']} {cfg_bp['label']}</b> to build a content blueprint.</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:13px;color:#666;margin-bottom:12px;line-height:1.6'>Select trends from <b style='color:{cfg_bp['color']}'>{cfg_bp['icon']} {cfg_bp['label']}</b> to build a content blueprint.</div>", unsafe_allow_html=True)
 
             bp_niche = st.text_input(
                 "Your niche (optional)",
@@ -750,7 +751,7 @@ with tab_bp:
 # NICHE RESEARCH TAB
 # ═══════════════════════════════════════════════════════════════
 with tab_niche:
-    st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:12px'>Type any topic to find relevant hashtags — even if they're not in the top 20 — then generate a full content blueprint.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:13px;color:#666;margin-bottom:12px;line-height:1.6'>Type any topic to find relevant hashtags — even if they're not in the top 20 — then generate a full content blueprint.</div>", unsafe_allow_html=True)
 
     nr_col1, nr_col2 = st.columns([4, 1])
     with nr_col1:
@@ -774,7 +775,7 @@ with tab_niche:
     if nr_results:
         st.markdown("---")
         st.markdown(f"**{len(nr_results)} hashtags for: *{nr_topic_label}***")
-        st.markdown("<div style='font-size:12px;color:#555;margin-bottom:8px'>Check the ones you want, then generate a blueprint.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:12px;color:#888;margin-bottom:8px'>Check the ones you want, then generate a blueprint.</div>", unsafe_allow_html=True)
 
         nr_selected = []
         for h in nr_results:
