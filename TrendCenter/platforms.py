@@ -1,11 +1,12 @@
 """
 platforms.py — scrapers for Google Trends, YouTube, and Reddit.
-Each function returns a list of trend dicts in the same format as TikTok.
+Each returns a list of trend dicts in the same format as TikTok.
 Falls back to GPT if the real scrape fails.
 """
 
 import os
 import json
+import re
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -20,57 +21,57 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
-def _today():
-    return datetime.now().strftime("%B %d, %Y")
 
-def _gpt_fallback(platform, context=""):
-    """Generic GPT fallback for any platform."""
+def _parse_gpt_json(text):
+    """Safely parse GPT response — strips markdown code fences if present."""
+    text = text.strip()
+    # Strip ```json ... ``` or ``` ... ```
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
+    return json.loads(text.strip())
+
+
+def _gpt_fallback(platform):
     print(f"[{platform.upper()}] Using GPT fallback", flush=True)
-    today = _today()
+    today = datetime.now().strftime("%B %d, %Y")
     prompts = {
         "google": (
-            f"Today is {today}. Generate a list of 20 topics that are trending on Google Search right now. "
+            f"Today is {today}. List 20 topics trending on Google Search right now in the US. "
             "Think current events, viral moments, sports, entertainment, pop culture. "
-            "For each provide: rank (1-20), name (the search term), posts (search volume like '2.1M searches'), "
-            "category (News, Sports, Entertainment, Tech, Lifestyle, etc). "
-            "Return ONLY a valid JSON array:\n"
-            '[{"rank":"1","name":"...","posts":"...","category":"..."}]'
+            "Return ONLY a JSON array, no markdown:\n"
+            '[{"rank":"1","name":"...","posts":"500K+ searches","category":"News"}]'
         ),
         "youtube": (
-            f"Today is {today}. Generate a list of 20 topics that are trending on YouTube right now. "
-            "Think viral videos, trending creators, music videos, news events, gaming, sports highlights. "
-            "For each provide: rank (1-20), name (the video topic/title), posts (view count like '4.2M views'), "
-            "category (Music, Gaming, News, Sports, Entertainment, Comedy, Education, etc). "
-            "Return ONLY a valid JSON array:\n"
-            '[{"rank":"1","name":"...","posts":"...","category":"..."}]'
+            f"Today is {today}. List 20 videos/topics trending on YouTube right now. "
+            "Think viral videos, music, news, gaming, sports highlights. "
+            "Return ONLY a JSON array, no markdown:\n"
+            '[{"rank":"1","name":"...","posts":"4.2M views","category":"Music"}]'
         ),
         "reddit": (
-            f"Today is {today}. Generate a list of 20 topics that are trending on Reddit right now. "
-            "Think top posts from r/all — viral stories, memes, news, sports, tech, gaming. "
-            "For each provide: rank (1-20), name (the post topic), posts (upvotes like '89K upvotes'), "
-            "category (the subreddit like r/gaming, r/news, r/worldnews, r/funny, etc). "
-            "Return ONLY a valid JSON array:\n"
-            '[{"rank":"1","name":"...","posts":"...","category":"..."}]'
+            f"Today is {today}. List 20 topics trending on Reddit r/all right now. "
+            "Think viral stories, memes, news, sports, tech, gaming. "
+            "Return ONLY a JSON array, no markdown:\n"
+            '[{"rank":"1","name":"...","posts":"89K upvotes","category":"r/gaming"}]'
         ),
+    }
+    url_builders = {
+        "google":  lambda n: f"https://www.google.com/search?q={n.replace(' ', '+')}",
+        "youtube": lambda n: f"https://www.youtube.com/results?search_query={n.replace(' ', '+')}",
+        "reddit":  lambda n: f"https://www.reddit.com/search/?q={n.replace(' ', '+')}&sort=hot",
     }
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompts[platform]}]
         )
-        data = json.loads(response.choices[0].message.content)
+        data = _parse_gpt_json(response.choices[0].message.content)
         now = datetime.now().isoformat()
-        urls = {
-            "google": lambda n: f"https://www.google.com/search?q={n.replace(' ', '+')}",
-            "youtube": lambda n: f"https://www.youtube.com/results?search_query={n.replace(' ', '+')}",
-            "reddit": lambda n: f"https://www.reddit.com/search/?q={n.replace(' ', '+')}&sort=hot",
-        }
         return [{
-            "rank": str(h.get("rank", i+1)),
+            "rank": str(h.get("rank", i + 1)),
             "name": h.get("name", ""),
             "posts": h.get("posts", ""),
             "category": h.get("category", ""),
-            "url": urls[platform](h.get("name", "")),
+            "url": url_builders[platform](h.get("name", "")),
             "scraped_at": now,
             "platform": platform,
             "source": "gpt_fallback"
@@ -80,28 +81,37 @@ def _gpt_fallback(platform, context=""):
         return []
 
 
-# ── GOOGLE TRENDS ───────────────────────────────────────────────
+# ── GOOGLE TRENDS ── RSS feed, no API key needed ────────────────
 
 def scrape_google():
-    print("[GOOGLE] Starting scrape", flush=True)
+    print("[GOOGLE] Starting scrape via RSS", flush=True)
     try:
-        from pytrends.request import TrendReq
-        pytrends = TrendReq(hl="en-US", tz=360, timeout=(10, 25))
-        df = pytrends.trending_searches(pn="united_states")
-        if df is None or df.empty:
-            raise ValueError("Empty response from pytrends")
+        r = requests.get(
+            "https://trends.google.com/trending/rss?geo=US",
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=15
+        )
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "xml")
+        items = soup.find_all("item")
+        if not items:
+            raise ValueError("No items in RSS feed")
 
-        trends = df[0].tolist()[:20]
-        now = datetime.now().isoformat()
         results = []
-        for i, term in enumerate(trends):
+        for i, item in enumerate(items[:20]):
+            title = item.find("title")
+            traffic = item.find("approx_traffic") or item.find("ht:approx_traffic")
+            link = item.find("link")
+            name = title.get_text(strip=True) if title else ""
+            traffic_str = traffic.get_text(strip=True) + " searches" if traffic else "Trending"
+            url = link.get_text(strip=True) if link else f"https://www.google.com/search?q={name.replace(' ', '+')}"
             results.append({
                 "rank": str(i + 1),
-                "name": term,
-                "posts": "Trending",
+                "name": name,
+                "posts": traffic_str,
                 "category": "Google Trends",
-                "url": f"https://trends.google.com/trends/explore?q={term.replace(' ', '%20')}&geo=US",
-                "scraped_at": now,
+                "url": f"https://www.google.com/search?q={name.replace(' ', '+')}",
+                "scraped_at": datetime.now().isoformat(),
                 "platform": "google",
                 "source": "live"
             })
@@ -112,103 +122,52 @@ def scrape_google():
         return _gpt_fallback("google")
 
 
-# ── YOUTUBE TRENDING ────────────────────────────────────────────
+# ── YOUTUBE ── GPT-powered (no free public API without key) ─────
 
 def scrape_youtube():
-    print("[YOUTUBE] Starting scrape", flush=True)
-    try:
-        url = "https://www.youtube.com/feed/trending"
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.raise_for_status()
-
-        # YouTube embeds page data as JSON in a ytInitialData script tag
-        import re
-        match = re.search(r'var ytInitialData = ({.*?});</script>', r.text, re.DOTALL)
-        if not match:
-            raise ValueError("Could not find ytInitialData")
-
-        data = json.loads(match.group(1))
-        # Navigate to the trending video list
-        tabs = data["contents"]["twoColumnBrowseResultsRenderer"]["tabs"]
-        items = tabs[0]["tabRenderer"]["content"]["sectionListRenderer"]["contents"]
-
-        results = []
-        rank = 1
-        for section in items:
-            videos = section.get("itemSectionRenderer", {}).get("contents", [])
-            for v in videos:
-                vr = v.get("videoRenderer") or v.get("reelItemRenderer")
-                if not vr:
-                    continue
-                title = vr.get("title", {})
-                name = title.get("runs", [{}])[0].get("text", "") or title.get("simpleText", "")
-                if not name:
-                    continue
-                views = vr.get("viewCountText", {}).get("simpleText", "") or \
-                        vr.get("viewCountText", {}).get("runs", [{}])[0].get("text", "")
-                video_id = vr.get("videoId", "")
-                owner = vr.get("ownerText", {}).get("runs", [{}])[0].get("text", "")
-                category = owner or "YouTube"
-                results.append({
-                    "rank": str(rank),
-                    "name": name,
-                    "posts": views or "Trending",
-                    "category": category,
-                    "url": f"https://www.youtube.com/watch?v={video_id}",
-                    "scraped_at": datetime.now().isoformat(),
-                    "platform": "youtube",
-                    "source": "live"
-                })
-                rank += 1
-                if rank > 20:
-                    break
-            if rank > 20:
-                break
-
-        if not results:
-            raise ValueError("No videos parsed from YouTube")
-
-        print(f"[YOUTUBE] Got {len(results)} trending videos", flush=True)
-        return results
-    except Exception as e:
-        print(f"[YOUTUBE] Scrape failed: {e}", flush=True)
-        return _gpt_fallback("youtube")
+    print("[YOUTUBE] Starting (GPT-powered)", flush=True)
+    # YouTube requires an API key for trending data
+    # GPT fallback gives realistic results in the meantime
+    return _gpt_fallback("youtube")
 
 
-# ── REDDIT TRENDING ─────────────────────────────────────────────
+# ── REDDIT ── RSS feed, no API key needed ───────────────────────
 
 def scrape_reddit():
-    print("[REDDIT] Starting scrape", flush=True)
+    print("[REDDIT] Starting scrape via RSS", flush=True)
     try:
-        url = "https://www.reddit.com/r/all/hot.json?limit=20"
-        headers = {**HEADERS, "Accept": "application/json"}
-        r = requests.get(url, headers=headers, timeout=15)
+        r = requests.get(
+            "https://www.reddit.com/r/all/hot.rss?limit=20",
+            headers={"User-Agent": "TrendCenterBot/1.0"},
+            timeout=15
+        )
         r.raise_for_status()
-        data = r.json()
-        posts = data["data"]["children"]
+        soup = BeautifulSoup(r.text, "xml")
+        entries = soup.find_all("entry")
+        if not entries:
+            raise ValueError("No entries in RSS")
 
         results = []
-        for i, post in enumerate(posts[:20]):
-            p = post["data"]
-            name = p.get("title", "")[:80]  # cap title length
-            upvotes = p.get("score", 0)
-            if upvotes >= 1000:
-                upvotes_str = f"{upvotes/1000:.1f}K upvotes"
-            else:
-                upvotes_str = f"{upvotes} upvotes"
-            subreddit = f"r/{p.get('subreddit', 'all')}"
-            post_url = f"https://www.reddit.com{p.get('permalink', '')}"
+        for i, entry in enumerate(entries[:20]):
+            title = entry.find("title")
+            link = entry.find("link")
+            category = entry.find("category")
+            name = title.get_text(strip=True) if title else ""
+            # Truncate long post titles
+            if len(name) > 80:
+                name = name[:77] + "..."
+            url = link.get("href", "") if link else ""
+            subreddit = category.get("term", "r/all") if category else "r/all"
             results.append({
                 "rank": str(i + 1),
                 "name": name,
-                "posts": upvotes_str,
+                "posts": "Hot post",
                 "category": subreddit,
-                "url": post_url,
+                "url": url,
                 "scraped_at": datetime.now().isoformat(),
                 "platform": "reddit",
                 "source": "live"
             })
-
         print(f"[REDDIT] Got {len(results)} posts", flush=True)
         return results
     except Exception as e:
