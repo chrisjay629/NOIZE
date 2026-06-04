@@ -126,6 +126,7 @@ RADAR_BG_B64         = load_img_b64("static/radar_bg.jpg",          max_width=60
 RADAR_MAP_B64        = load_img_b64("static/radar_map.png",         max_width=700,  quality=80)
 HUD_BG_B64           = load_img_b64("static/hud_bg.jpg",            max_width=800,  quality=72)
 BG_BODY_B64          = load_img_b64("static/bg_body.jpg",           max_width=1600, quality=70)
+ASPHALT_BG_B64       = load_img_b64("static/asphalt_bg.png",        max_width=900,  quality=68)
 
 # ── Page config ───────────────────────────────────────────────────
 st.set_page_config(
@@ -1490,10 +1491,14 @@ with main_col:
         # CSS keeps all 4 on ONE row on both mobile and desktop.
         _bgsel = ".st-key-srcrow [data-testid=\"stColumn\"] button[kind]"  # high specificity + !important to beat Streamlit's `background:` shorthand
         _src_css = "<style>"
-        # framed panel matching the site's cards, with a faint lime glow
-        _src_css += (".st-key-srcpanel{background:var(--surface-alt);border:1px solid var(--border-2);"
+        # framed panel: cracked-asphalt photo under a heavy dark theme-tinted overlay (subtle), faint lime glow
+        _src_css += (".st-key-srcpanel{"
+                     "background-image:linear-gradient(155deg,rgba(8,11,6,0.90),rgba(8,11,6,0.84) 45%,rgba(12,20,4,0.88)),"
+                     "url('data:image/jpeg;base64," + ASPHALT_BG_B64 + "')!important;"
+                     "background-size:cover!important;background-position:center 35%!important;"
+                     "border:1px solid var(--border-2);"
                      "border-radius:14px;padding:11px 14px 13px;margin-bottom:10px;"
-                     "box-shadow:0 0 0 1px rgba(163,255,18,0.05),0 10px 30px rgba(0,0,0,0.35)}")
+                     "box-shadow:inset 0 0 60px rgba(0,0,0,0.45),0 0 0 1px rgba(163,255,18,0.06),0 10px 30px rgba(0,0,0,0.4)}")
         # keep all 4 columns on one row (no mobile stacking)
         _src_css += ".st-key-srcrow [data-testid=\"stHorizontalBlock\"]{flex-wrap:nowrap!important;gap:8px}"
         _src_css += ".st-key-srcrow [data-testid=\"stColumn\"]{min-width:0!important;flex:1 1 0!important}"
@@ -1513,18 +1518,21 @@ with main_col:
         _src_css += "</style>"
         st.markdown(_src_css, unsafe_allow_html=True)
         with st.container(key="srcpanel"):
-            # Glowing-green "TrendFeeds" title (Orbitron) + TOP 20 tag.
+            # Glowing-green "Content Blueprint Generator" title (Orbitron) + TOP 20 tag + creator tagline.
             st.markdown(
-                "<div style='display:flex;align-items:center;gap:9px;margin-bottom:11px'>"
-                "<span style=\"font-family:'Orbitron',sans-serif;font-weight:800;font-size:15px;letter-spacing:0.01em;"
-                "color:#0a0f05;background:linear-gradient(135deg,#c8ff5e,#A3FF12);padding:3px 13px;border-radius:8px;"
-                "box-shadow:0 0 18px rgba(163,255,18,0.55),0 0 5px rgba(163,255,18,0.9);text-shadow:0 1px 0 rgba(255,255,255,0.25)\">TrendFeeds</span>"
+                "<div style='margin-bottom:12px'>"
+                "<div style='display:flex;align-items:center;gap:8px;flex-wrap:wrap'>"
+                "<span style=\"font-family:'Orbitron',sans-serif;font-weight:800;font-size:12.5px;letter-spacing:0.02em;"
+                "color:#0a0f05;background:linear-gradient(135deg,#c8ff5e,#A3FF12);padding:4px 12px;border-radius:8px;"
+                "box-shadow:0 0 18px rgba(163,255,18,0.55),0 0 5px rgba(163,255,18,0.9);text-shadow:0 1px 0 rgba(255,255,255,0.25);"
+                "text-transform:uppercase\">Content Blueprint Generator</span>"
                 "<span style=\"font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:0.14em;"
                 "color:var(--lime-t);border:1px solid var(--lime-border);background:var(--lime-bg);padding:3px 8px;"
                 "border-radius:6px;text-transform:uppercase\">Top 20</span>"
-                "<span style='flex:1'></span>"
-                "<span style='font-family:\"JetBrains Mono\",monospace;font-size:8.5px;font-weight:600;color:var(--tx4);"
-                "letter-spacing:0.10em;text-transform:uppercase'>Pick a source</span>"
+                "</div>"
+                "<div style=\"font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:500;line-height:1.5;"
+                "letter-spacing:0.03em;color:rgba(233,245,220,0.78);margin-top:7px;text-shadow:0 1px 3px rgba(0,0,0,0.8)\">"
+                "Top 20 trends from the top 4 feeds &mdash; pick a source to build your next piece of content.</div>"
                 "</div>",
                 unsafe_allow_html=True,
             )
