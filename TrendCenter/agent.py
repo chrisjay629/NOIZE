@@ -89,7 +89,7 @@ def research_niche_hashtags(topic):
         messages=[{"role": "user", "content": prompt}]
     )
     try:
-        return json.loads(response.choices[0].message.content)
+        return _parse_json_safe(response.choices[0].message.content)
     except Exception:
         return []
 
@@ -186,6 +186,20 @@ tools = [
             "description": "Get hashtags sorted by rank movement over time. Use this to find which hashtags are climbing fast (negative rank_change) versus fading. Best for 'what should I post about right now?' questions.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "research_topic_hashtags",
+            "description": "Research TikTok hashtags that are genuinely relevant to a SPECIFIC topic, theme, or subject the user names (e.g. 'aliens', 'baking', 'true crime', 'skincare'). Use this whenever the user asks about a particular topic rather than 'what's trending in general'. Returns ~15 relevant hashtags, each with a description, competition level, and best content type. Do NOT fall back to unrelated general trending hashtags when the user asked about a specific topic — use this instead.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topic": {"type": "string", "description": "The topic, theme, or subject the creator wants to make content about."}
+                },
+                "required": ["topic"]
+            }
+        }
     }
 ]
 
@@ -193,7 +207,15 @@ tools = [
 
 def run_agent(user_message):
     messages = [
-        {"role": "system", "content": "You are a TikTok trend strategist. Help creators identify trending hashtags relevant to their niche and suggest content ideas they can act on quickly. When velocity data is available, prioritize hashtags that are climbing fast over ones that are static. Be concise and actionable."},
+        {"role": "system", "content": (
+            "You are a TikTok trend strategist. Help creators find hashtags and content ideas they can act on quickly. "
+            "Pick the right tool for the question:\n"
+            "- If the user asks about a SPECIFIC topic, theme, or subject (e.g. 'aliens', 'cooking', 'true crime'), call research_topic_hashtags with that topic to get hashtags genuinely relevant to it. "
+            "NEVER substitute unrelated general trending hashtags when the user named a specific topic — if nothing is trending for it, research relevant hashtags for that topic instead.\n"
+            "- Use get_trending_hashtags or get_velocity only when the user asks what's trending in general or 'what should I post right now'. When velocity data is available, prioritize hashtags climbing fast over static ones.\n"
+            "- Use filter_by_niche to find which of TODAY'S trending hashtags fit a creator's stated niche.\n"
+            "Be concise and actionable."
+        )},
         {"role": "user", "content": user_message}
     ]
 
@@ -225,6 +247,8 @@ def run_agent(user_message):
                 result = tool_generate_content_ideas(args["hashtag"], args["niche"])
             elif name == "get_velocity":
                 result = tool_get_velocity()
+            elif name == "research_topic_hashtags":
+                result = research_niche_hashtags(args["topic"])
             else:
                 result = "Unknown tool"
 
