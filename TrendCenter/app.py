@@ -127,6 +127,63 @@ RADAR_MAP_B64        = load_img_b64("static/radar_map.png",         max_width=70
 HUD_BG_B64           = load_img_b64("static/hud_bg.jpg",            max_width=800,  quality=72)
 BG_BODY_B64          = load_img_b64("static/bg_body.jpg",           max_width=1600, quality=70)
 ASPHALT_BG_B64       = load_img_b64("static/asphalt_bg.png",        max_width=900,  quality=68)
+CITYMAP_BG_B64       = load_img_b64("static/bg_citymap.png",        max_width=1800, quality=72)
+
+# ── Old-city-map blueprint texture (drawn in code; faint, theme-matched lines) ──
+def _build_old_city_map_svg() -> str:
+    import math, random
+    rnd = random.Random(7)
+    W = H = 800
+    p = ["<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'>"]
+    p.append("<defs><style>"
+             ".rd{fill:none;stroke:#A3FF12;stroke-opacity:0.30;stroke-width:1.3}"
+             ".rd2{fill:none;stroke:#A3FF12;stroke-opacity:0.17;stroke-width:0.8}"
+             ".blk{fill:#A3FF12;fill-opacity:0.04;stroke:#A3FF12;stroke-opacity:0.11;stroke-width:0.5}"
+             ".rv{fill:none;stroke:#3fd0e6;stroke-opacity:0.22;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}"
+             ".cmp{fill:none;stroke:#A3FF12;stroke-opacity:0.30;stroke-width:1}"
+             ".cmpf{fill:#A3FF12;fill-opacity:0.20}"
+             "</style></defs>")
+    # avenues (slightly jittered grid for a hand-drawn old-map feel)
+    ys, y = [], 60
+    while y < H - 30:
+        ys.append(y); y += rnd.randint(58, 92)
+    xs, x = [], 60
+    while x < W - 30:
+        xs.append(x); x += rnd.randint(58, 92)
+    for yy in ys:
+        p.append(f"<path class='rd' d='M16 {yy} L784 {yy+rnd.randint(-6,6)}'/>")
+    for xx in xs:
+        p.append(f"<path class='rd' d='M{xx} 16 L{xx+rnd.randint(-6,6)} 784'/>")
+    # city blocks between intersections
+    for i in range(len(xs) - 1):
+        for k in range(len(ys) - 1):
+            if rnd.random() < 0.42:
+                bx, by = xs[i] + 5, ys[k] + 5
+                bw, bh = xs[i+1] - xs[i] - 10, ys[k+1] - ys[k] - 10
+                if bw > 6 and bh > 6:
+                    p.append(f"<rect class='blk' x='{bx}' y='{by}' width='{bw}' height='{bh}'/>")
+    # diagonal grand avenues
+    p.append("<path class='rd2' d='M16 130 L770 740'/>")
+    p.append("<path class='rd2' d='M784 90 L60 760'/>")
+    # central plaza with radial streets
+    cx, cy = 410, 380
+    p.append(f"<circle class='rd' cx='{cx}' cy='{cy}' r='40'/><circle class='rd' cx='{cx}' cy='{cy}' r='80'/>")
+    for a in range(0, 360, 45):
+        rad = math.radians(a)
+        p.append(f"<path class='rd2' d='M{cx+math.cos(rad)*40:.0f} {cy+math.sin(rad)*40:.0f} "
+                 f"L{cx+math.cos(rad)*155:.0f} {cy+math.sin(rad)*155:.0f}'/>")
+    # winding river
+    p.append("<path class='rv' d='M-20 250 C160 330 250 170 430 300 S700 520 840 470'/>")
+    # compass rose (top-right)
+    ox, oy = 690, 115
+    p.append(f"<circle class='cmp' cx='{ox}' cy='{oy}' r='34'/><circle class='cmp' cx='{ox}' cy='{oy}' r='23'/>")
+    p.append(f"<polygon class='cmpf' points='{ox},{oy-32} {ox-7},{oy} {ox},{oy-5} {ox+7},{oy}'/>")
+    p.append(f"<polygon class='cmp' points='{ox},{oy+32} {ox-7},{oy} {ox},{oy+5} {ox+7},{oy}'/>")
+    p.append(f"<path class='cmp' d='M{ox-34} {oy} L{ox+34} {oy}'/>")
+    p.append("</svg>")
+    return "".join(p)
+
+OLD_CITY_MAP_B64 = base64.b64encode(_build_old_city_map_svg().encode("utf-8")).decode("ascii")
 
 # ── Page config ───────────────────────────────────────────────────
 st.set_page_config(
@@ -160,16 +217,53 @@ for k, v in {
 theme = st.session_state.theme
 
 # ── Body background texture injection ────────────────────────────
-if BG_BODY_B64:
+_SITE_BG_B64 = CITYMAP_BG_B64 or BG_BODY_B64
+if _SITE_BG_B64:
     st.markdown(f"""
-    <style>
+    <style id="noize-site-backdrop">
     .stApp {{
-      background-image:
-        linear-gradient(rgba(7,11,16,0.50), rgba(7,11,16,0.50)),
-        url('data:image/jpeg;base64,{BG_BODY_B64}') !important;
-      background-size: cover, cover !important;
-      background-attachment: fixed, fixed !important;
-      background-position: center, center !important;
+      background-color: #060904 !important;
+      background-image: none !important;
+    }}
+    /* full-page city-map backdrop: fixed, brightened (source image is near-black)
+       and a little transparent so it reads as a subtle noir texture */
+    .stApp::before {{
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: url('data:image/jpeg;base64,{_SITE_BG_B64}');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: brightness(1.75) saturate(1.12) contrast(1.05);
+      opacity: 0.55;
+    }}
+    /* a touch of vignette + dark wash on top of the map for depth/readability */
+    .stApp::after {{
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 50% 35%, rgba(6,9,4,0.10), rgba(6,9,4,0.55) 85%);
+    }}
+    /* let the backdrop show through the stacked Streamlit containers
+       (these are painted solid elsewhere; higher specificity wins) and keep
+       the actual content above the map layers */
+    .stApp [data-testid="stAppViewContainer"],
+    .stApp [data-testid="stHeader"],
+    .stApp [data-testid="stMain"],
+    .stApp section.main,
+    .stApp .block-container {{
+      background: transparent !important;
+    }}
+    .stApp [data-testid="stAppViewContainer"],
+    .stApp [data-testid="stHeader"] {{
+      position: relative;
+      z-index: 1;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -725,22 +819,27 @@ def render_detective_briefing(articles, panel_bg_override=None):
     leads_html = ""
     for idx, art in enumerate(articles[:3]):
         cat   = art.get("category","News")
-        head  = (art.get("headline","") or "")[:52]
-        summ  = (art.get("summary","") or "")[:60]
+        head  = (art.get("headline","") or "")[:72]
+        summ  = (art.get("summary","") or "")[:150]
         url   = art.get("url","#")
         picon,pcol,vel = plat_data[idx%len(plat_data)]
         num_style   = f"width:22px;height:22px;border-radius:50%;background:{pcol};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0"
         icon_style  = f"width:32px;height:32px;border-radius:8px;background:{pcol}22;border:1px solid {pcol}44;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"
-        head_style  = "font-size:11px;font-weight:700;color:var(--tx1);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
-        cat_style   = "font-size:9px;color:var(--tx4);margin-top:1px"
-        card_style  = f"display:flex;gap:8px;align-items:flex-start;padding:9px 10px;background:var(--surface-2);border:1px solid var(--border-2);border-left:2px solid {pcol};border-radius:9px;margin-bottom:6px"
-        vel_style   = "font-size:11px;font-weight:800;color:var(--lime-t);flex-shrink:0;white-space:nowrap"
+        head_style  = "font-size:11.5px;font-weight:700;color:var(--tx1);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"
+        summ_style  = "font-size:9.5px;color:var(--tx3);line-height:1.5;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"
+        cat_style   = "font-size:9px;color:var(--tx4)"
+        meta_style  = "display:flex;align-items:center;justify-content:space-between;margin-top:6px"
+        card_style  = f"display:flex;gap:9px;align-items:flex-start;padding:10px 11px;background:var(--surface-2);border:1px solid var(--border-2);border-left:2px solid {pcol};border-radius:9px;margin-bottom:7px"
+        vel_style   = "font-size:10.5px;font-weight:800;color:var(--lime-t);white-space:nowrap"
         leads_html += (f'<a href="{url}" target="_blank" style="text-decoration:none">'
                        f'<div style="{card_style}">'
                        f'<div style="{num_style}">{idx+1}</div>'
                        f'<div style="{icon_style}">{picon}</div>'
-                       f'<div style="flex:1;min-width:0"><div style="{head_style}">{head}</div><div style="{cat_style}">{cat_icons.get(cat,"📡")} {cat}</div></div>'
-                       f'<div style="{vel_style}">↑ {vel}</div>'
+                       f'<div style="flex:1;min-width:0">'
+                       f'<div style="{head_style}">{head}</div>'
+                       f'<div style="{summ_style}">{summ}</div>'
+                       f'<div style="{meta_style}"><span style="{cat_style}">{cat_icons.get(cat,"📡")} {cat}</span><span style="{vel_style}">↑ {vel}</span></div>'
+                       f'</div>'
                        f'</div></a>')
     if not leads_html:
         leads_html = '<div style="color:var(--tx4);font-size:12px;padding:10px">Loading intelligence...</div>'
@@ -1393,8 +1492,9 @@ st.markdown(
     f"{_SPLIT}{{flex-direction:column!important;flex-wrap:nowrap!important}}"
     f"{_SPLIT} > [data-testid=\"stColumn\"]{{display:contents!important}}"
     f"{_SPLIT} > [data-testid=\"stColumn\"] > [data-testid=\"stVerticalBlock\"]{{display:contents!important}}"
-    # reorder: hero(-2) → briefing(-1) → [case content 0] → radar/classified(0) → signal index(1)
-    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-herowrap){{order:-2!important}}"
+    # reorder: hero(-3) → blueprint generator(-2) → briefing(-1) → [case content/radar/classified 0] → signal index(1)
+    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-herowrap){{order:-3!important}}"
+    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-srcpanel){{order:-2!important}}"
     f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-briefingwrap){{order:-1!important}}"
     f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-cf_bottom){{order:1!important}}"
     "}</style>",
@@ -1549,40 +1649,15 @@ with main_col:
         st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
         if not active_platform:
-            # Welcome — show briefing articles as case previews
-            st.markdown(f"""
-            <div style="display:flex;align-items:center;gap:8px;margin:14px 0 12px 0">
-              <div style="width:6px;height:6px;border-radius:50%;background:var(--lime-t);box-shadow:0 0 8px var(--lime-t)"></div>
-              <span style="font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase">Cases Opened Today</span>
-              <span style="font-size:9px;font-weight:800;color:var(--lime-t);background:var(--lime-bg);border:1px solid var(--lime-border);padding:1px 7px;border-radius:6px">{len(articles)} NEW</span>
-            </div>""", unsafe_allow_html=True)
-            if articles:
-                art_cols = st.columns(3, gap="small")
-                _gaming_col = "#2a5200" if theme == "day" else "#A3FF12"
-                cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":_gaming_col}
-                for i,art in enumerate(articles[:3]):
-                    cat   = art.get("category","News")
-                    color = cat_colors.get(cat, _gaming_col)
-                    tag   = art.get("tag","Trending")
-                    head  = art.get("headline","")
-                    summ  = art.get("summary","")
-                    url   = art.get("url","#")
-                    with art_cols[i]:
-                        st.markdown(
-                            f'<a href="{url}" target="_blank" style="text-decoration:none">'
-                            f'<div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid {color};border-radius:10px;padding:14px;height:100%">'
-                            f'<div style="display:flex;justify-content:space-between;margin-bottom:8px">'
-                            f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;color:var(--amber);font-weight:600;letter-spacing:0.10em">CASE #{i+1:04d}</span>'
-                            f'<span style="font-family:JetBrains Mono,monospace;font-size:8px;font-weight:800;color:{color};background:{color}18;padding:2px 7px;border-radius:3px;letter-spacing:0.08em">{tag.upper()}</span>'
-                            f'</div>'
-                            f'<div style="font-size:13px;font-weight:700;color:var(--tx1);line-height:1.35;margin-bottom:7px;font-family:Poppins,sans-serif">{head}</div>'
-                            f'<div style="font-size:11px;color:var(--tx3);line-height:1.65">{summ}</div>'
-                            f'<div style="margin-top:12px;font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:{color};letter-spacing:0.08em">OPEN FILE ›</div>'
-                            f'</div></a>',
-                            unsafe_allow_html=True
-                        )
-            st.markdown("<div style='margin:14px 0 4px;border-top:1px solid var(--border)'></div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:11px;color:var(--tx4);text-align:center;padding:4px 0'>Select a source above to open live case files</div>", unsafe_allow_html=True)
+            # Welcome — today's top leads live in the Detective Briefing (right rail);
+            # this column just prompts the user to pick a source.
+            st.markdown(
+                "<div style='text-align:center;padding:30px 16px 14px'>"
+                "<div style='font-size:12px;color:var(--tx3);line-height:1.6'>Pick a source above to open live case files.</div>"
+                "<div style='font-size:10px;color:var(--tx4);margin-top:7px;font-family:JetBrains Mono,monospace;letter-spacing:0.04em'>Today&rsquo;s top leads are in the briefing.</div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
 
         else:
             hashtags      = get_latest_hashtags(platform=active_platform)
@@ -1622,26 +1697,71 @@ with main_col:
 
             st.markdown("<div style='font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px'>Rank Velocity</div>", unsafe_allow_html=True)
             render_velocity_chart(velocity_data, platform=active_platform)
-            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-            render_case_cards(velocity_data if velocity_data else hashtags, platform=active_platform)
+            st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-            # ── Inline blueprint builder — select trends right here ──
+            # ── Combined case-file + blueprint picker ──
+            # One row per trend: [checkbox + name]  …  [mini case file → opens the story].
+            # Replaces the old big-card grid + separate checkbox list (no duplication, no scroll).
             bp_source = velocity_data if velocity_data else hashtags
             if bp_source:
-                st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
                 st.markdown(
                     f"<div style='font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px'>🎬 Build a Blueprint</div>"
-                    f"<div style='font-size:11px;color:var(--tx3);margin-bottom:10px;line-height:1.6'>Highlight the {cfg['icon']} {cfg['label']} trends you want, then generate a production blueprint.</div>",
+                    f"<div style='font-size:11px;color:var(--tx3);margin-bottom:10px;line-height:1.6'>Tick the {cfg['icon']} {cfg['label']} trends you want, then generate a production blueprint. Tap any case file to open the story.</div>",
                     unsafe_allow_html=True
                 )
                 cf_niche = st.text_input("Your niche (optional)", placeholder="e.g. fitness, fashion, food...", key=f"cf_bp_niche_{active_platform}")
+                # Keep [checkbox] and [case file] on ONE row even on mobile (Streamlit would stack them).
+                st.markdown(
+                    "<style>"
+                    # Old-city-map blueprint texture behind the topic rows (noir theme)
+                    ".st-key-bplist{"
+                    "position:relative;border:1px solid var(--border);border-radius:14px;"
+                    "padding:14px 14px 16px;overflow:hidden;"
+                    "background-color:#070b05;"
+                    "background-image:"
+                    "radial-gradient(ellipse at 50% 0%,rgba(10,16,5,0.62),rgba(7,11,5,0.90) 72%),"
+                    "url('data:image/svg+xml;base64," + OLD_CITY_MAP_B64 + "');"
+                    "background-size:cover,140%;"
+                    "background-position:center,center;"
+                    "box-shadow:inset 0 0 70px rgba(0,0,0,0.55)}"
+                    # rows sit above the texture
+                    ".st-key-bplist [data-testid=\"stVerticalBlock\"]{position:relative;z-index:1}"
+                    ".st-key-bplist [data-testid=\"stHorizontalBlock\"]{flex-wrap:nowrap!important;align-items:center;gap:10px}"
+                    ".st-key-bplist [data-testid=\"stColumn\"]{min-width:0!important}"
+                    ".st-key-bplist [data-testid=\"stColumn\"]:first-child{flex:1 1 auto!important}"
+                    ".st-key-bplist [data-testid=\"stColumn\"]:last-child{flex:0 0 134px!important}"
+                    "</style>",
+                    unsafe_allow_html=True,
+                )
                 cf_selected = []
                 cf_pfx = "#" if active_platform == "tiktok" else ""
-                cf_cols = st.columns(2)
-                for i, h in enumerate(bp_source):
-                    with cf_cols[i % 2]:
-                        if st.checkbox(f"{cf_pfx}{h['name']}", key=f"cf_bp_{active_platform}_{i}"):
-                            cf_selected.append(h["name"])
+                with st.container(key="bplist"):
+                    for i, h in enumerate(bp_source):
+                        name = h.get("name","")
+                        url  = h.get("url") or f"https://www.google.com/search?q={name}"
+                        status_lbl, sc, sb = case_status(h)
+                        try:    rank_int = int(str(h.get("current_rank") or h.get("rank") or 10))
+                        except: rank_int = 10
+                        vel_str, vel_col = velocity_pct_str(h.get("rank_change",0), h.get("is_new",False), rank_int, name)
+                        rcol, fcol = st.columns([0.66, 0.34])
+                        with rcol:
+                            if st.checkbox(f"{cf_pfx}{name}", key=f"cf_bp_{active_platform}_{i}"):
+                                cf_selected.append(name)
+                        with fcol:
+                            st.markdown(
+                                f'<a href="{url}" target="_blank" style="text-decoration:none;display:block">'
+                                f'<div style="background:var(--surface-2);border:1px solid var(--border);border-left:2px solid {sc};border-radius:8px;padding:6px 9px">'
+                                f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">'
+                                f'<span style="font-family:JetBrains Mono,monospace;font-size:7px;font-weight:700;color:var(--amber);letter-spacing:0.07em">📄 CASE FILE</span>'
+                                f'<span style="font-size:9px;color:{sc}">→</span>'
+                                f'</div>'
+                                f'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
+                                f'<span style="font-family:JetBrains Mono,monospace;font-size:7.5px;font-weight:800;color:{sc};letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{status_lbl}</span>'
+                                f'<span style="font-family:JetBrains Mono,monospace;font-size:10px;font-weight:700;color:{vel_col};white-space:nowrap">{vel_str}</span>'
+                                f'</div>'
+                                f'</div></a>',
+                                unsafe_allow_html=True,
+                            )
                 if st.button("🎬 Generate Blueprint", type="primary", use_container_width=True,
                              disabled=len(cf_selected) == 0, key=f"cf_gen_bp_{active_platform}"):
                     with st.spinner("Building intelligence file..."):
