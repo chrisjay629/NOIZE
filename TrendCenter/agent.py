@@ -419,13 +419,75 @@ def generate_trend_articles() -> list:
 
 # ── STRANGE SIGNALS ─────────────────────────────────────────────
 
+def _gpt_strange_signals_fallback(limit=5):
+    """Last resort: when both Reddit and Google come up empty (e.g. blocked on
+    Railway), have GPT invent original strange-signal case files so the radar
+    is never blank. Each gets a summary here; images are generated lazily when
+    a case is opened (image_url left empty)."""
+    print("[STRANGE] Using GPT fallback to generate signals", flush=True)
+    types = ["UFO", "Paranormal", "Strange", "Unsolved", "Cryptid", "Glitch"]
+    prompt = (
+        "You are Pugson, a noir detective who catalogues strange, unexplained "
+        f"signals from the internet's weirdest corners. Invent {limit} ORIGINAL, "
+        "fictional-but-plausible strange reports (UFO sightings, hauntings, "
+        "cryptids, unsolved mysteries, reality glitches). Each should feel like "
+        "a real anonymous internet account. Vary the 'type' across: "
+        + ", ".join(types) + ".\n\n"
+        "Return ONLY a JSON array (no markdown) of exactly "
+        f"{limit} objects:\n"
+        '[{"title":"short eerie headline (max 14 words)",'
+        '"type":"one of ' + "/".join(types) + '",'
+        '"body":"2-3 sentence first-person account of the strange event",'
+        '"summary":"ONE ominous detective sentence framing the mystery (max 24 words)"}]'
+    )
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        data = _parse_json_safe(resp.choices[0].message.content) or []
+    except Exception as e:
+        print(f"[STRANGE] GPT fallback failed: {e}", flush=True)
+        return []
+
+    signals = []
+    for i, d in enumerate(data[:limit]):
+        title = (d.get("title") or "").strip()
+        if not title:
+            continue
+        sig_type = d.get("type", "Strange")
+        if sig_type not in types:
+            sig_type = "Strange"
+        signals.append({
+            "title": title[:160],
+            "subreddit": "Anonymous wire",
+            "type": sig_type,
+            "rank": i + 1,
+            "permalink": f"https://www.google.com/search?q={title.replace(' ', '+')}",
+            "selftext": (d.get("body") or "")[:400],
+            "summary": (d.get("summary") or title).strip(),
+            "image_url": "",
+            "platform": "gpt",
+            "source": "gpt_fallback",
+        })
+    print(f"[STRANGE] GPT fallback produced {len(signals)} signals", flush=True)
+    return signals
+
+
 def generate_strange_signals(limit=5):
-    """Real weird/unexplained Reddit posts + a short noir-detective summary
-    for each. Returns up to `limit` signals (hottest first)."""
-    from platforms import scrape_strange_signals
+    """Layered sourcing so the radar is never empty:
+    1) real weird/unexplained Reddit posts,
+    2) strange news from Google News (works where Reddit is IP-blocked),
+    3) GPT-generated original case files as a last resort.
+    Returns up to `limit` signals (hottest first), each with a noir summary."""
+    from platforms import scrape_strange_signals, scrape_strange_signals_google
     signals = scrape_strange_signals(limit=limit)
     if not signals:
-        return []
+        print("[STRANGE] Reddit empty — trying Google News", flush=True)
+        signals = scrape_strange_signals_google(limit=limit)
+    if not signals:
+        print("[STRANGE] Google empty — falling back to GPT", flush=True)
+        return _gpt_strange_signals_fallback(limit=limit)
 
     # One batched GPT call to write a punchy detective-style line per post.
     numbered = []

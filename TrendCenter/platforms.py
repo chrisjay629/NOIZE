@@ -303,3 +303,81 @@ def scrape_strange_signals(limit=12):
     except Exception as e:
         print(f"[STRANGE] Fetch failed: {e}", flush=True)
         return []
+
+
+# ── STRANGE SIGNALS (GOOGLE NEWS) ── RSS, no key, not IP-blocked ──
+
+# Search query → signal "type" used for radar colour/sector.
+STRANGE_GOOGLE_QUERIES = {
+    '"UFO" OR "UAP" OR "unidentified flying object"': "UFO",
+    '"alien" sighting OR encounter':                  "UFO",
+    'paranormal OR haunting OR poltergeist':          "Paranormal",
+    'ghost sighting OR apparition':                   "Paranormal",
+    '"unexplained" mystery OR phenomenon':            "Strange",
+    'cold case OR unsolved mystery':                  "Unsolved",
+    'cryptid OR bigfoot OR "loch ness"':              "Cryptid",
+}
+
+
+def scrape_strange_signals_google(limit=12):
+    """Pull strange/unexplained news from Google News RSS search. Google News
+    is not IP-blocked from datacenters (unlike Reddit), so this works on
+    Railway. Returns dicts in the same shape as scrape_strange_signals()."""
+    # Collect a small bucket per query, then round-robin so the radar shows a
+    # variety of signal types instead of (e.g.) five UFO items in a row.
+    buckets, seen = [], set()
+    per_query = max(2, (limit // max(1, len(STRANGE_GOOGLE_QUERIES))) + 1)
+    for query, sig_type in STRANGE_GOOGLE_QUERIES.items():
+        q = query.replace(" ", "%20").replace('"', "%22")
+        url = (
+            f"https://news.google.com/rss/search?q={q}%20when:7d"
+            "&hl=en-US&gl=US&ceid=US:en"
+        )
+        bucket = []
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=15)
+            r.raise_for_status()
+            root = ET.fromstring(r.text)
+            for it in root.findall(".//item"):
+                if len(bucket) >= per_query:
+                    break
+                title_el = it.find("title")
+                link_el = it.find("link")
+                desc_el = it.find("description")
+                source_el = it.find("source")
+                title = (title_el.text or "").strip() if title_el is not None else ""
+                # Google News titles look "Headline - Publisher"; keep the headline.
+                headline = re.split(r"\s+-\s+[^-]+$", title)[0].strip() or title
+                key = headline.lower()
+                if not headline or key in seen:
+                    continue
+                seen.add(key)
+                link = (link_el.text or "").strip() if link_el is not None else ""
+                publisher = (source_el.text or "").strip() if source_el is not None else "Google News"
+                raw = (desc_el.text or "") if desc_el is not None else ""
+                body = re.sub(r"<[^>]+>", " ", raw)
+                body = re.sub(r"\s+", " ", body).strip()
+                bucket.append({
+                    "title": headline[:160],
+                    "subreddit": publisher or "Google News",
+                    "type": sig_type,
+                    "permalink": link,
+                    "selftext": body[:400],
+                    "image_url": "",
+                    "platform": "google",
+                })
+        except Exception as e:
+            print(f"[STRANGE-GOOGLE] Query failed ({sig_type}): {e}", flush=True)
+        buckets.append(bucket)
+
+    items = []
+    for col in range(per_query):
+        for bucket in buckets:
+            if col < len(bucket) and len(items) < limit:
+                items.append(bucket[col])
+        if len(items) >= limit:
+            break
+    for i, it in enumerate(items):
+        it["rank"] = i + 1
+    print(f"[STRANGE-GOOGLE] Got {len(items)} strange news items", flush=True)
+    return items
