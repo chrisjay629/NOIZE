@@ -410,7 +410,7 @@ html, body, [class*="css"] {
   background-color: var(--bg) !important;
 }
 
-.block-container { padding: 0.75rem 1.2rem 2rem 1.2rem !important; max-width: 100% !important; }
+.block-container { padding: 0.75rem 1.2rem 5rem 1.2rem !important; max-width: 100% !important; }
 
 /* ── Sidebar — Command Center ── */
 [data-testid="stSidebar"] {
