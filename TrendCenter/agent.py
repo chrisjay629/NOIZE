@@ -268,14 +268,18 @@ def _parse_json_safe(text):
 
 
 def _filter_top3_for_niche(platform_data, niche, platform_key):
-    """Use GPT to pick the 3 most relevant trends from a platform for a given niche."""
+    """Use GPT to pick the live trends GENUINELY relevant to a niche/topic.
+    Returns 0-3 real trend dicts — NOT padded with unrelated items. If nothing
+    on the platform genuinely relates to the topic, returns an empty list so the
+    caller can top up with topic-relevant AI results instead."""
     names = [h["name"] for h in platform_data[:20]]
     prompt = (
         f"From these {platform_key} trending topics: {json.dumps(names)}\n"
-        f"Pick the 3 most interesting or relevant ones for a creator who makes '{niche}' content.\n"
-        f"If none are directly related, pick the 3 most creatively connectable.\n"
-        f"Return ONLY a JSON array of exactly 3 names exactly as they appear:\n"
-        f'["name1", "name2", "name3"]'
+        f'Return ONLY the ones GENUINELY relevant to a creator making "{niche}" content. '
+        f"Related sub-topics, synonyms, and clear thematic connections count, but do NOT "
+        f"stretch for loose or unrelated picks. Pick at most 3.\n"
+        f"Return ONLY a JSON array of the relevant names exactly as they appear (it may be empty):\n"
+        f'["name1", "name2"]  // or []'
     )
     try:
         resp = client.chat.completions.create(
@@ -285,17 +289,10 @@ def _filter_top3_for_niche(platform_data, niche, platform_key):
         selected_names = _parse_json_safe(resp.choices[0].message.content)
         name_map = {h["name"]: h for h in platform_data}
         selected = [name_map[n] for n in selected_names if n in name_map]
-        # Pad to 3 if GPT names didn't match exactly
-        if len(selected) < 3:
-            for h in platform_data:
-                if h not in selected:
-                    selected.append(h)
-                if len(selected) >= 3:
-                    break
         return selected[:3]
     except Exception as e:
         print(f"[NICHE PULSE] {platform_key} filter failed: {e}", flush=True)
-        return platform_data[:3]
+        return []
 
 
 def _gpt_niche_fallback(niche, platform):
@@ -344,16 +341,27 @@ def _gpt_niche_fallback(niche, platform):
 
 
 def niche_pulse(niche: str) -> dict:
-    """Cross-platform niche search. Returns {platform_key: [3 trend dicts]}."""
+    """Cross-platform niche search. Returns {platform_key: [up to 3 trend dicts]}.
+
+    Shows live trends that GENUINELY match the topic; when a platform has fewer
+    than 3 genuine matches (common for narrow topics like 'aliens'), it tops up
+    with topic-relevant AI-generated trends so the results actually relate to the
+    search instead of falling back to unrelated live trends."""
     platforms = ["tiktok", "google", "youtube", "reddit"]
     results = {}
     for key in platforms:
         platform_data = get_latest_hashtags(platform=key)
-        if not platform_data:
-            print(f"[NICHE PULSE] No data for {key} — using GPT fallback", flush=True)
-            results[key] = _gpt_niche_fallback(niche, key)
-        else:
-            results[key] = _filter_top3_for_niche(platform_data, niche, key)
+        relevant = _filter_top3_for_niche(platform_data, niche, key) if platform_data else []
+        if len(relevant) < 3:
+            seen = {(h.get("name") or "").strip().lower() for h in relevant}
+            for g in _gpt_niche_fallback(niche, key):
+                gname = (g.get("name") or "").strip().lower()
+                if gname and gname not in seen:
+                    relevant.append(g)
+                    seen.add(gname)
+                if len(relevant) >= 3:
+                    break
+        results[key] = relevant[:3]
     return results
 
 
