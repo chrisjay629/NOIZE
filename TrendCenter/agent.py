@@ -395,22 +395,22 @@ def _search_platform_live(platform_key, angles, want=8):
     return rows
 
 
-def niche_pulse(niche: str) -> dict:
-    """Cross-platform niche search. Returns {platform_key: [up to 3 trend dicts]}.
+def _gather_live_rows(niche, angles):
+    """Fetch live rows once per platform so cards AND the dossier can share them
+    (avoids paying for the same retrieval twice). Returns {platform: [rows]}.
+    TikTok has no free search API, so it uses DB trends."""
+    raw = {"tiktok": get_latest_hashtags(platform="tiktok") or []}
+    for key in ["google", "youtube", "reddit"]:
+        raw[key] = _search_platform_live(key, angles)
+    return raw
 
-    Grounded cascade so results are REAL and topic-relevant:
-    1. transform the query into 2-3 angles,
-    2. retrieve live rows per platform (Google News / YouTube / Reddit search),
-    3. keep only the genuinely relevant ones,
-    4. top up with topic-relevant AI rows only if a platform comes up short.
-    TikTok has no free search API, so it stays on the DB-trends + AI path."""
-    angles = transform_niche_query(niche) or [niche]
+
+def _cards_from_rows(niche, raw):
+    """Turn gathered rows into the {platform: [up to 3]} card shape: keep only
+    genuinely relevant live rows, top up with AI only when a platform is short."""
     results = {}
     for key in ["tiktok", "google", "youtube", "reddit"]:
-        if key == "tiktok":
-            platform_data = get_latest_hashtags(platform=key)
-        else:
-            platform_data = _search_platform_live(key, angles)
+        platform_data = raw.get(key) or []
         relevant = _filter_top3_for_niche(platform_data, niche, key) if platform_data else []
         if len(relevant) < 3:
             seen = {(h.get("name") or "").strip().lower() for h in relevant}
@@ -423,6 +423,122 @@ def niche_pulse(niche: str) -> dict:
                     break
         results[key] = relevant[:3]
     return results
+
+
+def niche_pulse(niche: str) -> dict:
+    """Cross-platform niche search. Returns {platform_key: [up to 3 trend dicts]}.
+    Grounded cascade: transform query -> live retrieval -> relevance filter ->
+    AI top-up only when short. (Kept for callers that just want the cards.)"""
+    angles = transform_niche_query(niche) or [niche]
+    return _cards_from_rows(niche, _gather_live_rows(niche, angles))
+
+
+def _build_sites_panel(raw, limit=6):
+    """The right-hand thumbnail rail: prefer rows that carry a real image
+    (YouTube), then fill with other live rows. Returns up to `limit` items."""
+    panel, seen = [], set()
+    ordered = (raw.get("youtube") or []) + (raw.get("google") or []) + (raw.get("reddit") or [])
+    # First pass: rows with thumbnails; second pass: anything live with a url.
+    for want_thumb in (True, False):
+        for r in ordered:
+            url = r.get("url")
+            if not url or url in seen:
+                continue
+            if want_thumb and not r.get("thumbnail"):
+                continue
+            panel.append({
+                "title": r.get("name", "")[:90],
+                "source": r.get("source_name") or r.get("category") or r.get("platform", ""),
+                "thumb": r.get("thumbnail", ""),
+                "url": url,
+                "platform": r.get("platform", ""),
+            })
+            seen.add(url)
+            if len(panel) >= limit:
+                return panel
+    return panel
+
+
+def _synthesize_dossier_sections(niche, raw):
+    """Feed the REAL gathered rows to GPT and have it organize them into per-
+    platform sections (themed heading + 2-3 stories). GPT only organizes — every
+    story references a provided row by number, so URLs/sources stay real and
+    nothing is invented. Returns a list of section dicts."""
+    # Number every real row globally so GPT can only cite what we gave it.
+    indexed, lines = {}, []
+    n = 0
+    label = {"google": "Google News", "youtube": "YouTube", "reddit": "Reddit", "tiktok": "TikTok"}
+    for key in ["google", "youtube", "reddit"]:           # tiktok rows are hashtags, not stories
+        for r in (raw.get(key) or []):
+            if not r.get("name"):
+                continue
+            n += 1
+            indexed[n] = r
+            blurb = (r.get("blurb") or "")[:160]
+            lines.append(f'{n}. [{label.get(key, key)}] {r.get("name","")[:120]} — {r.get("source_name","")} :: {blurb}')
+    if not lines:
+        return []
+    prompt = (
+        f'You are Pugson, an investigator briefing a content creator on "{niche}". '
+        "Below are REAL items pulled live from each platform, each with a number.\n\n"
+        + "\n".join(lines)
+        + "\n\nGroup them into per-platform sections. For each platform that has items, "
+        "write a short themed heading (max 8 words) and 2-3 story bullets. Each bullet "
+        "must reference ONE item by its number and give a punchy 1-sentence take in a "
+        "sharp, slightly noir tone. Use ONLY the items above — do NOT invent stories, "
+        "numbers, or platforms. If a platform has no items, omit it.\n"
+        'Return ONLY JSON (no markdown):\n'
+        '{"sections":[{"platform":"google|youtube|reddit","heading":"...",'
+        '"stories":[{"ref":<item number>,"take":"one sentence"}]}]}'
+    )
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        data = _parse_json_safe(resp.choices[0].message.content) or {}
+    except Exception as e:
+        print(f"[DOSSIER] synthesis failed: {e}", flush=True)
+        data = {}
+
+    sections = []
+    for sec in data.get("sections", []):
+        stories = []
+        for s in sec.get("stories", []):
+            row = indexed.get(s.get("ref"))
+            if not row:
+                continue                                   # drop any hallucinated ref
+            stories.append({
+                "headline": row.get("name", ""),
+                "take": (s.get("take") or "").strip(),
+                "source": row.get("source_name") or row.get("category", ""),
+                "url": row.get("url", ""),
+                "thumbnail": row.get("thumbnail", ""),
+            })
+        if stories:
+            sections.append({
+                "platform": sec.get("platform", ""),
+                "heading": (sec.get("heading") or "").strip(),
+                "stories": stories[:3],
+            })
+    return sections
+
+
+def build_dossier(niche: str) -> dict:
+    """The INVESTIGATE dossier: one live gather powers everything.
+    Returns {query, cards, sections, sites_panel}.
+    - cards:       {platform: [up to 3]} for the existing pulse renderer
+    - sections:    per-platform themed digest, grounded in real rows
+    - sites_panel: thumbnail rail (mostly YouTube)"""
+    angles = transform_niche_query(niche) or [niche]
+    raw = _gather_live_rows(niche, angles)
+    return {
+        "query": niche,
+        "angles": angles,
+        "cards": _cards_from_rows(niche, raw),
+        "sections": _synthesize_dossier_sections(niche, raw),
+        "sites_panel": _build_sites_panel(raw),
+    }
 
 
 # ── AUTO TREND ARTICLES ─────────────────────────────────────────

@@ -7,7 +7,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime
 
-from agent import run_agent, generate_blueprint, research_niche_hashtags, niche_pulse, generate_trend_articles, generate_strange_signals, generate_case_file
+from agent import run_agent, generate_blueprint, research_niche_hashtags, niche_pulse, build_dossier, generate_trend_articles, generate_strange_signals, generate_case_file
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit
@@ -203,6 +203,7 @@ for k, v in {
     "nr_topic_label":  "",
     "pulse_results":   None,
     "pulse_query":     "",
+    "dossier":         None,
     "trend_articles":  [],
     "articles_ts":     None,
     "strange_signals": [],
@@ -1279,6 +1280,79 @@ def render_strange_watchlist(signals):
                 st.rerun()
 
 
+def render_dossier(dossier):
+    """The grounded cross-platform digest: per-platform themed sections (left)
+    + a thumbnail 'sources' rail (right). All content traces to real rows."""
+    sections = dossier.get("sections") or []
+    panel    = dossier.get("sites_panel") or []
+    query    = dossier.get("query", "")
+    if not sections and not panel:
+        return
+
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:13px;font-weight:700;color:var(--tx3)">🗞 The Dossier</span>
+      <span style="font-size:14px;font-weight:800;color:var(--tx1);font-family:'Poppins',sans-serif">"{query}"</span>
+      <span style="font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.08em;text-transform:uppercase">Live · cross-platform</span>
+    </div>""", unsafe_allow_html=True)
+
+    left, right = st.columns([7, 3])
+
+    with left:
+        for sec in sections:
+            cfg   = PLATFORM_CONFIG.get(sec.get("platform", ""), {"label": sec.get("platform", ""), "icon": "•", "color": "#AAFF00"})
+            color = cfg["color"]
+            st.markdown(f"""
+            <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px">
+              <span style="font-size:12px;font-weight:800;color:{color}">{cfg['icon']} {cfg['label'].upper()}</span>
+              <span style="font-size:13px;font-weight:700;color:var(--tx1);font-family:'Poppins',sans-serif">{sec.get('heading','')}</span>
+            </div>""", unsafe_allow_html=True)
+            for s in sec.get("stories", []):
+                hl  = (s.get("headline") or "")[:120]
+                take = s.get("take") or ""
+                src  = s.get("source") or ""
+                url  = s.get("url") or "#"
+                st.markdown(f"""
+                <a href="{url}" target="_blank" style="text-decoration:none">
+                <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid {color};
+                            border-radius:8px;padding:9px 12px;margin-bottom:6px;transition:border-color 0.15s"
+                     onmouseover="this.style.borderColor='{color}'"
+                     onmouseout="this.style.borderColor='var(--border)';this.style.borderLeftColor='{color}'">
+                  <div style="font-size:12.5px;font-weight:700;color:var(--tx1);font-family:'Poppins',sans-serif;line-height:1.3">{hl}</div>
+                  <div style="font-size:11px;color:var(--tx3);margin:3px 0 0;line-height:1.4">{take}</div>
+                  <div style="font-size:9px;color:var(--tx4);margin-top:4px;text-transform:uppercase;letter-spacing:0.06em">{src}</div>
+                </div></a>""", unsafe_allow_html=True)
+        if not sections:
+            st.markdown("<div style='font-size:11px;color:var(--tx4)'>No live stories on the wire — see the trend cards below.</div>", unsafe_allow_html=True)
+
+    with right:
+        st.markdown(f"""
+        <div style="font-size:9px;font-weight:700;color:var(--tx4);text-transform:uppercase;
+                    letter-spacing:0.1em;margin:14px 0 8px">📎 {len(panel)} sources</div>""", unsafe_allow_html=True)
+        for p in panel:
+            thumb = p.get("thumb") or ""
+            title = (p.get("title") or "")[:80]
+            src   = p.get("source") or ""
+            url   = p.get("url") or "#"
+            cfg   = PLATFORM_CONFIG.get(p.get("platform", ""), {"color": "#666"})
+            thumb_html = (
+                f'<img src="{thumb}" style="width:100%;height:64px;object-fit:cover;border-radius:6px;margin-bottom:5px" />'
+                if thumb else ""
+            )
+            st.markdown(f"""
+            <a href="{url}" target="_blank" style="text-decoration:none">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;
+                        padding:8px;margin-bottom:7px;transition:border-color 0.15s"
+                 onmouseover="this.style.borderColor='{cfg['color']}'"
+                 onmouseout="this.style.borderColor='var(--border)'">
+              {thumb_html}
+              <div style="font-size:11px;font-weight:700;color:var(--tx1);line-height:1.3">{title}</div>
+              <div style="font-size:9px;color:var(--tx4);margin-top:3px">{src}</div>
+            </div></a>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+
+
 def render_niche_pulse(results, query):
     st.markdown(f"""
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
@@ -1571,17 +1645,22 @@ with main_col:
         _hero_query = chip_clicked
     if _hero_query:
         with st.spinner(f'Scanning all platforms for "{_hero_query}"...'):
-            st.session_state.pulse_results = niche_pulse(_hero_query)
+            dossier = build_dossier(_hero_query)
+            st.session_state.dossier       = dossier
+            st.session_state.pulse_results = dossier["cards"]
             st.session_state.pulse_query   = _hero_query
         st.rerun()
 
     # Show investigation results right under the hero, on any tab.
     if st.session_state.pulse_results and st.session_state.pulse_query:
         st.markdown("---")
+        if st.session_state.dossier:
+            render_dossier(st.session_state.dossier)
         render_niche_pulse(st.session_state.pulse_results, st.session_state.pulse_query)
         if st.button("✕ Clear results", key="hero_clear"):
             st.session_state.pulse_results = None
             st.session_state.pulse_query   = ""
+            st.session_state.dossier       = None
             st.rerun()
         st.markdown("---")
 
