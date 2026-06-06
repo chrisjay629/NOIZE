@@ -495,6 +495,7 @@ def _synthesize_dossier_sections(niche, raw):
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},   # guarantees valid JSON
         )
         data = _parse_json_safe(resp.choices[0].message.content) or {}
     except Exception as e:
@@ -503,11 +504,12 @@ def _synthesize_dossier_sections(niche, raw):
 
     sections = []
     for sec in data.get("sections", []):
-        stories = []
+        stories, plats = [], []
         for s in sec.get("stories", []):
             row = indexed.get(s.get("ref"))
             if not row:
                 continue                                   # drop any hallucinated ref
+            plats.append(row.get("platform", ""))
             stories.append({
                 "headline": row.get("name", ""),
                 "take": (s.get("take") or "").strip(),
@@ -516,8 +518,10 @@ def _synthesize_dossier_sections(niche, raw):
                 "thumbnail": row.get("thumbnail", ""),
             })
         if stories:
+            # Trust the rows, not GPT's label, for the platform (styling/icon).
+            platform = max(set(plats), key=plats.count) if plats else sec.get("platform", "")
             sections.append({
-                "platform": sec.get("platform", ""),
+                "platform": platform,
                 "heading": (sec.get("heading") or "").strip(),
                 "stories": stories[:3],
             })
