@@ -815,31 +815,53 @@ def render_signal_guide():
 def render_detective_briefing(articles, panel_bg_override=None):
     hour     = datetime.now().hour
     greeting = "Good morning" if hour<12 else ("Good afternoon" if hour<18 else "Good evening")
-    cat_icons = {"News":"📰","Music & Film":"🎬","Gaming":"🎮"}
-    plat_data = [("🎵","#fe2c55","+573%"),("🔴","#ff5700","+302%"),("📺","#ff4444","+218%")]
+    # Crisp inline SVG icons (stroke uses the COL token, swapped per-category).
+    _svg_news = ('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="COL" '
+                 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                 '<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="8.5" x2="13" y2="8.5"/>'
+                 '<line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="15.5" x2="17" y2="15.5"/></svg>')
+    _svg_film = ('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="COL" '
+                 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                 '<rect x="3" y="6" width="18" height="14" rx="2"/><line x1="3" y1="10.5" x2="21" y2="10.5"/>'
+                 '<line x1="7" y1="6" x2="5" y2="10.5"/><line x1="12" y1="6" x2="10" y2="10.5"/>'
+                 '<line x1="17" y1="6" x2="15" y2="10.5"/></svg>')
+    _svg_game = ('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="COL" '
+                 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                 '<rect x="2" y="7" width="20" height="11" rx="5"/><line x1="7" y1="11" x2="7" y2="14"/>'
+                 '<line x1="5.5" y1="12.5" x2="8.5" y2="12.5"/>'
+                 '<circle cx="16.5" cy="11.5" r="1" fill="COL" stroke="none"/>'
+                 '<circle cx="18.5" cy="13.5" r="1" fill="COL" stroke="none"/></svg>')
+    # Colors drawn from the page's own radar palette so it all reads as one system.
+    cat_meta = {
+        "News":         ("#4da8ff", _svg_news),
+        "Music & Film": ("#fbbf24", _svg_film),
+        "Gaming":       ("#A3FF12", _svg_game),
+    }
+    vels = ["+573%", "+302%", "+218%"]
     leads_html = ""
     for idx, art in enumerate(articles[:3]):
         cat   = art.get("category","News")
         head  = (art.get("headline","") or "")[:72]
         summ  = (art.get("summary","") or "")[:150]
         url   = art.get("url","#")
-        picon,pcol,vel = plat_data[idx%len(plat_data)]
-        num_style   = f"width:22px;height:22px;border-radius:50%;background:{pcol};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0"
-        icon_style  = f"width:32px;height:32px;border-radius:8px;background:{pcol}22;border:1px solid {pcol}44;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"
+        col, svg = cat_meta.get(cat, ("#A3FF12", _svg_news))
+        icon_svg = svg.replace("COL", col)
+        vel = vels[idx % len(vels)]
+        icon_style  = f"width:34px;height:34px;border-radius:9px;background:{col}1f;border:1px solid {col}55;display:flex;align-items:center;justify-content:center;flex-shrink:0"
+        lead_style  = f"font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:{col};letter-spacing:0.14em;text-transform:uppercase;margin-bottom:3px"
         head_style  = "font-size:11.5px;font-weight:700;color:var(--tx1);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"
         summ_style  = "font-size:9.5px;color:var(--tx3);line-height:1.5;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"
-        cat_style   = "font-size:9px;color:var(--tx4)"
-        meta_style  = "display:flex;align-items:center;justify-content:space-between;margin-top:6px"
-        card_style  = f"display:flex;gap:9px;align-items:flex-start;padding:10px 11px;background:var(--surface-2);border:1px solid var(--border-2);border-left:2px solid {pcol};border-radius:9px;margin-bottom:7px"
+        meta_style  = "display:flex;align-items:center;justify-content:flex-end;margin-top:6px"
+        card_style  = f"display:flex;gap:10px;align-items:flex-start;padding:10px 11px;background:var(--surface-2);border:1px solid var(--border-2);border-left:2px solid {col};border-radius:9px;margin-bottom:7px"
         vel_style   = "font-size:10.5px;font-weight:800;color:var(--lime-t);white-space:nowrap"
         leads_html += (f'<a href="{url}" target="_blank" style="text-decoration:none">'
                        f'<div style="{card_style}">'
-                       f'<div style="{num_style}">{idx+1}</div>'
-                       f'<div style="{icon_style}">{picon}</div>'
+                       f'<div style="{icon_style}">{icon_svg}</div>'
                        f'<div style="flex:1;min-width:0">'
+                       f'<div style="{lead_style}">Lead 0{idx+1} · {cat}</div>'
                        f'<div style="{head_style}">{head}</div>'
                        f'<div style="{summ_style}">{summ}</div>'
-                       f'<div style="{meta_style}"><span style="{cat_style}">{cat_icons.get(cat,"📡")} {cat}</span><span style="{vel_style}">↑ {vel}</span></div>'
+                       f'<div style="{meta_style}"><span style="{vel_style}">↑ {vel}</span></div>'
                        f'</div>'
                        f'</div></a>')
     if not leads_html:
@@ -1577,17 +1599,10 @@ st.markdown(
 
 main_col, right_col = st.columns([7, 3], gap="medium")
 
-# ── RIGHT PANEL ───────────────────────────────────────────────────
-with right_col:
-    # Wrapped in a keyed container so the mobile-only CSS reorder can lift the
-    # briefing up to sit right under the hero (item 2). Desktop is untouched.
-    with st.container(key="briefingwrap"):
-        render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
-    _strange = get_strange_signals()
-    render_strange_radar_mini(_strange)
-    render_strange_watchlist(_strange)
-
 # ── MAIN CONTENT ──────────────────────────────────────────────────
+# Rendered BEFORE the right panel so the hero + main content paint first on
+# load. The right-panel briefing is appended at the very end of the script
+# (Streamlit streams in code order), which keeps the initial load smooth.
 with main_col:
 
     # ── HERO — glassy search + chips overlaid on the city image ──
@@ -2005,3 +2020,16 @@ with main_col:
     # ── WATCHLIST ────────────────────────────────────────────────
     elif active_nav == "WATCHLIST":
         st.markdown('<div style="text-align:center;padding:40px 20px"><div style="font-size:36px;margin-bottom:10px">⭐</div><div style="font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:6px;font-family:Poppins,sans-serif">Watchlist</div><div style="font-size:12px;color:var(--tx4)">Save topics to track — coming soon.</div></div>', unsafe_allow_html=True)
+
+
+# ── RIGHT PANEL ───────────────────────────────────────────────────
+# Rendered LAST (after all of main_col) so the hero/main content streams first
+# and the page doesn't visibly pop the briefing in before everything else.
+# The mobile CSS reorder (order:-1 on .st-key-briefingwrap) still lifts this
+# up under the hero on small screens, independent of source order.
+with right_col:
+    with st.container(key="briefingwrap"):
+        render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
+    _strange = get_strange_signals()
+    render_strange_radar_mini(_strange)
+    render_strange_watchlist(_strange)
