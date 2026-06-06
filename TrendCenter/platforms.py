@@ -381,3 +381,184 @@ def scrape_strange_signals_google(limit=12):
         it["rank"] = i + 1
     print(f"[STRANGE-GOOGLE] Got {len(items)} strange news items", flush=True)
     return items
+
+
+# ── PER-QUERY SEARCH ── real cross-platform results for INVESTIGATE ──
+# Each returns the same trend-dict shape the niche-pulse cards consume:
+#   {rank, name, posts, category, url, scraped_at, platform, source:"live"}
+# plus a few extra keys the dossier can use (thumbnail, published, source_name).
+
+
+def _fmt_count(n, unit):
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return f"0 {unit}"
+    if n >= 1_000_000:
+        return f"{n/1_000_000:.1f}M {unit}"
+    if n >= 1_000:
+        return f"{n/1_000:.0f}K {unit}"
+    return f"{n} {unit}"
+
+
+def search_google_news(query, limit=4):
+    """Real news headlines for a query via Google News RSS. Free, no key, and
+    not datacenter-IP-blocked (works on Railway)."""
+    q = query.replace(" ", "%20").replace('"', "%22")
+    url = f"https://news.google.com/rss/search?q={q}%20when:30d&hl=en-US&gl=US&ceid=US:en"
+    now = datetime.now().isoformat()
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        results, seen = [], set()
+        for it in root.findall(".//item"):
+            if len(results) >= limit:
+                break
+            title_el = it.find("title")
+            link_el = it.find("link")
+            src_el = it.find("source")
+            date_el = it.find("pubDate")
+            desc_el = it.find("description")
+            title = (title_el.text or "").strip() if title_el is not None else ""
+            headline = re.split(r"\s+-\s+[^-]+$", title)[0].strip() or title
+            key = headline.lower()
+            if not headline or key in seen:
+                continue
+            seen.add(key)
+            publisher = (src_el.text or "").strip() if src_el is not None else "Google News"
+            raw = (desc_el.text or "") if desc_el is not None else ""
+            blurb = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", raw)).strip()
+            results.append({
+                "rank": str(len(results) + 1),
+                "name": headline[:120],
+                "posts": publisher,
+                "category": "News",
+                "url": (link_el.text or "").strip() if link_el is not None else "",
+                "scraped_at": now,
+                "platform": "google",
+                "source": "live",
+                "source_name": publisher,
+                "published": (date_el.text or "").strip() if date_el is not None else "",
+                "blurb": blurb[:280],
+                "thumbnail": "",
+            })
+        print(f"[SEARCH-GOOGLE] '{query}' -> {len(results)}", flush=True)
+        return results
+    except Exception as e:
+        print(f"[SEARCH-GOOGLE] '{query}' failed: {e}", flush=True)
+        return []
+
+
+def search_youtube(query, limit=4):
+    """Real videos for a query via YouTube Data API v3. Two calls: search.list
+    for matches, then videos.list for view counts. Returns thumbnails too."""
+    api_key = os.getenv("YOUTUBE_API_KEY")
+    if not api_key:
+        print("[SEARCH-YOUTUBE] No API key", flush=True)
+        return []
+    now = datetime.now().isoformat()
+    try:
+        sr = requests.get(
+            "https://www.googleapis.com/youtube/v3/search",
+            params={
+                "part": "snippet", "q": query, "type": "video",
+                "maxResults": limit, "order": "relevance", "regionCode": "US",
+                "relevanceLanguage": "en", "key": api_key,
+            },
+            timeout=15,
+        )
+        sr.raise_for_status()
+        items = sr.json().get("items", [])
+        if not items:
+            return []
+        ids = [it["id"]["videoId"] for it in items if it.get("id", {}).get("videoId")]
+        # Second call: real view counts for those video ids.
+        stats = {}
+        if ids:
+            vr = requests.get(
+                "https://www.googleapis.com/youtube/v3/videos",
+                params={"part": "statistics", "id": ",".join(ids), "key": api_key},
+                timeout=15,
+            )
+            if vr.status_code == 200:
+                for v in vr.json().get("items", []):
+                    stats[v["id"]] = v.get("statistics", {})
+        results = []
+        for it in items:
+            vid = it.get("id", {}).get("videoId")
+            if not vid:
+                continue
+            sn = it.get("snippet", {})
+            views = stats.get(vid, {}).get("viewCount")
+            thumbs = sn.get("thumbnails", {})
+            thumb = (thumbs.get("medium") or thumbs.get("default") or {}).get("url", "")
+            results.append({
+                "rank": str(len(results) + 1),
+                "name": sn.get("title", "")[:120],
+                "posts": _fmt_count(views, "views") if views is not None else sn.get("channelTitle", "YouTube"),
+                "category": sn.get("channelTitle", "YouTube"),
+                "url": f"https://www.youtube.com/watch?v={vid}",
+                "scraped_at": now,
+                "platform": "youtube",
+                "source": "live",
+                "source_name": sn.get("channelTitle", "YouTube"),
+                "published": sn.get("publishedAt", ""),
+                "blurb": re.sub(r"\s+", " ", sn.get("description", "")).strip()[:280],
+                "thumbnail": thumb,
+            })
+        print(f"[SEARCH-YOUTUBE] '{query}' -> {len(results)}", flush=True)
+        return results
+    except Exception as e:
+        print(f"[SEARCH-YOUTUBE] '{query}' failed: {e}", flush=True)
+        return []
+
+
+def search_reddit(query, limit=4):
+    """Real Reddit posts for a query via search RSS. Works locally; Reddit
+    blocks datacenter IPs, so this degrades to [] on Railway (News/YouTube
+    carry the result there)."""
+    q = query.replace(" ", "+")
+    url = f"https://www.reddit.com/search.rss?q={q}&sort=relevance&limit={limit * 2}&t=month"
+    ns = "http://www.w3.org/2005/Atom"
+    now = datetime.now().isoformat()
+    try:
+        r = requests.get(url, headers={"User-Agent": "TrendCenterBot/1.0"}, timeout=15)
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        results, seen = [], set()
+        for e in root.findall(f"{{{ns}}}entry"):
+            if len(results) >= limit:
+                break
+            t = e.find(f"{{{ns}}}title")
+            l = e.find(f"{{{ns}}}link")
+            c = e.find(f"{{{ns}}}category")
+            cont = e.find(f"{{{ns}}}content")
+            title = (t.text or "").strip() if t is not None else ""
+            key = title.lower()
+            if not title or key in seen:
+                continue
+            seen.add(key)
+            sub = c.get("term") if c is not None else "all"
+            raw = cont.text if (cont is not None and cont.text) else ""
+            blurb = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", raw))
+            blurb = re.split(r"submitted by", blurb)[0].strip()
+            results.append({
+                "rank": str(len(results) + 1),
+                "name": (title[:117] + "...") if len(title) > 120 else title,
+                "posts": f"r/{sub}",
+                "category": f"r/{sub}",
+                "url": l.get("href", "") if l is not None else "",
+                "scraped_at": now,
+                "platform": "reddit",
+                "source": "live",
+                "source_name": f"r/{sub}",
+                "published": "",
+                "blurb": blurb[:280],
+                "thumbnail": "",
+            })
+        print(f"[SEARCH-REDDIT] '{query}' -> {len(results)}", flush=True)
+        return results
+    except Exception as e:
+        print(f"[SEARCH-REDDIT] '{query}' failed: {e}", flush=True)
+        return []

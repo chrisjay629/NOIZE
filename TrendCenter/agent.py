@@ -340,17 +340,77 @@ def _gpt_niche_fallback(niche, platform):
         return []
 
 
+def transform_niche_query(niche: str) -> list:
+    """Rephrase a raw topic into 2-3 search angles so live retrieval casts a
+    richer, more relevant net. e.g. 'aliens' -> ['aliens','UFO disclosure',
+    'UAP sighting']. Always includes the original; falls back to [niche] on any
+    error. Kept lean (<=3) to hold latency and API cost down."""
+    niche = (niche or "").strip()
+    if not niche:
+        return []
+    prompt = (
+        f'A content creator is investigating the topic: "{niche}".\n'
+        "Give 2 ADDITIONAL closely-related search angles (synonyms, the trending "
+        "sub-topic, or the specific event driving interest) that would surface the "
+        "best current cross-platform content. Keep them tight and on-topic — no "
+        "loose stretches.\n"
+        'Return ONLY a JSON array of 2 short strings, e.g. ["angle one","angle two"].'
+    )
+    angles = [niche]
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        extra = _parse_json_safe(resp.choices[0].message.content) or []
+        for a in extra:
+            if isinstance(a, str) and a.strip() and a.strip().lower() != niche.lower():
+                angles.append(a.strip())
+    except Exception as e:
+        print(f"[NICHE PULSE] query transform failed: {e}", flush=True)
+    return angles[:3]
+
+
+def _search_platform_live(platform_key, angles, want=8):
+    """Run the real per-query search for a platform across all query angles,
+    dedup by name, and return the combined live rows (capped at `want`)."""
+    from platforms import search_google_news, search_youtube, search_reddit
+    fetchers = {
+        "google":  search_google_news,
+        "youtube": search_youtube,
+        "reddit":  search_reddit,
+    }
+    fetch = fetchers.get(platform_key)
+    if not fetch:
+        return []
+    rows, seen = [], set()
+    for angle in angles:
+        for row in fetch(angle, limit=4):
+            name = (row.get("name") or "").strip().lower()
+            if name and name not in seen:
+                rows.append(row)
+                seen.add(name)
+            if len(rows) >= want:
+                return rows
+    return rows
+
+
 def niche_pulse(niche: str) -> dict:
     """Cross-platform niche search. Returns {platform_key: [up to 3 trend dicts]}.
 
-    Shows live trends that GENUINELY match the topic; when a platform has fewer
-    than 3 genuine matches (common for narrow topics like 'aliens'), it tops up
-    with topic-relevant AI-generated trends so the results actually relate to the
-    search instead of falling back to unrelated live trends."""
-    platforms = ["tiktok", "google", "youtube", "reddit"]
+    Grounded cascade so results are REAL and topic-relevant:
+    1. transform the query into 2-3 angles,
+    2. retrieve live rows per platform (Google News / YouTube / Reddit search),
+    3. keep only the genuinely relevant ones,
+    4. top up with topic-relevant AI rows only if a platform comes up short.
+    TikTok has no free search API, so it stays on the DB-trends + AI path."""
+    angles = transform_niche_query(niche) or [niche]
     results = {}
-    for key in platforms:
-        platform_data = get_latest_hashtags(platform=key)
+    for key in ["tiktok", "google", "youtube", "reddit"]:
+        if key == "tiktok":
+            platform_data = get_latest_hashtags(platform=key)
+        else:
+            platform_data = _search_platform_live(key, angles)
         relevant = _filter_top3_for_niche(platform_data, niche, key) if platform_data else []
         if len(relevant) < 3:
             seen = {(h.get("name") or "").strip().lower() for h in relevant}
