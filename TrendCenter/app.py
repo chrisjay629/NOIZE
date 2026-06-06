@@ -1593,6 +1593,10 @@ st.markdown(
     f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-srcpanel){{order:-2!important}}"
     f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-briefingwrap){{order:-1!important}}"
     f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-cf_bottom){{order:1!important}}"
+    # Hide the redundant 'pick a source' placeholder on mobile (the source picker
+    # already sits above the briefing here) — it was leaving a large empty gap.
+    ".st-key-cf_empty{display:none!important}"
+    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-cf_empty){{display:none!important}}"
     "}</style>",
     unsafe_allow_html=True,
 )
@@ -1744,14 +1748,17 @@ with main_col:
 
         if not active_platform:
             # Welcome — today's top leads live in the Detective Briefing (right rail);
-            # this column just prompts the user to pick a source.
-            st.markdown(
-                "<div style='text-align:center;padding:30px 16px 14px'>"
-                "<div style='font-size:12px;color:var(--tx3);line-height:1.6'>Pick a source above to open live case files.</div>"
-                "<div style='font-size:10px;color:var(--tx4);margin-top:7px;font-family:JetBrains Mono,monospace;letter-spacing:0.04em'>Today&rsquo;s top leads are in the briefing.</div>"
-                "</div>",
-                unsafe_allow_html=True,
-            )
+            # this column just prompts the user to pick a source. Wrapped in a keyed
+            # container so it can be hidden on mobile, where the source picker already
+            # sits above the briefing and this placeholder just leaves an awkward gap.
+            with st.container(key="cf_empty"):
+                st.markdown(
+                    "<div style='text-align:center;padding:18px 16px 10px'>"
+                    "<div style='font-size:12px;color:var(--tx3);line-height:1.6'>Pick a source above to open live case files.</div>"
+                    "<div style='font-size:10px;color:var(--tx4);margin-top:7px;font-family:JetBrains Mono,monospace;letter-spacing:0.04em'>Today&rsquo;s top leads are in the briefing.</div>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
 
         else:
             hashtags      = get_latest_hashtags(platform=active_platform)
