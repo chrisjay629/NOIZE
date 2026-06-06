@@ -1584,8 +1584,10 @@ _briefing_panel_bg = (
 _SPLIT = '[data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .st-key-strangefiles)'
 st.markdown(
     "<style>@media (max-width:640px){"
-    # stack + flatten the two columns so every inner block is a flex item
-    f"{_SPLIT}{{flex-direction:column!important;flex-wrap:nowrap!important}}"
+    # stack + flatten the two columns so every inner block is a flex item.
+    # Tighten the inter-section gap (was 'medium' ~1rem) so stacked cards sit
+    # closer and don't leave a roomy void between, e.g., briefing and radar.
+    f"{_SPLIT}{{flex-direction:column!important;flex-wrap:nowrap!important;gap:8px!important}}"
     f"{_SPLIT} > [data-testid=\"stColumn\"]{{display:contents!important}}"
     f"{_SPLIT} > [data-testid=\"stColumn\"] > [data-testid=\"stVerticalBlock\"]{{display:contents!important}}"
     # reorder: hero(-3) → blueprint generator(-2) → briefing(-1) → [case content/radar/classified 0] → signal index(1)
