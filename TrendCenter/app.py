@@ -123,7 +123,7 @@ NEWSPAPER_B64        = load_img_b64("static/newspaper_bg.png",      max_width=12
 CASE_FOLDER_DARK_B64 = load_img_b64("static/case_folders_dark.png", max_width=300,  quality=85)
 CASE_FOLDER_LIGHT_B64= load_img_b64("static/case_folders_light.png",max_width=300,  quality=85)
 RADAR_BG_B64         = load_img_b64("static/radar_bg.jpg",          max_width=600,  quality=75)
-RADAR_MAP_B64        = load_img_b64("static/radar_map.png",         max_width=700,  quality=80)
+RADAR_MAP_B64        = load_img_b64("static/alien.png",            max_width=800,  quality=82)
 HUD_BG_B64           = load_img_b64("static/hud_bg.jpg",            max_width=800,  quality=72)
 BG_BODY_B64          = load_img_b64("static/bg_body.jpg",           max_width=1600, quality=70)
 ASPHALT_BG_B64       = load_img_b64("static/asphalt_bg.png",        max_width=900,  quality=68)
@@ -998,7 +998,9 @@ def _add_radar_bg(fig, is_night):
             source=f"data:image/png;base64,{RADAR_MAP_B64}",
             xref="paper", yref="paper", x=0.5, y=0.5,
             xanchor="center", yanchor="middle", sizex=1.0, sizey=1.0,
-            sizing="contain", opacity=0.5 if is_night else 0.32, layer="below")])
+            # 'fill' so the portrait alien art covers the landscape radar area
+            # (centered crop) instead of shrinking to a tiny centered strip.
+            sizing="fill", opacity=0.6 if is_night else 0.4, layer="below")])
     elif RADAR_BG_B64:
         fig.update_layout(images=[dict(
             source=f"data:image/jpeg;base64,{RADAR_BG_B64}",
@@ -1088,12 +1090,13 @@ def render_strange_radar(signals):
     # faint sweep pointer
     fig.add_trace(go.Scatterpolar(
         r=[0, 1.05], theta=[0, 52], mode="lines",
-        line=dict(color="rgba(163,255,18,0.35)", width=2),
+        line=dict(color="rgba(163,255,18,0.16)", width=2),
         hoverinfo="skip", showlegend=False))
     # target-lock blips: outer halo + glow + solid numbered core
     _add_target_blips(fig, radii, thetas, sizes, colors, labels, custom, hovers,
                       text_size=11)
-    grid_c = "rgba(163,255,18,0.14)" if is_night else "rgba(100,80,40,0.18)"
+    # faint grid so the alien background art reads through cleanly
+    grid_c = "rgba(163,255,18,0.06)" if is_night else "rgba(100,80,40,0.10)"
     fig.update_layout(
         polar=dict(
             bgcolor="rgba(0,0,0,0)",
@@ -1208,11 +1211,12 @@ def render_strange_radar_mini(signals):
     _add_radar_bg(fig, is_night)
     fig.add_trace(go.Scatterpolar(
         r=[0, 1.05], theta=[0, 52], mode="lines",
-        line=dict(color="rgba(163,255,18,0.30)", width=1.5),
+        line=dict(color="rgba(163,255,18,0.16)", width=1.5),
         hoverinfo="skip", showlegend=False))
     _add_target_blips(fig, radii, thetas, sizes, colors, labels, custom, hovers,
                       text_size=9)
-    grid_c = "rgba(163,255,18,0.12)" if is_night else "rgba(100,80,40,0.15)"
+    # faint grid so the alien background art reads through cleanly
+    grid_c = "rgba(163,255,18,0.06)" if is_night else "rgba(100,80,40,0.10)"
     fig.update_layout(
         polar=dict(bgcolor="rgba(0,0,0,0)",
                    radialaxis=dict(visible=False, range=[0, 1.12]),
