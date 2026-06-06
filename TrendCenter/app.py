@@ -1593,10 +1593,16 @@ st.markdown(
     f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-srcpanel){{order:-2!important}}"
     f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-briefingwrap){{order:-1!important}}"
     f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-cf_bottom){{order:1!important}}"
-    # Hide the redundant 'pick a source' placeholder on mobile (the source picker
-    # already sits above the briefing here) — it was leaving a large empty gap.
-    ".st-key-cf_empty{display:none!important}"
-    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(> .st-key-cf_empty){{display:none!important}}"
+    # Hide the redundant 'pick a source' placeholder + its now-orphaned spacer on
+    # mobile (the source picker already sits above the briefing here) — they were
+    # leaving an empty gap between the briefing and Strange Signals. Hide both the
+    # keyed containers and any layout/element wrapper that holds them, so no empty
+    # wrapper box is left behind.
+    ".st-key-cf_empty,.st-key-cf_spacer{display:none!important}"
+    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(.st-key-cf_empty),"
+    f"{_SPLIT} [data-testid=\"stLayoutWrapper\"]:has(.st-key-cf_spacer),"
+    f"{_SPLIT} [data-testid=\"stElementContainer\"]:has(.st-key-cf_empty),"
+    f"{_SPLIT} [data-testid=\"stElementContainer\"]:has(.st-key-cf_spacer){{display:none!important}}"
     "}</style>",
     unsafe_allow_html=True,
 )
@@ -1744,7 +1750,8 @@ with main_col:
                             st.session_state.active_platform = key
                             st.session_state.do_fetch = True
                             st.rerun()
-        st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+        with st.container(key="cf_spacer"):
+            st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
         if not active_platform:
             # Welcome — today's top leads live in the Detective Briefing (right rail);
