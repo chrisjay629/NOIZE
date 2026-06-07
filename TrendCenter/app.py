@@ -209,6 +209,7 @@ for k, v in {
     "strange_signals": [],
     "strange_ts":      None,
     "strange_sel":     None,
+    "radar_nonce":     0,
     "active_nav":      "CASE FILES",
     "theme":           "night",
 }.items():
@@ -411,7 +412,7 @@ html, body, [class*="css"] {
   background-color: var(--bg) !important;
 }
 
-.block-container { padding: 0.75rem 1.2rem 5rem 1.2rem !important; max-width: 100% !important; }
+.block-container { padding: 0.75rem 1.2rem 5rem 1.2rem !important; max-width: 1000px !important; margin: 0 auto !important; }
 
 /* ── Sidebar — Command Center ── */
 [data-testid="stSidebar"] {
@@ -852,9 +853,9 @@ def render_detective_briefing(articles, panel_bg_override=None):
         head_style  = "font-size:11.5px;font-weight:700;color:var(--tx1);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"
         summ_style  = "font-size:9.5px;color:var(--tx3);line-height:1.5;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"
         meta_style  = "display:flex;align-items:center;justify-content:flex-end;margin-top:6px"
-        card_style  = f"display:flex;gap:10px;align-items:flex-start;padding:10px 11px;background:var(--surface-2);border:1px solid var(--border-2);border-left:2px solid {col};border-radius:9px;margin-bottom:7px"
+        card_style  = f"display:flex;gap:10px;align-items:flex-start;padding:10px 11px;background:var(--surface-2);border:1px solid var(--border-2);border-left:2px solid {col};border-radius:9px;height:100%"
         vel_style   = "font-size:10.5px;font-weight:800;color:var(--lime-t);white-space:nowrap"
-        leads_html += (f'<a href="{url}" target="_blank" style="text-decoration:none">'
+        leads_html += (f'<a href="{url}" target="_blank" style="text-decoration:none;flex:1 1 240px;min-width:0;display:block">'
                        f'<div style="{card_style}">'
                        f'<div style="{icon_style}">{icon_svg}</div>'
                        f'<div style="flex:1;min-width:0">'
@@ -882,7 +883,7 @@ def render_detective_briefing(articles, panel_bg_override=None):
         f'</div>'
         f'<div style="font-size:14px;font-weight:800;color:var(--tx1);margin-bottom:1px;font-family:Inter,sans-serif">{greeting}, Detective.</div>'
         f'<div style="font-size:10px;color:var(--tx3);margin-bottom:12px;font-family:JetBrains Mono,monospace">3 LEADS ACTIVE · PRIORITY CLEARANCE</div>'
-        f'{leads_html}'
+        f'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">{leads_html}</div>'
         f'{view_btn}'
         f'</div>',
         unsafe_allow_html=True
@@ -1109,9 +1110,12 @@ def render_strange_radar(signals):
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
     )
+    # Nonce in the key so 'Close story' can fully reset the chart's persisted
+    # selection (otherwise Plotly re-fires the old click and re-opens the story).
     event = st.plotly_chart(
         fig, use_container_width=True, on_select="rerun",
-        selection_mode="points", key="strange_radar_chart",
+        selection_mode="points",
+        key=f"strange_radar_chart_{st.session_state.get('radar_nonce', 0)}",
         config={"displayModeBar": False})
 
     # capture a blip click
@@ -1129,7 +1133,17 @@ def render_strange_radar(signals):
     sel = st.session_state.get("strange_sel")
     if sel is not None and 0 <= sel < n:
         s = ensure_case_file(sel) or signals[sel]
+        # Close buttons (top + bottom) so a long story can be collapsed in place
+        # without scrolling up to the nav.
+        if st.button("✕ Close story", key="strange_close_top", use_container_width=True):
+            st.session_state.strange_sel = None
+            st.session_state.radar_nonce = st.session_state.get("radar_nonce", 0) + 1
+            st.rerun()
         render_case_file(s)
+        if st.button("✕ Close story", key="strange_close_bottom", use_container_width=True):
+            st.session_state.strange_sel = None
+            st.session_state.radar_nonce = st.session_state.get("radar_nonce", 0) + 1
+            st.rerun()
     else:
         st.markdown(
             "<div style='text-align:center;padding:14px;font-size:12px;color:var(--tx4)'>"
@@ -1302,7 +1316,6 @@ def render_strange_watchlist(signals):
             label = f"{emoji}  #{s['rank']}  {_redact_title(s['title'])}"
             if st.button(label, key=f"sf_{i}", use_container_width=True):
                 st.session_state.strange_sel = i
-                st.session_state.active_nav = "TREND RADAR"
                 st.rerun()
 
 
@@ -1613,7 +1626,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-main_col, right_col = st.columns([7, 3], gap="medium")
+# Single centered column: the old right rail (briefing + strange signals) now
+# stacks inline in the main feed on the home view (see end of CASE FILES block).
+main_col = st.container()
 
 # ── MAIN CONTENT ──────────────────────────────────────────────────
 # Rendered BEFORE the right panel so the hero + main content paint first on
@@ -1883,8 +1898,28 @@ with main_col:
                     st.markdown("---")
                     st.markdown(cf_bp)
 
-        # Signal-strength index + quote banner. Wrapped in a keyed container
-        # so the mobile-only CSS reorder can push it to the bottom (item 6).
+        # ── Good Morning Detective + Strange Signals ─────────────────
+        # Moved in from the old right rail: now centered in the main feed,
+        # under the generator/case files, on the home view only.
+        with st.container(key="briefingwrap"):
+            render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
+        _strange = get_strange_signals()
+        # 'STRANGE SIGNALS / LIVE' header bar above the radar (restored from the
+        # old rail layout — the full radar has no built-in header).
+        st.markdown(
+            '<div style="display:flex;align-items:center;justify-content:space-between;'
+            'background:rgba(10,14,20,0.55);border:1px solid rgba(163,255,18,0.18);'
+            'border-radius:14px;padding:12px 16px;margin-bottom:10px">'
+            '<span style="font-size:11px;font-weight:700;color:var(--lime-t);letter-spacing:0.16em;'
+            'text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ STRANGE SIGNALS</span>'
+            '<span style="font-size:10px;color:var(--lime-t);font-weight:700;'
+            'font-family:JetBrains Mono,monospace;letter-spacing:0.12em">LIVE</span>'
+            '</div>',
+            unsafe_allow_html=True)
+        render_strange_radar(_strange)
+        render_strange_watchlist(_strange)
+
+        # Signal-strength index + quote banner (page footer / radar legend).
         with st.container(key="cf_bottom"):
             render_signal_guide()
 
@@ -2040,16 +2075,3 @@ with main_col:
     # ── WATCHLIST ────────────────────────────────────────────────
     elif active_nav == "WATCHLIST":
         st.markdown('<div style="text-align:center;padding:40px 20px"><div style="font-size:36px;margin-bottom:10px">⭐</div><div style="font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:6px;font-family:Poppins,sans-serif">Watchlist</div><div style="font-size:12px;color:var(--tx4)">Save topics to track — coming soon.</div></div>', unsafe_allow_html=True)
-
-
-# ── RIGHT PANEL ───────────────────────────────────────────────────
-# Rendered LAST (after all of main_col) so the hero/main content streams first
-# and the page doesn't visibly pop the briefing in before everything else.
-# The mobile CSS reorder (order:-1 on .st-key-briefingwrap) still lifts this
-# up under the hero on small screens, independent of source order.
-with right_col:
-    with st.container(key="briefingwrap"):
-        render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
-    _strange = get_strange_signals()
-    render_strange_radar_mini(_strange)
-    render_strange_watchlist(_strange)
