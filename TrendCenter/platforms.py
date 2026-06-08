@@ -11,6 +11,14 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from functools import lru_cache
+from urllib.parse import quote_plus
+
+
+def _gpt_news_link(topic):
+    """Real Google News results page for a GPT-surfaced topic — so each GPT card
+    opens a page of actual stories about it, like the other live sources do."""
+    return ("https://news.google.com/search?q=" + quote_plus(topic)
+            + "&hl=en-US&gl=US&ceid=US:en")
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -54,11 +62,20 @@ def _gpt_fallback(platform):
             "Return ONLY a JSON array, no markdown:\n"
             '[{"rank":"1","name":"...","posts":"89K upvotes","category":"r/gaming"}]'
         ),
+        "gpt": (
+            f"Today is {today}. List 20 SPECIFIC topics, stories, or trends buzzing RIGHT NOW "
+            "across news, tech, pop culture, entertainment, sports, and online communities. "
+            "Each 'name' must be a concrete, searchable topic (a real event/person/thing) — "
+            "NOT a vague content idea. "
+            "Return ONLY a JSON array, no markdown:\n"
+            '[{"rank":"1","name":"...","posts":"Trending","category":"Culture"}]'
+        ),
     }
     url_builders = {
         "google":  lambda n: f"https://www.google.com/search?q={n.replace(' ', '+')}",
         "youtube": lambda n: f"https://www.youtube.com/results?search_query={n.replace(' ', '+')}",
         "reddit":  lambda n: f"https://www.reddit.com/search/?q={n.replace(' ', '+')}&sort=hot",
+        "gpt":     _gpt_news_link,
     }
     try:
         response = client.chat.completions.create(
@@ -229,6 +246,15 @@ def scrape_reddit():
     except Exception as e:
         print(f"[REDDIT] Scrape failed: {e}", flush=True)
         return _gpt_fallback("reddit")
+
+
+# ── GPT ── AI-generated content ideas (honest AI source, not scraped) ───
+
+def scrape_gpt():
+    """The GPT source feed: 20 AI-generated content ideas/angles. Transparently
+    AI (source='gpt_fallback' -> shows the AI badge), not pretending to be live."""
+    print("[GPT] Generating AI content ideas", flush=True)
+    return _gpt_fallback("gpt")
 
 
 # ── STRANGE SIGNALS ── real weird/unexplained posts from Reddit JSON ──

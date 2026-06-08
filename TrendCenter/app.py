@@ -3,6 +3,7 @@ import threading
 import time
 import base64
 import io
+import json
 import streamlit as st
 import streamlit.components.v1 as components
 import plotly.graph_objects as go
@@ -11,13 +12,13 @@ from datetime import datetime
 from agent import run_agent, generate_blueprint, generate_topic_blueprint, research_niche_hashtags, niche_pulse, build_dossier, generate_trend_articles, generate_strange_signals, generate_case_file
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
-from platforms import scrape_google, scrape_youtube, scrape_reddit
+from platforms import scrape_google, scrape_youtube, scrape_reddit, scrape_gpt
 
 PLATFORM_CONFIG = {
-    "tiktok":  {"label": "TikTok",        "icon": "🎵", "scraper": scrape_hashtags, "link_label": "TikTok",  "refresh_minutes": 60,  "color": "#fe2c55"},
     "google":  {"label": "Google Trends", "icon": "📈", "scraper": scrape_google,   "link_label": "Google",  "refresh_minutes": 60,  "color": "#4285f4"},
     "youtube": {"label": "YouTube",       "icon": "📺", "scraper": scrape_youtube,  "link_label": "YouTube", "refresh_minutes": 240, "color": "#ff4444"},
     "reddit":  {"label": "Reddit",        "icon": "🔴", "scraper": scrape_reddit,   "link_label": "Reddit",  "refresh_minutes": 60,  "color": "#ff5700"},
+    "gpt":     {"label": "GPT",           "icon": "🤖", "scraper": scrape_gpt,      "link_label": "GPT",     "refresh_minutes": 480, "color": "#10a37f"},
 }
 
 # Full-colour brand logos (inline SVG data URIs) for the Select Source icon
@@ -28,11 +29,21 @@ _TT = ("M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.1
        "1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 "
        "1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z")
 _PLATFORM_SVG_RAW = {
-    "tiktok": (
+    "gpt": (
         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>"
-        "<path fill='#25F4EE' transform='translate(-1.1 -0.7)' d='" + _TT + "'/>"
-        "<path fill='#FE2C55' transform='translate(1.1 0.7)' d='" + _TT + "'/>"
-        "<path fill='#ffffff' d='" + _TT + "'/></svg>"
+        "<path fill='#ffffff' d='M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 "
+        "6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 "
+        "4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 "
+        "0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 "
+        "4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 "
+        "1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 "
+        "0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 "
+        "0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 "
+        "4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 "
+        "4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 "
+        "0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 "
+        "4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 "
+        "0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z'/></svg>"
     ),
     "google": (
         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'>"
@@ -655,7 +666,7 @@ def mini_sparkline(rank_change, is_new, color, name=""):
             f'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>')
 
 def platform_spread_icons(rank_int, primary_platform):
-    icons   = {"tiktok": "🎵", "google": "📈", "youtube": "📺", "reddit": "🔴"}
+    icons   = {"gpt": "🤖", "google": "📈", "youtube": "📺", "reddit": "🔴"}
     primary = icons.get(primary_platform, "🌐")
     extras  = [v for k, v in icons.items() if k != primary_platform]
     if rank_int <= 3:   spread = [primary] + extras[:3]
@@ -1051,18 +1062,50 @@ def _add_target_blips(fig, radii, thetas, sizes, colors, labels, custom, hovers,
         customdata=custom, hovertext=hovers, hoverinfo="text", showlegend=False))
 
 
+_STRANGE_CACHE_FILE = "strange_cache.json"
+_STRANGE_TTL_SEC    = 86400  # 24h — ONE shared daily drop for all visitors
+
+
+def _load_strange_cache():
+    """Return the shared daily strange drop if it's <24h old, else None."""
+    try:
+        with open(_STRANGE_CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        ts = datetime.fromisoformat(data.get("generated_at", ""))
+        if data.get("signals") and (datetime.now() - ts).total_seconds() < _STRANGE_TTL_SEC:
+            return data["signals"]
+    except Exception:
+        pass
+    return None
+
+
+def _save_strange_cache(signals):
+    try:
+        with open(_STRANGE_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump({"generated_at": datetime.now().isoformat(), "signals": signals}, f)
+    except Exception as e:
+        print(f"[STRANGE] cache save failed: {e}", flush=True)
+
+
 def get_strange_signals(force=False):
-    """The daily drop of 5 real weird Reddit stories (refreshes once a day,
-    or on demand via the Rescan button)."""
-    stale = True
-    if st.session_state.strange_ts:
-        stale = (datetime.now() - st.session_state.strange_ts).total_seconds() > 86400
-    if force or stale or not st.session_state.strange_signals:
-        with st.spinner("📡 Scanning the fringe for strange signals…"):
-            st.session_state.strange_signals = generate_strange_signals(limit=5)
-            st.session_state.strange_ts = datetime.now()
+    """The daily drop of 5 fully-prepared strange stories — generated ONCE per
+    24h and SHARED across all visitors via a server-side cache. So it's ~5
+    images/day total (not per session), and every story opens instantly.
+    Rescan (force=True) regenerates a fresh drop for everyone."""
+    if not force:
+        # Already loaded this session? Reuse it (avoids re-parsing the cache file).
+        if st.session_state.get("strange_signals"):
+            return st.session_state.strange_signals
+        cached = _load_strange_cache()
+        if cached:
+            st.session_state.strange_signals = cached
+            return cached
+    with st.spinner("📡 Scanning the fringe + writing up today's 5 cases…"):
+        signals = generate_strange_signals(limit=5)
+        _save_strange_cache(signals)
+        st.session_state.strange_signals = signals
         st.session_state.strange_sel = None
-    return st.session_state.strange_signals
+    return signals
 
 
 def ensure_case_file(idx):
@@ -1141,11 +1184,15 @@ def render_strange_radar(signals):
         idx = cd[0] if isinstance(cd, list) else cd
         if idx is not None:
             st.session_state.strange_sel = int(idx)
+            st.session_state.strange_scroll = True
 
     # selected case file — Pugson's full on-site write-up
     sel = st.session_state.get("strange_sel")
     if sel is not None and 0 <= sel < n:
         s = ensure_case_file(sel) or signals[sel]
+        # Anchor the auto-scroll targets when a story opens (scroll-margin clears nav).
+        st.markdown('<div class="noize-strange-anchor" style="scroll-margin-top:90px"></div>',
+                    unsafe_allow_html=True)
         # Close buttons (top + bottom) so a long story can be collapsed in place
         # without scrolling up to the nav.
         if st.button("✕ Close story", key="strange_close_top", use_container_width=True):
@@ -1157,6 +1204,15 @@ def render_strange_radar(signals):
             st.session_state.strange_sel = None
             st.session_state.radar_nonce = st.session_state.get("radar_nonce", 0) + 1
             st.rerun()
+        # Jump the page to the story when it's freshly opened.
+        if st.session_state.get("strange_scroll"):
+            st.session_state.strange_scroll = False
+            components.html(
+                "<script>setTimeout(function(){"
+                "var a=window.parent.document.querySelector('.noize-strange-anchor');"
+                "if(a)a.scrollIntoView({behavior:'smooth',block:'start'});},150);</script>",
+                height=0,
+            )
     else:
         st.markdown(
             "<div style='text-align:center;padding:14px;font-size:12px;color:var(--tx4)'>"
@@ -1329,6 +1385,7 @@ def render_strange_watchlist(signals):
             label = f"{emoji}  #{s['rank']}  {_redact_title(s['title'])}"
             if st.button(label, key=f"sf_{i}", use_container_width=True):
                 st.session_state.strange_sel = i
+                st.session_state.strange_scroll = True
                 st.rerun()
 
 
@@ -1937,6 +1994,10 @@ with main_col:
                     mins_ago_str = f"{m}m ago" if m>0 else "just now"
                 except: pass
 
+            if st.button("✕ Clear source", key="cf_clear_source", use_container_width=True):
+                st.session_state.active_platform = None
+                st.rerun()
+
             st.markdown(f"""
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
               <div style="display:flex;align-items:center;gap:8px">
@@ -1952,7 +2013,13 @@ with main_col:
               </div>
             </div>""", unsafe_allow_html=True)
 
-            if is_gpt:
+            if active_platform == "gpt":
+                # GPT is an AI source by design — show a neutral note, not a warning.
+                st.markdown(f"""
+                <div style="background:rgba(16,163,127,0.08);border:1px solid rgba(16,163,127,0.30);border-radius:8px;padding:9px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+                  <span>🤖</span><div style="font-size:11px;color:#10a37f;line-height:1.5"><b>AI-generated content ideas.</b> Fresh angles you can build today — hit 🔄 GPT for a new set.</div>
+                </div>""", unsafe_allow_html=True)
+            elif is_gpt:
                 st.markdown(f"""
                 <div style="background:rgba(255,149,0,0.08);border:1px solid rgba(255,149,0,0.25);border-radius:8px;padding:9px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
                   <span>⚠️</span><div style="font-size:11px;color:#ff9500;line-height:1.5"><b>{cfg['label']} live data unavailable.</b> Showing AI-generated intelligence. Hit 🔄 {cfg['label']} to retry.</div>

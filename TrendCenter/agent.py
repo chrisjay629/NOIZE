@@ -350,13 +350,15 @@ def _gpt_niche_fallback(niche, platform):
     """Generate 3 niche-relevant trends for a platform when no live data exists."""
     today = datetime.now().strftime("%B %d, %Y")
     platform_contexts = {
-        "tiktok":  ("TikTok hashtags",         '{"rank":"1","name":"...","posts":"2.4M","category":"Entertainment"}'),
+        "gpt":     ("SPECIFIC trending topics/stories related to this niche that are buzzing right now (concrete and searchable, real events/people/things)",
+                                                '{"rank":"1","name":"...","posts":"Trending","category":"Topic"}'),
         "google":  ("Google Search trends",     '{"rank":"1","name":"...","posts":"500K+ searches","category":"News"}'),
         "youtube": ("YouTube trending videos",  '{"rank":"1","name":"...","posts":"4.2M views","category":"Gaming"}'),
         "reddit":  ("Reddit hot posts",         '{"rank":"1","name":"...","posts":"89K upvotes","category":"r/all"}'),
     }
+    from platforms import _gpt_news_link
     url_builders = {
-        "tiktok":  lambda n: f"https://www.tiktok.com/tag/{n.replace(' ','')}",
+        "gpt":     _gpt_news_link,   # opens a real Google News page of stories on the topic
         "google":  lambda n: f"https://www.google.com/search?q={n.replace(' ','+')}",
         "youtube": lambda n: f"https://www.youtube.com/results?search_query={n.replace(' ','+')}",
         "reddit":  lambda n: f"https://www.reddit.com/search/?q={n.replace(' ','+')}&sort=hot",
@@ -449,8 +451,8 @@ def _search_platform_live(platform_key, angles, want=8):
 def _gather_live_rows(niche, angles):
     """Fetch live rows once per platform so cards AND the dossier can share them
     (avoids paying for the same retrieval twice). Returns {platform: [rows]}.
-    TikTok has no free search API, so it uses DB trends."""
-    raw = {"tiktok": get_latest_hashtags(platform="tiktok") or []}
+    GPT has no live feed — its card is generated fresh per query (AI ideas)."""
+    raw = {"gpt": []}
     for key in ["google", "youtube", "reddit"]:
         raw[key] = _search_platform_live(key, angles)
     return raw
@@ -458,9 +460,10 @@ def _gather_live_rows(niche, angles):
 
 def _cards_from_rows(niche, raw):
     """Turn gathered rows into the {platform: [up to 3]} card shape: keep only
-    genuinely relevant live rows, top up with AI only when a platform is short."""
+    genuinely relevant live rows, top up with AI only when a platform is short.
+    The 'gpt' source has no live data, so it's fully AI-generated content angles."""
     results = {}
-    for key in ["tiktok", "google", "youtube", "reddit"]:
+    for key in ["google", "youtube", "reddit", "gpt"]:
         platform_data = raw.get(key) or []
         relevant = _filter_top3_for_niche(platform_data, niche, key) if platform_data else []
         if len(relevant) < 3:
@@ -603,8 +606,8 @@ def generate_trend_articles() -> list:
 
     # Pull live context from DB
     google_trends = get_latest_hashtags(platform="google")[:8]
-    tiktok_trends = get_latest_hashtags(platform="tiktok")[:8]
-    combined = google_trends or tiktok_trends
+    reddit_trends = get_latest_hashtags(platform="reddit")[:8]
+    combined = google_trends or reddit_trends
     trend_ctx = ""
     if combined:
         names = [h["name"] for h in combined]
@@ -716,7 +719,7 @@ def generate_strange_signals(limit=5):
         signals = scrape_strange_signals_google(limit=limit)
     if not signals:
         print("[STRANGE] Google empty — falling back to GPT", flush=True)
-        return _gpt_strange_signals_fallback(limit=limit)
+        return _finalize_cases(_gpt_strange_signals_fallback(limit=limit))
 
     # One batched GPT call to write a punchy detective-style line per post.
     numbered = []
@@ -749,7 +752,10 @@ def generate_strange_signals(limit=5):
             s["summary"] = s["selftext"][:160] + ("…" if len(s["selftext"]) > 160 else "")
         else:
             s["summary"] = s["title"]
-    return signals
+
+    # Fully prepare the daily drop (all write-ups + all images) so every story
+    # opens instantly. Runs once per shared 24h cache → ~5 images/day total.
+    return _finalize_cases(signals)
 
 
 def _generate_case_image(signal):
@@ -788,12 +794,10 @@ def _generate_case_image(signal):
         return ""
 
 
-def generate_case_file(signal):
-    """On demand: turn ONE real strange post into Pugson's original noir
-    case-file write-up (his retelling, not a copy), and make sure it has an
-    image (real post image preferred, DALL-E fallback). Mutates + returns the
-    signal with 'case_headline', 'case_body' (list of paragraphs) and
-    'image_url'. Cached by the caller, so this runs once per story."""
+def _write_case_text(signal):
+    """Pugson's noir write-up — TEXT ONLY (fast GPT, no image). Sets
+    'case_headline' + 'case_body'. Pre-generated at scan time so opening a
+    story is instant. Idempotent."""
     if signal.get("case_body"):
         return signal
 
@@ -830,8 +834,46 @@ def generate_case_file(signal):
 
     signal["case_headline"] = headline
     signal["case_body"] = paragraphs
+    return signal
 
-    # Image: prefer the real post image; otherwise generate one (once).
+
+def _pregen_case_texts(signals):
+    """Pre-write all case texts in parallel during the daily scan."""
+    import concurrent.futures
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+            list(ex.map(_write_case_text, signals))
+    except Exception as e:
+        print(f"[STRANGE] case-text pre-gen failed: {e}", flush=True)
+    return signals
+
+
+def _pregen_case_images(signals):
+    """Pre-generate AI art (in parallel) for any case lacking a real image, so
+    the whole daily drop is ready to view. Runs ONCE per shared daily cache, so
+    it's ~5 images/day total — not per visitor."""
+    import concurrent.futures
+    def _ensure(sig):
+        if not sig.get("image_url"):
+            sig["image_url"] = _generate_case_image(sig)
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+            list(ex.map(_ensure, signals))
+    except Exception as e:
+        print(f"[STRANGE] case-image pre-gen failed: {e}", flush=True)
+    return signals
+
+
+def _finalize_cases(signals):
+    """Make the daily drop fully ready: all write-ups + all images."""
+    return _pregen_case_images(_pregen_case_texts(signals))
+
+
+def generate_case_file(signal):
+    """Ensure a signal has its full write-up + an image. Text is normally
+    pre-generated at scan time (instant open); the AI image stays lazy — real
+    post images show instantly, AI art is only made when a story is opened."""
+    _write_case_text(signal)
     if not signal.get("image_url"):
         signal["image_url"] = _generate_case_image(signal)
     return signal
