@@ -125,61 +125,65 @@ def scrape_google():
 # ── YOUTUBE ── YouTube Data API v3 ─────────────────────────────
 
 def scrape_youtube():
-    print("[YOUTUBE] Starting scrape via Data API v3", flush=True)
+    """Build a live YouTube 'trending' feed from search.list, grounded in today's
+    real Google Trends topics. (videos.list — incl. chart=mostPopular — returns
+    quotaExceeded on free YouTube API projects, while search.list works, so we
+    pull the top real video for each trending topic instead.)"""
+    print("[YOUTUBE] Starting scrape via search + Google Trends topics", flush=True)
     api_key = os.getenv("YOUTUBE_API_KEY")
     if not api_key:
         print("[YOUTUBE] No API key found — using GPT fallback", flush=True)
         return _gpt_fallback("youtube")
     try:
-        r = requests.get(
-            "https://www.googleapis.com/youtube/v3/videos",
-            params={
-                "part": "snippet,statistics",
-                "chart": "mostPopular",
-                "regionCode": "US",
-                "maxResults": 20,
-                "key": api_key,
-            },
-            timeout=15
-        )
-        print(f"[YOUTUBE] API status: {r.status_code}", flush=True)
-        if r.status_code != 200:
-            print(f"[YOUTUBE] API error response: {r.text[:300]}", flush=True)
-        r.raise_for_status()
-        data = r.json()
-        items = data.get("items", [])
-        if not items:
-            print(f"[YOUTUBE] API returned 0 items. Full response: {r.text[:300]}", flush=True)
-            raise ValueError("No items returned from YouTube API")
+        # Seed terms from live Google Trends; safe evergreen fallback if empty.
+        terms = [g.get("name", "").strip() for g in scrape_google()[:6] if g.get("name", "").strip()]
+        if not terms:
+            terms = ["news today", "music video", "gaming", "sports highlights", "movie trailer"]
 
-        results = []
-        for i, item in enumerate(items):
-            snippet = item.get("snippet", {})
-            stats = item.get("statistics", {})
-            title = snippet.get("title", "")
-            channel = snippet.get("channelTitle", "YouTube")
-            video_id = item.get("id", "")
-            views = int(stats.get("viewCount", 0))
-            if views >= 1_000_000:
-                views_str = f"{views/1_000_000:.1f}M views"
-            elif views >= 1_000:
-                views_str = f"{views/1_000:.0f}K views"
-            else:
-                views_str = f"{views} views"
-            results.append({
-                "rank": str(i + 1),
-                "name": title,
-                "posts": views_str,
-                "category": channel,
-                "url": f"https://www.youtube.com/watch?v={video_id}",
-                "scraped_at": datetime.now().isoformat(),
-                "platform": "youtube",
-                "source": "live"
-            })
-        print(f"[YOUTUBE] Got {len(results)} trending videos", flush=True)
+        now = datetime.now().isoformat()
+        results, seen = [], set()
+        for term in terms:
+            if len(results) >= 20:
+                break
+            r = requests.get(
+                "https://www.googleapis.com/youtube/v3/search",
+                params={
+                    "part": "snippet", "q": term, "type": "video",
+                    "order": "viewCount", "maxResults": 4, "regionCode": "US",
+                    "relevanceLanguage": "en", "key": api_key,
+                },
+                timeout=15,
+            )
+            if r.status_code != 200:
+                print(f"[YOUTUBE] search '{term}' -> {r.status_code}", flush=True)
+                continue
+            for it in r.json().get("items", []):
+                vid = it.get("id", {}).get("videoId")
+                sn = it.get("snippet", {})
+                if not vid or vid in seen:
+                    continue
+                seen.add(vid)
+                thumbs = sn.get("thumbnails", {})
+                thumb = (thumbs.get("medium") or thumbs.get("default") or {}).get("url", "")
+                results.append({
+                    "rank": str(len(results) + 1),
+                    "name": sn.get("title", "")[:120],
+                    "posts": sn.get("channelTitle", "YouTube"),  # views need videos.list (blocked)
+                    "category": sn.get("channelTitle", "YouTube"),
+                    "url": f"https://www.youtube.com/watch?v={vid}",
+                    "scraped_at": now,
+                    "platform": "youtube",
+                    "source": "live",
+                    "thumbnail": thumb,
+                })
+                if len(results) >= 20:
+                    break
+        if not results:
+            raise ValueError("No videos returned from search")
+        print(f"[YOUTUBE] Got {len(results)} videos via search", flush=True)
         return results
     except Exception as e:
-        print(f"[YOUTUBE] API failed: {e} — using GPT fallback", flush=True)
+        print(f"[YOUTUBE] Search scrape failed: {e} — using GPT fallback", flush=True)
         return _gpt_fallback("youtube")
 
 
