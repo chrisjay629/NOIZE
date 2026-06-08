@@ -4,10 +4,11 @@ import time
 import base64
 import io
 import streamlit as st
+import streamlit.components.v1 as components
 import plotly.graph_objects as go
 from datetime import datetime
 
-from agent import run_agent, generate_blueprint, research_niche_hashtags, niche_pulse, build_dossier, generate_trend_articles, generate_strange_signals, generate_case_file
+from agent import run_agent, generate_blueprint, generate_topic_blueprint, research_niche_hashtags, niche_pulse, build_dossier, generate_trend_articles, generate_strange_signals, generate_case_file
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit
@@ -74,6 +75,16 @@ PLATFORM_SVG = {
     _k: "data:image/svg+xml;base64," + base64.b64encode(_v.encode("utf-8")).decode("ascii")
     for _k, _v in _PLATFORM_SVG_RAW.items()
 }
+
+
+def _platform_icon(key, size=16):
+    """Inline <img> of a platform's real brand logo (TikTok/Google/YouTube/
+    Reddit). Falls back to the platform's emoji if no SVG exists."""
+    svg = PLATFORM_SVG.get(key)
+    if svg:
+        return (f'<img src="{svg}" style="width:{size}px;height:{size}px;'
+                f'vertical-align:middle;display:inline-block;flex-shrink:0"/>')
+    return PLATFORM_CONFIG.get(key, {}).get("icon", "")
 
 # ── Scheduler ────────────────────────────────────────────────────
 _scheduler_started = threading.Event()
@@ -204,6 +215,8 @@ for k, v in {
     "pulse_results":   None,
     "pulse_query":     "",
     "dossier":         None,
+    "topic_blueprint": None,
+    "topic_bp_query":  "",
     "trend_articles":  [],
     "articles_ts":     None,
     "strange_signals": [],
@@ -1320,13 +1333,28 @@ def render_strange_watchlist(signals):
 
 
 def render_dossier(dossier):
-    """The grounded cross-platform digest: per-platform themed sections (left)
-    + a thumbnail 'sources' rail (right). All content traces to real rows."""
+    """Grounded cross-platform digest.
+    Desktop: text sections (left) + a thumbnail 'sources' rail (right).
+    Mobile : the rail is hidden and each story card pulls its own thumbnail
+             inline on the right (Reddit-style) so nothing stacks awkwardly.
+    One card markup, two presentations — switched purely by CSS at 640px."""
     sections = dossier.get("sections") or []
     panel    = dossier.get("sites_panel") or []
     query    = dossier.get("query", "")
     if not sections and not panel:
         return
+
+    # Side-thumbs: hidden on desktop (the rail shows images there), shown on
+    # mobile. The rail: shown on desktop, hidden on mobile.
+    st.markdown("""
+    <style>
+      .dsr-mbanner,.dsr-mcard{display:none}
+      @media (max-width:640px){
+        .dsr-mbanner{display:block!important}
+        .dsr-mcard{display:block!important}
+        .st-key-dossier_rail{display:none!important}
+      }
+    </style>""", unsafe_allow_html=True)
 
     st.markdown(f"""
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -1337,57 +1365,119 @@ def render_dossier(dossier):
 
     left, right = st.columns([7, 3])
 
+    # Group rail thumbnails by platform so mobile can place any leftover image
+    # (one with no matching text story) under that platform's section.
+    panel_by_platform, shown_urls, done_platforms = {}, set(), set()
+    for p in panel:
+        panel_by_platform.setdefault(p.get("platform", ""), []).append(p)
+
+    def _mobile_image_card(p, color):
+        """A mobile-only full-width image card (hidden on desktop, where the rail
+        shows it): image banner + title + its own source."""
+        pthumb = p.get("thumb") or ""
+        title  = (p.get("title") or "")[:90]
+        psrc   = p.get("source") or ""
+        purl   = p.get("url") or "#"
+        return (
+            f'<a href="{purl}" target="_blank" style="text-decoration:none">'
+            f'<div class="dsr-mcard" style="background:var(--surface);border:1px solid var(--border);'
+            f'border-left:3px solid {color};border-radius:8px;padding:10px 12px;margin-bottom:6px">'
+            f'<img src="{pthumb}" loading="lazy" onerror="this.style.display=\'none\'" '
+            f'style="width:100%;height:165px;object-fit:cover;border-radius:8px;display:block;margin-bottom:8px"/>'
+            f"<div style=\"font-size:12.5px;font-weight:700;color:var(--tx1);font-family:'Poppins',sans-serif;line-height:1.3\">{title}</div>"
+            f'<div style="font-size:9px;color:var(--tx4);margin-top:6px;text-transform:uppercase;letter-spacing:0.06em">{psrc}</div>'
+            f'</div></a>'
+        )
+
     with left:
         for sec in sections:
-            cfg   = PLATFORM_CONFIG.get(sec.get("platform", ""), {"label": sec.get("platform", ""), "icon": "•", "color": "#AAFF00"})
+            platform = sec.get("platform", "")
+            cfg   = PLATFORM_CONFIG.get(platform, {"label": platform, "icon": "•", "color": "#AAFF00"})
             color = cfg["color"]
+            done_platforms.add(platform)
             st.markdown(f"""
             <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px">
-              <span style="font-size:12px;font-weight:800;color:{color}">{cfg['icon']} {cfg['label'].upper()}</span>
+              <span style="font-size:12px;font-weight:800;color:{color};display:inline-flex;align-items:center;gap:6px">{_platform_icon(platform)} {cfg['label'].upper()}</span>
               <span style="font-size:13px;font-weight:700;color:var(--tx1);font-family:'Poppins',sans-serif">{sec.get('heading','')}</span>
             </div>""", unsafe_allow_html=True)
             for s in sec.get("stories", []):
-                hl  = (s.get("headline") or "")[:120]
-                take = s.get("take") or ""
-                src  = s.get("source") or ""
-                url  = s.get("url") or "#"
-                st.markdown(f"""
-                <a href="{url}" target="_blank" style="text-decoration:none">
-                <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid {color};
-                            border-radius:8px;padding:9px 12px;margin-bottom:6px;transition:border-color 0.15s"
-                     onmouseover="this.style.borderColor='{color}'"
-                     onmouseout="this.style.borderColor='var(--border)';this.style.borderLeftColor='{color}'">
-                  <div style="font-size:12.5px;font-weight:700;color:var(--tx1);font-family:'Poppins',sans-serif;line-height:1.3">{hl}</div>
-                  <div style="font-size:11px;color:var(--tx3);margin:3px 0 0;line-height:1.4">{take}</div>
-                  <div style="font-size:9px;color:var(--tx4);margin-top:4px;text-transform:uppercase;letter-spacing:0.06em">{src}</div>
-                </div></a>""", unsafe_allow_html=True)
-        if not sections:
-            st.markdown("<div style='font-size:11px;color:var(--tx4)'>No live stories on the wire — see the trend cards below.</div>", unsafe_allow_html=True)
+                hl    = (s.get("headline") or "")[:120]
+                take  = s.get("take") or ""
+                src   = s.get("source") or ""
+                url   = s.get("url") or "#"
+                thumb = s.get("thumbnail") or ""
+                kind  = s.get("thumb_kind", "image")
+
+                text_block = (
+                    f"<div style=\"font-size:12.5px;font-weight:700;color:var(--tx1);font-family:'Poppins',sans-serif;line-height:1.3\">{hl}</div>"
+                    f'<div style="font-size:11px;color:var(--tx3);margin:3px 0 0;line-height:1.45">{take}</div>'
+                    f'<div style="font-size:9px;color:var(--tx4);margin-top:7px;text-transform:uppercase;letter-spacing:0.06em">{src}</div>'
+                )
+
+                # Real photo/video thumbnail (YouTube/Reddit) → full-width banner,
+                # MOBILE ONLY (on desktop these images live in the right rail).
+                # News (logo kind) has no real photo, so it stays clean text.
+                mbanner = ""
+                if kind == "image" and thumb:
+                    shown_urls.add(url)
+                    mbanner = (
+                        f'<div class="dsr-mbanner" style="margin-top:9px">'
+                        f'<img src="{thumb}" loading="lazy" onerror="this.parentNode.style.display=\'none\'" '
+                        f'style="width:100%;height:165px;object-fit:cover;border-radius:8px;display:block"/></div>'
+                    )
+
+                st.markdown(
+                    f'<a href="{url}" target="_blank" style="text-decoration:none">'
+                    f'<div style="background:var(--surface);border:1px solid var(--border);'
+                    f'border-left:3px solid {color};border-radius:8px;padding:10px 12px;margin-bottom:6px">'
+                    f'{text_block}{mbanner}</div></a>',
+                    unsafe_allow_html=True)
+
+            # Mobile-only: this platform's leftover thumbnails (no matching story).
+            for p in panel_by_platform.get(platform, []):
+                if p.get("url") in shown_urls:
+                    continue
+                shown_urls.add(p.get("url"))
+                st.markdown(_mobile_image_card(p, color), unsafe_allow_html=True)
+
+        # Mobile-only: platforms that have thumbnails but no text section at all.
+        for platform, imgs in panel_by_platform.items():
+            leftovers = [p for p in imgs if p.get("url") not in shown_urls]
+            if platform in done_platforms or not leftovers:
+                continue
+            cfg   = PLATFORM_CONFIG.get(platform, {"label": platform, "icon": "•", "color": "#AAFF00"})
+            color = cfg["color"]
+            st.markdown(
+                f'<div class="dsr-mcard" style="display:flex;align-items:center;gap:8px;margin:14px 0 8px">'
+                f'<span style="font-size:12px;font-weight:800;color:{color};display:inline-flex;align-items:center;gap:6px">{_platform_icon(platform)} {cfg["label"].upper()}</span></div>',
+                unsafe_allow_html=True)
+            for p in leftovers:
+                shown_urls.add(p.get("url"))
+                st.markdown(_mobile_image_card(p, color), unsafe_allow_html=True)
 
     with right:
-        st.markdown(f"""
-        <div style="font-size:9px;font-weight:700;color:var(--tx4);text-transform:uppercase;
-                    letter-spacing:0.1em;margin:14px 0 8px">📎 {len(panel)} sources</div>""", unsafe_allow_html=True)
-        for p in panel:
-            thumb = p.get("thumb") or ""
-            title = (p.get("title") or "")[:80]
-            src   = p.get("source") or ""
-            url   = p.get("url") or "#"
-            cfg   = PLATFORM_CONFIG.get(p.get("platform", ""), {"color": "#666"})
-            thumb_html = (
-                f'<img src="{thumb}" style="width:100%;height:64px;object-fit:cover;border-radius:6px;margin-bottom:5px" />'
-                if thumb else ""
-            )
+        with st.container(key="dossier_rail"):
             st.markdown(f"""
-            <a href="{url}" target="_blank" style="text-decoration:none">
-            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;
-                        padding:8px;margin-bottom:7px;transition:border-color 0.15s"
-                 onmouseover="this.style.borderColor='{cfg['color']}'"
-                 onmouseout="this.style.borderColor='var(--border)'">
-              {thumb_html}
-              <div style="font-size:11px;font-weight:700;color:var(--tx1);line-height:1.3">{title}</div>
-              <div style="font-size:9px;color:var(--tx4);margin-top:3px">{src}</div>
-            </div></a>""", unsafe_allow_html=True)
+            <div style="font-size:9px;font-weight:700;color:var(--tx4);text-transform:uppercase;
+                        letter-spacing:0.1em;margin:14px 0 8px">📎 {len(panel)} sources</div>""", unsafe_allow_html=True)
+            for p in panel:
+                pthumb = p.get("thumb") or ""
+                title  = (p.get("title") or "")[:80]
+                psrc   = p.get("source") or ""
+                purl   = p.get("url") or "#"
+                thumb_html = (
+                    f'<img src="{pthumb}" loading="lazy" onerror="this.style.display=\'none\'" '
+                    f'style="width:100%;height:64px;object-fit:cover;border-radius:6px;margin-bottom:5px"/>'
+                    if pthumb else ""
+                )
+                st.markdown(
+                    f'<a href="{purl}" target="_blank" style="text-decoration:none">'
+                    f'<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:7px">'
+                    f'{thumb_html}'
+                    f'<div style="font-size:11px;font-weight:700;color:var(--tx1);line-height:1.3">{title}</div>'
+                    f'<div style="font-size:9px;color:var(--tx4);margin-top:3px">{psrc}</div>'
+                    f'</div></a>',
+                    unsafe_allow_html=True)
 
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
@@ -1409,7 +1499,7 @@ def render_niche_pulse(results, query):
         with pulse_cols[idx]:
             st.markdown(f"""
             <div style="background:{color}10;border:1px solid {color}30;border-radius:10px;padding:10px 12px;margin-bottom:8px">
-              <div style="font-size:12px;font-weight:700;color:{color}">{cfg['icon']} {cfg['label']}</div>
+              <div style="font-size:12px;font-weight:700;color:{color};display:flex;align-items:center;gap:6px">{_platform_icon(key)} {cfg['label']}</div>
               <div style="font-size:9px;color:var(--tx3);margin-top:2px">{src_lbl}</div>
             </div>""", unsafe_allow_html=True)
             for t in trends:
@@ -1699,14 +1789,58 @@ with main_col:
 
     # Show investigation results right under the hero, on any tab.
     if st.session_state.pulse_results and st.session_state.pulse_query:
+        _q = st.session_state.pulse_query
+
+        def _make_topic_blueprint():
+            with st.spinner(f'Building a content blueprint for "{_q}"...'):
+                st.session_state.topic_blueprint = generate_topic_blueprint(_q, st.session_state.dossier)
+                st.session_state.topic_bp_query  = _q
+            st.session_state.bp_scroll = True   # auto-scroll to it after rerun
+            st.rerun()
+
+        def _render_topic_blueprint():
+            if st.session_state.topic_blueprint and st.session_state.topic_bp_query == _q:
+                # Anchor (scroll-margin clears the sticky nav) the auto-scroll targets.
+                st.markdown('<div class="noize-bp-anchor" style="scroll-margin-top:90px"></div>',
+                            unsafe_allow_html=True)
+                with st.container(border=True):
+                    if st.button("✕ Close blueprint", key="bp_close_top", use_container_width=True):
+                        st.session_state.topic_blueprint = None
+                        st.rerun()
+                    st.markdown(st.session_state.topic_blueprint)
+                    if st.button("✕ Close blueprint", key="bp_close_bottom", use_container_width=True):
+                        st.session_state.topic_blueprint = None
+                        st.rerun()
+                # After a fresh generation, jump the page to the blueprint.
+                if st.session_state.get("bp_scroll"):
+                    st.session_state.bp_scroll = False
+                    components.html(
+                        "<script>setTimeout(function(){"
+                        "var a=window.parent.document.querySelector('.noize-bp-anchor');"
+                        "if(a)a.scrollIntoView({behavior:'smooth',block:'start'});},150);</script>",
+                        height=0,
+                    )
+
         st.markdown("---")
+        # TOP: one-click blueprint for the searched topic (grounded in the data
+        # we just pulled). Mirrored at the bottom so it's reachable either way.
+        if st.button(f'📐 Generate Blueprint for "{_q}"', key="bp_top", type="primary", use_container_width=True):
+            _make_topic_blueprint()
+        _render_topic_blueprint()
+
         if st.session_state.dossier:
             render_dossier(st.session_state.dossier)
         render_niche_pulse(st.session_state.pulse_results, st.session_state.pulse_query)
+
+        # BOTTOM: same blueprint action.
+        if st.button(f'📐 Generate Blueprint for "{_q}"', key="bp_bottom", type="primary", use_container_width=True):
+            _make_topic_blueprint()
+
         if st.button("✕ Clear results", key="hero_clear"):
             st.session_state.pulse_results = None
             st.session_state.pulse_query   = ""
             st.session_state.dossier       = None
+            st.session_state.topic_blueprint = None
             st.rerun()
         st.markdown("---")
 
@@ -1835,7 +1969,7 @@ with main_col:
             if bp_source:
                 st.markdown(
                     f"<div style='font-size:9px;font-weight:700;color:var(--tx4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px'>🎬 Build a Blueprint</div>"
-                    f"<div style='font-size:11px;color:var(--tx3);margin-bottom:10px;line-height:1.6'>Tick the {cfg['icon']} {cfg['label']} trends you want, then generate a production blueprint. Tap any case file to open the story.</div>",
+                    f"<div style='font-size:11px;color:var(--tx3);margin-bottom:10px;line-height:1.6'>Tick the {_platform_icon(active_platform)} {cfg['label']} trends you want, then generate a production blueprint. Tap any case file to open the story.</div>",
                     unsafe_allow_html=True
                 )
                 cf_niche = st.text_input("Your niche (optional)", placeholder="e.g. fitness, fashion, food...", key=f"cf_bp_niche_{active_platform}")
@@ -2047,7 +2181,7 @@ with main_col:
             sc    = _src_lime if (age is not None and age<cfg["refresh_minutes"]) else "#ff9500"
             st.markdown(f"""
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px">
-              <span style="font-size:22px">{cfg['icon']}</span>
+              <span style="display:inline-flex;align-items:center">{_platform_icon(key, 24)}</span>
               <div style="flex:1">
                 <div style="font-size:13px;font-weight:700;color:var(--tx1)">{cfg['label']}</div>
                 <div style="font-size:10px;color:var(--tx4);margin-top:2px">Updated: {age_str} · {count} trends · Refresh: {cfg['refresh_minutes']}m</div>

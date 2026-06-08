@@ -130,6 +130,57 @@ def generate_blueprint(hashtag_names, niche="content creator"):
     )
     return response.choices[0].message.content
 
+def generate_topic_blueprint(topic, dossier=None):
+    """A content blueprint for ONE investigated topic, grounded in the live
+    cross-platform headlines we already pulled — so it reflects what's actually
+    trending on that topic right now (no extra scraping; reuses the dossier)."""
+    ctx_lines = []
+    if dossier:
+        for sec in dossier.get("sections", []):
+            plat = sec.get("platform", "")
+            for s in sec.get("stories", []):
+                h = (s.get("headline") or "").strip()
+                src = (s.get("source") or "").strip()
+                if h:
+                    ctx_lines.append(f"- [{plat}] {h} ({src})")
+    ctx = "\n".join(ctx_lines[:15])
+    ctx_block = (
+        "\n\nWHAT'S CURRENTLY TRENDING on this topic across platforms (use this to make "
+        f"the blueprint timely and specific — reference these real angles):\n{ctx}\n"
+        if ctx else ""
+    )
+    prompt = (
+        f'You are an expert short-form content strategist. A creator wants to make content '
+        f'about "{topic}" right now.{ctx_block}\n'
+        "Produce ONE focused, ready-to-shoot content blueprint for this topic, in exactly "
+        "this markdown format:\n\n"
+        f"## 📐 Blueprint: {topic}\n\n"
+        "**Why now** — 1-2 sentences on the current angle / why this is hot (lean on the trending items above).\n\n"
+        "**3 Content Angles** — three punchy video ideas, one line each.\n\n"
+        "**Top Pick — Full Breakdown**\n"
+        "- **Hook (first 3s):** what stops the scroll\n"
+        "- **Script outline:** 4-5 bullets, under 60s total\n"
+        "- **Visual style:** setting, camera, text overlays, pacing\n"
+        "- **Caption + hashtags:** ready to paste\n\n"
+        "**Best platform & format** — TikTok / YouTube Shorts / Reels, why, and best time to post.\n\n"
+        "**Recommended tool** — one of: Phone camera / CapCut / HeyGen / Runway — one sentence why.\n\n"
+        "Be specific, current, and actionable."
+    )
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a sharp short-form content strategist. Be specific, timely, and actionable."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=1400,
+        )
+        return resp.choices[0].message.content
+    except Exception as e:
+        print(f"[TOPIC BLUEPRINT] failed: {e}", flush=True)
+        return f"Couldn't generate a blueprint for **{topic}** right now — try again."
+
+
 def tool_get_velocity():
     """Returns hashtags sorted by rank movement — biggest climbers first."""
     velocity = get_hashtag_velocity()
@@ -434,28 +485,24 @@ def niche_pulse(niche: str) -> dict:
 
 
 def _build_sites_panel(raw, limit=6):
-    """The right-hand thumbnail rail: prefer rows that carry a real image
-    (YouTube), then fill with other live rows. Returns up to `limit` items."""
+    """The desktop thumbnail rail: only rows with a REAL image (YouTube/Reddit) —
+    news favicons are excluded so the rail stays clean photo thumbnails."""
     panel, seen = [], set()
-    ordered = (raw.get("youtube") or []) + (raw.get("google") or []) + (raw.get("reddit") or [])
-    # First pass: rows with thumbnails; second pass: anything live with a url.
-    for want_thumb in (True, False):
-        for r in ordered:
-            url = r.get("url")
-            if not url or url in seen:
-                continue
-            if want_thumb and not r.get("thumbnail"):
-                continue
-            panel.append({
-                "title": r.get("name", "")[:90],
-                "source": r.get("source_name") or r.get("category") or r.get("platform", ""),
-                "thumb": r.get("thumbnail", ""),
-                "url": url,
-                "platform": r.get("platform", ""),
-            })
-            seen.add(url)
-            if len(panel) >= limit:
-                return panel
+    ordered = (raw.get("youtube") or []) + (raw.get("reddit") or [])
+    for r in ordered:
+        url, thumb = r.get("url"), r.get("thumbnail")
+        if not url or url in seen or not thumb or r.get("thumb_kind") != "image":
+            continue
+        panel.append({
+            "title": r.get("name", "")[:90],
+            "source": r.get("source_name") or r.get("category") or r.get("platform", ""),
+            "thumb": thumb,
+            "url": url,
+            "platform": r.get("platform", ""),
+        })
+        seen.add(url)
+        if len(panel) >= limit:
+            return panel
     return panel
 
 
@@ -516,6 +563,8 @@ def _synthesize_dossier_sections(niche, raw):
                 "source": row.get("source_name") or row.get("category", ""),
                 "url": row.get("url", ""),
                 "thumbnail": row.get("thumbnail", ""),
+                "thumb_fallback": row.get("thumb_fallback", ""),
+                "thumb_kind": row.get("thumb_kind", "image"),
             })
         if stories:
             # Trust the rows, not GPT's label, for the platform (styling/icon).

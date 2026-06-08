@@ -10,6 +10,7 @@ import re
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from functools import lru_cache
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -401,6 +402,36 @@ def _fmt_count(n, unit):
     return f"{n} {unit}"
 
 
+@lru_cache(maxsize=512)
+def _extract_post_image(raw):
+    """Pull a real image URL out of a Reddit RSS <content> HTML blob (free —
+    the image is already in the feed we fetched). Cached so repeat content is
+    parsed once. Prefers reddit-hosted media over icons."""
+    if not raw:
+        return ""
+    imgs = re.findall(r'<img[^>]+src="([^"]+)"', raw)
+    for src in imgs:
+        src = src.replace("&amp;", "&")
+        if any(d in src for d in (
+            "preview.redd.it", "i.redd.it", "external-preview.redd.it",
+            "b.thumbs.redditmedia.com", "a.thumbs.redditmedia.com")):
+            return src
+    return imgs[0].replace("&amp;", "&") if imgs else ""
+
+
+def _publisher_logo(src_el):
+    """Build a browser-loaded publisher icon URL from a Google News <source>
+    element's domain, via Google's favicon service (returns a real 128px PNG;
+    reliable, costs our server nothing, adds no latency). Returns (icon, "")."""
+    domain = ""
+    if src_el is not None:
+        su = (src_el.get("url") or "").strip()
+        domain = re.sub(r"^https?://(www\.)?", "", su).split("/")[0].strip()
+    if not domain:
+        return "", ""
+    return (f"https://www.google.com/s2/favicons?domain={domain}&sz=128", "")
+
+
 def search_google_news(query, limit=4):
     """Real news headlines for a query via Google News RSS. Free, no key, and
     not datacenter-IP-blocked (works on Railway)."""
@@ -429,6 +460,7 @@ def search_google_news(query, limit=4):
             publisher = (src_el.text or "").strip() if src_el is not None else "Google News"
             raw = (desc_el.text or "") if desc_el is not None else ""
             blurb = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", raw)).strip()
+            logo, favicon = _publisher_logo(src_el)
             results.append({
                 "rank": str(len(results) + 1),
                 "name": headline[:120],
@@ -441,7 +473,9 @@ def search_google_news(query, limit=4):
                 "source_name": publisher,
                 "published": (date_el.text or "").strip() if date_el is not None else "",
                 "blurb": blurb[:280],
-                "thumbnail": "",
+                "thumbnail": logo,            # publisher logo (browser-loaded)
+                "thumb_fallback": favicon,    # favicon if the logo 404s
+                "thumb_kind": "logo",
             })
         print(f"[SEARCH-GOOGLE] '{query}' -> {len(results)}", flush=True)
         return results
@@ -505,7 +539,9 @@ def search_youtube(query, limit=4):
                 "source_name": sn.get("channelTitle", "YouTube"),
                 "published": sn.get("publishedAt", ""),
                 "blurb": re.sub(r"\s+", " ", sn.get("description", "")).strip()[:280],
-                "thumbnail": thumb,
+                "thumbnail": thumb,           # real 16:9 video thumbnail
+                "thumb_fallback": "",
+                "thumb_kind": "image",
             })
         print(f"[SEARCH-YOUTUBE] '{query}' -> {len(results)}", flush=True)
         return results
@@ -555,7 +591,9 @@ def search_reddit(query, limit=4):
                 "source_name": f"r/{sub}",
                 "published": "",
                 "blurb": blurb[:280],
-                "thumbnail": "",
+                "thumbnail": _extract_post_image(raw),   # real post image (free, from RSS)
+                "thumb_fallback": "",
+                "thumb_kind": "image",
             })
         print(f"[SEARCH-REDDIT] '{query}' -> {len(results)}", flush=True)
         return results
