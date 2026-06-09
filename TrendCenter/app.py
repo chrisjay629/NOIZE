@@ -1495,11 +1495,11 @@ def render_niche_pulse(results, query):
 # ═════════════════════════════════════════════════════════════════
 
 NAV_ITEMS = [
-    ("🏠","HOME",        "Back to the top"),
-    ("🗂","SOURCES",       "Platform overview"),
-    ("📋","BRIEFINGS",     "Daily intelligence"),
+    ("🏠","HOME",            "Back to the top"),
     ("🛰","WHAT IS NOIZE",   "What this is & why it's different"),
     ("🧭","HOW TO USE NOIZE","New here? Start the field manual"),
+    ("🗂","SOURCES",         "Platform overview"),
+    ("📋","BRIEFINGS",       "Daily intelligence"),
 ]
 
 active_nav = st.session_state.active_nav
