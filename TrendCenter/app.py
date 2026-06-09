@@ -832,7 +832,7 @@ def render_signal_guide():
                   f'<div style="font-size:8px;color:var(--tx4);text-align:center;line-height:1.3">{sub}</div>'
                   f'</div>')
     st.markdown(
-        f'<div style="background:var(--surface-alt);border:1px solid var(--border-2);border-radius:12px;padding:16px 18px;margin:16px 0 8px">'
+        f'<div style="background:rgba(8,12,7,0.62);border:1px solid rgba(163,255,18,0.16);border-radius:12px;padding:16px 18px;margin:16px 0 8px">'
         f'<div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;font-family:JetBrains Mono,monospace">── Signal Strength Index ──</div>'
         f'<div style="display:flex;align-items:flex-end;gap:0">{items}</div>'
         f'</div>',
@@ -984,10 +984,10 @@ def render_trending_now(cards, panel_bg_override=None):
     if panel_bg_override:
         panel_bg, panel_shad = panel_bg_override, ""
     else:
-        panel_bg = ("background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);"
-                    "-webkit-backdrop-filter:blur(20px)") if theme == "night" else "background:var(--surface-alt)"
-        panel_shad = (";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)"
-                      if theme == "night" else "")
+        # Dark, semi-transparent glass so the page's map texture shows through —
+        # matches the Strange Signals / Classified Files scheme (one dark surface).
+        panel_bg = "background:rgba(8,12,7,0.62)"
+        panel_shad = ""
     cards_html = _tn_card_html(featured, featured=True) + "".join(_tn_card_html(c) for c in smalls)
     # Metrics rail — honest recency signal per category.
     met_rows = ""
@@ -1003,7 +1003,8 @@ def render_trending_now(cards, panel_bg_override=None):
             f"</div>")
     css = """
     <style>
-      .tn-panel{border:1px solid var(--border-2);border-radius:16px;padding:18px 18px 16px;margin-bottom:12px;position:relative;overflow:hidden}
+      .tn-panel{border:1px solid rgba(163,255,18,0.30);border-radius:14px;padding:13px 14px 13px;margin-bottom:9px;position:relative;overflow:hidden;
+        box-shadow:0 0 0 1px rgba(163,255,18,0.05),0 10px 30px rgba(0,0,0,0.45)}
       .tn-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;gap:10px;flex-wrap:wrap}
       .tn-ttl{font-family:'Orbitron',sans-serif;font-weight:800;font-size:17px;letter-spacing:0.02em;color:var(--tx1);line-height:1}
       .tn-sub{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--lime-t);margin-top:5px}
@@ -1032,7 +1033,11 @@ def render_trending_now(cards, panel_bg_override=None):
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .tn-feat .tn-meta{font-size:9.5px}
       .tn-fav{width:14px;height:14px;border-radius:3px;flex-shrink:0;background:rgba(255,255,255,0.1)}
-      .tn-metrics{margin-top:12px;border:1px solid var(--border-2);border-radius:12px;padding:11px 14px;background:var(--surface-2)}
+      .tn-metrics{margin-top:12px;border:1px solid var(--border-2);border-radius:12px;padding:11px 14px;background:rgba(0,0,0,0.22)}
+      .st-key-tn_view_all button{background:rgba(8,12,7,0.55)!important;border:1px solid rgba(163,255,18,0.22)!important;
+        color:var(--lime-t)!important;font-family:'JetBrains Mono',monospace!important;font-weight:800!important;
+        letter-spacing:0.12em!important}
+      .st-key-tn_view_all button:hover{border-color:var(--lime-t)!important;box-shadow:0 0 16px rgba(163,255,18,0.18)!important}
       .tn-met-hd{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:0.16em;
         text-transform:uppercase;color:var(--amber);margin-bottom:9px}
       .tn-met-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 20px}
@@ -1603,7 +1608,7 @@ def render_classified_dossier(signals):
 
     bg = STRANGE_BG_B64  # getme.png — classified radar backdrop (bigfoot + alien)
     stage_bg = (
-        "linear-gradient(rgba(6,9,4,0.28),rgba(6,9,4,0.52)),"
+        "linear-gradient(rgba(6,9,5,0.86),rgba(5,8,4,0.93)),"
         f"url('data:image/jpeg;base64,{bg}')"
         if bg else "linear-gradient(180deg,#0a0f08,#070b05)"
     )
@@ -1612,34 +1617,55 @@ def render_classified_dossier(signals):
     <style>
       :root { interpolate-size: allow-keywords; }
       .cf-stage{ border:1px solid var(--border-2); border-radius:18px; background-size:cover;
-        background-position:center; padding:42px 11% 30px; box-shadow:0 16px 50px rgba(0,0,0,0.55);
+        background-position:center; padding:30px 7% 24px; box-shadow:0 16px 50px rgba(0,0,0,0.55);
         margin-bottom:12px; }
-      .cf-card{ background:transparent; border:none; box-shadow:none; border-radius:14px;
-        padding:2px 0 0; }
-      .cf-head{ display:flex; justify-content:space-between; align-items:center; margin:6px 2px 14px;
-        font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.16em;
-        text-transform:uppercase; color:var(--tx2); }
-      .cf-head .cf-count{ color:var(--lime-t); }
-      .cf-item{ background:rgba(10,14,20,0.03); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+      .cf-card{ background:transparent; border:none; box-shadow:none; padding:0; }
+      /* header */
+      .cf-head{ display:flex; justify-content:space-between; align-items:flex-start; margin:0 2px 16px; }
+      .cf-head-l{ display:flex; align-items:center; gap:12px; }
+      .cf-lock{ width:34px; height:34px; border-radius:9px; display:flex; align-items:center;
+        justify-content:center; background:rgba(163,255,18,0.08); border:1px solid rgba(163,255,18,0.22);
+        font-size:15px; flex-shrink:0; }
+      .cf-head-ttl{ font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:800;
+        letter-spacing:0.14em; text-transform:uppercase; color:var(--tx1); }
+      .cf-head-sub{ font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--tx4);
+        letter-spacing:0.04em; margin-top:3px; }
+      .cf-head-r{ display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace;
+        font-size:11px; font-weight:800; letter-spacing:0.12em; color:var(--lime-t); }
+      /* item */
+      .cf-item{ background:rgba(17,23,18,0.62); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
         border:1px solid var(--border); border-left:3px solid var(--c); border-radius:12px;
         margin-bottom:10px; overflow:hidden; transition:border-color .25s, box-shadow .25s; }
       .cf-item[open]{ border-color:var(--c); box-shadow:0 0 0 1px var(--c),
         0 0 26px color-mix(in srgb, var(--c) 22%, transparent); }
-      .cf-teaser{ display:flex; align-items:center; gap:12px; padding:12px 14px; cursor:pointer;
+      .cf-teaser{ display:flex; align-items:center; gap:14px; padding:13px 16px; cursor:pointer;
         list-style:none; }
       .cf-teaser::-webkit-details-marker{ display:none; }
-      .cf-thumb{ width:78px; height:62px; border-radius:8px; background-size:cover; background-position:center;
-        flex-shrink:0; border:1px solid rgba(255,255,255,0.08); }
-      .cf-thumb-empty{ display:flex; align-items:center; justify-content:center; font-size:24px;
+      .cf-thumb{ width:92px; height:74px; border-radius:9px; background-size:cover; background-position:center;
+        flex-shrink:0; border:1px solid rgba(255,255,255,0.10); }
+      .cf-thumb-empty{ display:flex; align-items:center; justify-content:center; font-size:26px;
         background:rgba(255,255,255,0.04); }
       .cf-mid{ flex:1; min-width:0; }
-      .cf-title{ font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--tx1);
-        text-transform:uppercase; letter-spacing:0.03em; line-height:1.35;
+      .cf-line{ display:flex; align-items:center; gap:9px; margin-bottom:6px; flex-wrap:wrap; }
+      .cf-rank{ font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:800; color:var(--c); }
+      .cf-badge{ font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:800; letter-spacing:0.10em;
+        text-transform:uppercase; color:var(--lime-t); background:var(--lime-bg); border:1px solid var(--lime-border);
+        padding:2px 8px; border-radius:5px; }
+      .cf-tags{ font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:600; letter-spacing:0.08em;
+        text-transform:uppercase; color:var(--tx4); }
+      .cf-title{ font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--tx1);
+        text-transform:uppercase; letter-spacing:0.02em; line-height:1.3;
         text-shadow:0 1px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8); }
-      .cf-rank{ color:var(--c); }
       .cf-preview{ font-size:11px; color:var(--tx3); line-height:1.45; margin-top:4px;
         display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
         text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.85); }
+      .cf-right{ display:flex; align-items:center; gap:13px; flex-shrink:0; margin-left:6px; }
+      .cf-fileicon{ font-size:17px; opacity:0.55; }
+      .cf-srcwrap{ text-align:left; }
+      .cf-srclabel{ font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:800; letter-spacing:0.14em;
+        color:var(--lime-t); text-transform:uppercase; }
+      .cf-srcname{ font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:600; color:var(--tx2);
+        margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
       .cf-chev{ color:var(--c); font-size:13px; flex-shrink:0; transition:transform .3s; }
       .cf-item[open] .cf-chev{ transform:rotate(180deg); }
       .cf-item::details-content{ opacity:0; height:0; overflow:hidden;
@@ -1657,24 +1683,51 @@ def render_classified_dossier(signals):
       .cf-source{ display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px;
         font-weight:700; color:var(--c); text-decoration:none; letter-spacing:0.04em; margin-top:2px; }
       .cf-source:hover{ text-decoration:underline; }
+      .cf-viewall{ display:block; text-align:center; margin-top:4px; padding:13px;
+        border:1px solid rgba(163,255,18,0.30); border-radius:12px; background:rgba(8,12,7,0.40);
+        color:var(--lime-t); font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:800;
+        letter-spacing:0.16em; text-transform:uppercase; text-decoration:none; }
+      .cf-viewall:hover{ border-color:var(--lime-t); box-shadow:0 0 16px rgba(163,255,18,0.16); }
       @media (max-width:640px){
         .cf-stage{ padding:16px 7px 12px; border-radius:14px; }
+        .cf-teaser{ gap:10px; padding:11px 12px; }
+        .cf-thumb{ width:66px; height:60px; }
+        .cf-fileicon,.cf-srcwrap{ display:none!important; }
         .cf-grid{ flex-direction:column; padding:2px 12px 14px; }
         .cf-feature{ width:100%; height:200px; min-height:0; }
         .cf-body{ padding-top:10px; }
       }
     </style>""", unsafe_allow_html=True)
 
+    # type → (fallback badge word, classification tags) for the teaser line.
+    _CF_TAGMAP = {
+        "UFO":        ("SIGHTING",     "UFO / AERIAL"),
+        "Paranormal": ("EYEWITNESS",   "PARANORMAL / HAUNTING"),
+        "Unsolved":   ("COLD CASE",    "UNSOLVED / MYSTERY"),
+        "Cryptid":    ("FIELD REPORT", "CRYPTID / FOLKLORE"),
+        "Glitch":     ("ANOMALY",      "GLITCH / REALITY"),
+        "Strange":    ("DISPATCH",     "HIGH STRANGENESS"),
+    }
+
     items = ""
     for i, s in enumerate(signals):
-        col   = SIGNAL_TYPE_COLORS.get(s.get("type", ""), "#A3FF12")
-        emoji = SIGNAL_TYPE_EMOJI.get(s.get("type", ""), "❔")
+        typ_raw = s.get("type", "")
+        col   = SIGNAL_TYPE_COLORS.get(typ_raw, "#A3FF12")
+        emoji = SIGNAL_TYPE_EMOJI.get(typ_raw, "❔")
         rank  = s.get("rank", "")
-        title = (s.get("case_headline") or s.get("title") or "").strip()
+        head_full = (s.get("case_headline") or s.get("title") or "").strip()
+        # Badge: a short colon-prefix of the headline (e.g. "Aftershocks: …"),
+        # otherwise a thematic badge mapped from the signal type.
+        map_badge, tags = _CF_TAGMAP.get(typ_raw, ("CLASSIFIED", typ_raw.upper()))
+        badge, title = map_badge, head_full
+        if ": " in head_full:
+            pre, rest = head_full.split(": ", 1)
+            if len(pre) <= 15 and len(pre.split()) <= 2:
+                badge, title = pre.upper(), rest
         prev  = (s.get("summary") or "").strip()
         img   = s.get("image_url") or ""
-        src   = s.get("subreddit") or s.get("source_name") or ""
-        typ   = (s.get("type") or "").upper()
+        src   = s.get("subreddit") or s.get("source_name") or "Unknown"
+        typ   = typ_raw.upper()
         link  = s.get("permalink") or "#"
         body  = "".join(f"<p class='cf-p'>{p}</p>" for p in (s.get("case_body") or [prev]))
         thumb = (f"<div class='cf-thumb' style=\"background-image:url('{img}')\"></div>" if img
@@ -1684,9 +1737,16 @@ def render_classified_dossier(signals):
             f"<details name='cf' class='cf-item' style='--c:{col}'>"
             f"<summary class='cf-teaser'>{thumb}"
             f"<div class='cf-mid'>"
-            f"<div class='cf-title'>{emoji} <span class='cf-rank'>#{rank}</span> {title}</div>"
+            f"<div class='cf-line'><span class='cf-rank'>#{rank}</span>"
+            f"<span class='cf-badge'>{badge}</span>"
+            f"<span class='cf-tags'>· {tags}</span></div>"
+            f"<div class='cf-title'>{title}</div>"
             f"<div class='cf-preview'>{prev}</div></div>"
-            f"<span class='cf-chev'>▾</span></summary>"
+            f"<div class='cf-right'>"
+            f"<span class='cf-fileicon'>📄</span>"
+            f"<div class='cf-srcwrap'><div class='cf-srclabel'>Source</div>"
+            f"<div class='cf-srcname'>{src}</div></div>"
+            f"<span class='cf-chev'>▾</span></div></summary>"
             f"<div class='cf-grid'>{feature}"
             f"<div class='cf-body'>"
             f"<div class='cf-meta'>📡 {typ} · {src}</div>{body}"
@@ -1706,9 +1766,16 @@ def render_classified_dossier(signals):
         # Stage (getme.png radar backdrop) with the dossier card floating over it.
         f"<div class='cf-stage' style=\"background-image:{stage_bg}\">"
         f"<div class='cf-card'>"
-        f"<div class='cf-head'><span>🔒 Classified Files</span>"
-        f"<span class='cf-count'>{len(signals)} OPEN</span></div>"
-        f"{items}</div></div>", unsafe_allow_html=True)
+        f"<div class='cf-head'>"
+        f"<div class='cf-head-l'><span class='cf-lock'>🔒</span>"
+        f"<div><div class='cf-head-ttl'>Classified Files</div>"
+        f"<div class='cf-head-sub'>Declassified intel &middot; Eyewitness reports &middot; Hidden truths</div>"
+        f"</div></div>"
+        f"<div class='cf-head-r'><span>{len(signals)} OPEN</span><span style='font-size:13px'>&#9662;</span></div>"
+        f"</div>"
+        f"{items}"
+        f"<a class='cf-viewall' href='#'>View All Files &rarr;</a>"
+        f"</div></div>", unsafe_allow_html=True)
 
 
 def render_dossier(dossier):
@@ -2229,19 +2296,32 @@ with main_col:
                      "url('data:image/jpeg;base64," + ASPHALT_BG_B64 + "')!important;"
                      "background-size:cover!important;background-position:center 35%!important;"
                      "border:1px solid rgba(163,255,18,0.32);"
-                     "border-radius:14px;padding:10px 14px 12px;margin-bottom:7px;"
+                     "border-radius:14px;padding:12px 14px 13px;margin-bottom:9px;"
                      "box-shadow:inset 0 0 60px rgba(0,0,0,0.45),0 0 0 1px rgba(163,255,18,0.10),0 0 18px rgba(163,255,18,0.09),0 10px 30px rgba(0,0,0,0.4)}")
-        # keep all 4 columns on one row (no mobile stacking)
-        _src_css += ".st-key-srcrow [data-testid=\"stHorizontalBlock\"]{flex-wrap:nowrap!important;gap:8px}"
+        # source buttons: a full-width row of labeled PILLS (icon + label) INSIDE
+        # the same panel as the header — header / divider / buttons as one module.
+        # Tighten the gap between the header markdown and the button row.
+        _src_css += ".st-key-srcpanel [data-testid=\"stVerticalBlock\"]{gap:0.45rem!important}"
+        _src_css += ".st-key-srcrow [data-testid=\"stHorizontalBlock\"]{flex-wrap:nowrap!important;gap:10px}"
         _src_css += ".st-key-srcrow [data-testid=\"stColumn\"]{min-width:0!important;flex:1 1 0!important}"
-        # square shape, capped + centred
-        _src_css += (".st-key-srcrow button{display:block!important;aspect-ratio:1!important;width:100%;max-width:86px;margin:0 auto;"
-                     "border-radius:14px;padding:0!important}")
-        # hide the (accessibility-only) text label
-        _src_css += ".st-key-srcrow button p,.st-key-srcrow button div{font-size:0!important;line-height:0!important}"
-        # icon background (longhands w/ !important so Streamlit's `background:` shorthand can't reset them)
-        _src_css += (_bgsel + "{background-color:var(--surface)!important;background-repeat:no-repeat!important;"
-                     "background-position:center!important;background-size:52%!important}")
+        # wide pill shape
+        _src_css += (".st-key-srcrow button{display:block!important;width:100%;max-width:none;margin:0;"
+                     "height:54px;border-radius:12px;padding:0 14px 0 54px!important;text-align:left}")
+        # label sits right next to the icon (grouped, mockup style)
+        _src_css += (".st-key-srcrow button p,.st-key-srcrow button div{font-size:11px!important;line-height:1.1!important;"
+                     "font-weight:800!important;letter-spacing:0.10em!important;color:#d4ecb4!important;"
+                     "text-transform:uppercase!important;margin:0!important;text-align:left!important}")
+        # brand logo anchored just left of the label; translucent fill so the
+        # panel's map texture shows through the tabs (blends into the module)
+        _src_css += (_bgsel + "{background-color:rgba(10,14,20,0.42)!important;background-repeat:no-repeat!important;"
+                     "background-position:left 18px center!important;background-size:24px!important}")
+        # mobile: labels wrap badly when the pills get narrow — drop the text and
+        # just center the brand icon in each pill.
+        _src_css += ("@media (max-width:640px){"
+                     ".st-key-srcrow button{padding:0!important;text-align:center}"
+                     ".st-key-srcrow button p,.st-key-srcrow button div{font-size:0!important;line-height:0!important}"
+                     + _bgsel + "{background-position:center!important;background-size:26px!important}"
+                     "}")
         # active (selected) state
         _src_css += (".st-key-srcrow [data-testid=\"stColumn\"] button[kind=\"primary\"]{background-color:transparent!important;"
                      "border-color:var(--lime-t)!important;box-shadow:0 0 0 2px var(--lime-border),0 0 16px rgba(163,255,18,0.32)!important}")
@@ -2252,8 +2332,8 @@ with main_col:
         with st.container(key="srcpanel"):
             # Glowing-green "Content Blueprint Generator" title (Orbitron) + TOP 20 tag + creator tagline.
             st.markdown(
-                "<div style='margin-bottom:9px'>"
-                "<div style='display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap'>"
+                "<div>"
+                "<div style='display:flex;align-items:center;justify-content:flex-start;gap:11px;flex-wrap:wrap'>"
                 "<span style=\"font-family:'Orbitron',sans-serif;font-weight:800;font-size:14px;letter-spacing:0.06em;"
                 "color:#A3FF12;text-transform:uppercase;"
                 "text-shadow:0 0 14px rgba(163,255,18,0.55),0 0 3px rgba(163,255,18,0.85)\">Content Blueprint Generator</span>"
@@ -2264,6 +2344,7 @@ with main_col:
                 "<div style=\"font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:500;line-height:1.5;"
                 "letter-spacing:0.03em;color:rgba(233,245,220,0.78);margin-top:6px;text-shadow:0 1px 3px rgba(0,0,0,0.8)\">"
                 "Top 20 trends from the top 4 feeds &mdash; pick a source to build your next piece of content.</div>"
+                "<div style='border-top:1px solid rgba(163,255,18,0.16);margin-top:11px'></div>"
                 "</div>",
                 unsafe_allow_html=True,
             )
@@ -2407,7 +2488,7 @@ with main_col:
         # Image-first live intelligence feed (general trending news), then the
         # supernatural Classified Files / Strange Signals below it.
         with st.container(key="briefingwrap"):
-            render_trending_now(trending_cards, panel_bg_override=_briefing_panel_bg)
+            render_trending_now(trending_cards)
         _strange = get_strange_signals()
         # Unified Classified Files dossier accordion (replaces radar + story panel).
         render_classified_dossier(_strange)
@@ -2420,8 +2501,8 @@ with main_col:
             np_src = f"data:image/jpeg;base64,{NEWSPAPER_B64}" if NEWSPAPER_B64 else ""
             if np_src:
                 st.markdown(
-                    f'<div style="display:flex;align-items:stretch;border-radius:16px;overflow:hidden;margin:8px 0 4px;min-height:130px;border:1px solid var(--border-2)">'
-                    f'<div style="flex:1;background:var(--surface-alt);padding:28px 32px;display:flex;flex-direction:column;justify-content:center">'
+                    f'<div style="display:flex;align-items:stretch;border-radius:16px;overflow:hidden;margin:8px 0 4px;min-height:130px;border:1px solid rgba(163,255,18,0.16)">'
+                    f'<div style="flex:1;background:rgba(8,12,7,0.72);padding:28px 32px;display:flex;flex-direction:column;justify-content:center">'
                     f'<div style="font-size:32px;color:var(--amber);line-height:0.7;margin-bottom:12px;font-family:Georgia,serif;opacity:0.8">"</div>'
                     f'<div style="font-size:14px;color:var(--tx2);line-height:1.75;font-style:italic">In a world of infinite noise,<br>we find the signal that shapes tomorrow.</div>'
                     f'<div style="font-size:10px;color:var(--tx4);margin-top:10px;letter-spacing:0.04em">— Chief Detective Pugson</div>'
