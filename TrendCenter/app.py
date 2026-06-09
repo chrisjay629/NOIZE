@@ -1,6 +1,7 @@
 import sqlite3
 import threading
 import time
+import os
 import base64
 import io
 import json
@@ -101,6 +102,47 @@ def _platform_icon(key, size=16):
 # ── Scheduler ────────────────────────────────────────────────────
 _scheduler_started = threading.Event()
 
+# Shared content caches (same files/format the app's loaders read). Pre-warmed
+# by the background thread so no visitor ever waits for them to build.
+_PREWARM_TRENDING = "trending_cache.json"
+_PREWARM_STRANGE  = "strange_cache.json"
+
+
+def _cache_is_fresh(path, ttl_sec):
+    """True if the JSON cache exists, has content, and is younger than ttl_sec."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            d = json.load(f)
+        ts = datetime.fromisoformat(d.get("generated_at", ""))
+        has = bool(d.get("cards") or d.get("signals"))
+        return has and (datetime.now() - ts).total_seconds() < ttl_sec
+    except Exception:
+        return False
+
+
+def _prewarm_caches():
+    """Regenerate the shared Trending Now (hourly) + Strange Signals (daily)
+    drops in the background when they go stale, so first visitors never wait."""
+    if not _cache_is_fresh(_PREWARM_TRENDING, 3600):
+        try:
+            cards = fetch_trending_now()
+            if cards:
+                with open(_PREWARM_TRENDING, "w", encoding="utf-8") as f:
+                    json.dump({"generated_at": datetime.now().isoformat(), "cards": cards}, f)
+                print(f"[PREWARM] trending now: {len(cards)} cards", flush=True)
+        except Exception as e:
+            print(f"[PREWARM] trending failed: {e}", flush=True)
+    if not _cache_is_fresh(_PREWARM_STRANGE, 86400):
+        try:
+            signals = generate_strange_signals(limit=5)  # 5 fresh cases / 24h, with art
+            if signals:
+                with open(_PREWARM_STRANGE, "w", encoding="utf-8") as f:
+                    json.dump({"generated_at": datetime.now().isoformat(), "signals": signals}, f)
+                print(f"[PREWARM] strange signals: {len(signals)} cases", flush=True)
+        except Exception as e:
+            print(f"[PREWARM] strange failed: {e}", flush=True)
+
+
 def _background_scheduler():
     print("[SCHEDULER] started", flush=True)
     while True:
@@ -115,6 +157,8 @@ def _background_scheduler():
                     cleanup_old_snapshots(hours=48)
             except Exception as e:
                 print(f"[SCHEDULER] {key} failed: {e}", flush=True)
+        # Keep the shared content caches warm so visitors never wait on them.
+        _prewarm_caches()
         time.sleep(1800)
 
 if not _scheduler_started.is_set():
@@ -1253,17 +1297,29 @@ def get_strange_signals(force=False):
     images/day total (not per session), and every story opens instantly.
     Rescan (force=True) regenerates a fresh drop for everyone."""
     if not force:
-        # Already loaded this session? Reuse it (avoids re-parsing the cache file).
-        if st.session_state.get("strange_signals"):
+        # Reuse the session copy ONLY if the shared cache file hasn't changed
+        # since we loaded it. (Checks the file's mtime — cheap — so a fresh daily
+        # drop is picked up instantly by every device, not just new sessions.)
+        try:
+            _mtime = os.path.getmtime(_STRANGE_CACHE_FILE)
+        except OSError:
+            _mtime = None
+        if st.session_state.get("strange_signals") and (
+                _mtime is None or st.session_state.get("strange_mtime") == _mtime):
             return st.session_state.strange_signals
         cached = _load_strange_cache()
         if cached:
             st.session_state.strange_signals = cached
+            st.session_state.strange_mtime = _mtime
             return cached
     with st.spinner("📡 Scanning the fringe + writing up today's 5 cases…"):
         signals = generate_strange_signals(limit=5)
         _save_strange_cache(signals)
         st.session_state.strange_signals = signals
+        try:
+            st.session_state.strange_mtime = os.path.getmtime(_STRANGE_CACHE_FILE)
+        except OSError:
+            st.session_state.strange_mtime = None
         st.session_state.strange_sel = None
     return signals
 
@@ -1298,17 +1354,29 @@ def get_trending_now(force=False):
     hour and SHARED across all visitors via a server-side cache, so the decode +
     image work happens once an hour total, not per session. force=True rescans."""
     if not force:
-        if st.session_state.get("trending_now"):
+        # Reuse the session copy only while the shared file is unchanged, so a
+        # fresh hourly feed is picked up instantly across all devices.
+        try:
+            _mtime = os.path.getmtime(_TRENDING_CACHE_FILE)
+        except OSError:
+            _mtime = None
+        if st.session_state.get("trending_now") and (
+                _mtime is None or st.session_state.get("trending_mtime") == _mtime):
             return st.session_state.trending_now
         cached = _load_trending_cache()
         if cached:
             st.session_state.trending_now = cached
+            st.session_state.trending_mtime = _mtime
             return cached
     with st.spinner("📡 Pulling today's live intelligence feed…"):
         cards = fetch_trending_now()
     if cards:
         _save_trending_cache(cards)
         st.session_state.trending_now = cards
+        try:
+            st.session_state.trending_mtime = os.path.getmtime(_TRENDING_CACHE_FILE)
+        except OSError:
+            st.session_state.trending_mtime = None
     return st.session_state.get("trending_now", [])
 
 
