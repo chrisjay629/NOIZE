@@ -808,10 +808,29 @@ def _generate_case_image(signal):
             img.raise_for_status()
             b64 = base64.b64encode(img.content).decode("ascii")
         print("[STRANGE] Generated a case image via gpt-image", flush=True)
-        return f"data:image/png;base64,{b64}"
+        # Compress: a 1024px PNG is ~1.1MB of base64 — far too heavy to inline in
+        # the cache + page HTML. Shrink to a small JPEG so the feed stays fast.
+        return _compress_image_b64(b64)
     except Exception as e:
         print(f"[STRANGE] Image generation failed: {e}", flush=True)
         return ""
+
+
+def _compress_image_b64(b64_png, max_w=640, quality=62):
+    """Decode a base64 image, downscale to max_w, re-encode as a small JPEG, and
+    return a data URI. Cuts a ~1.1MB PNG to roughly ~60-90KB."""
+    try:
+        import io
+        from PIL import Image
+        im = Image.open(io.BytesIO(base64.b64decode(b64_png))).convert("RGB")
+        if im.width > max_w:
+            im = im.resize((max_w, round(im.height * max_w / im.width)), Image.LANCZOS)
+        out = io.BytesIO()
+        im.save(out, format="JPEG", quality=quality, optimize=True)
+        return "data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode("ascii")
+    except Exception as e:
+        print(f"[STRANGE] image compress failed: {e}", flush=True)
+        return f"data:image/png;base64,{b64_png}"
 
 
 def _write_case_text(signal):
