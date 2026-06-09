@@ -1554,7 +1554,18 @@ st.markdown(
     # Green outline on the header nav buttons so they match the rest of the UI.
     ".st-key-noizetopnav button[kind=\"secondary\"]{border:1px solid rgba(163,255,18,0.28)!important}"
     ".st-key-noizetopnav button[kind=\"secondary\"]:hover{border-color:var(--lime-t)!important;"
-    "box-shadow:0 0 12px rgba(163,255,18,0.16)!important}</style>",
+    "box-shadow:0 0 12px rgba(163,255,18,0.16)!important}"
+    # Sticky header: pin the wrapper (flex child of the main scroll column) + the
+    # inner block. Transparent — the tabs float over the map like before; a light
+    # backdrop blur just softens content that scrolls behind it (no dark bar).
+    "[data-testid=\"stVerticalBlock\"]>div:has(.st-key-noizetopnav),"
+    ".st-key-noizetopnav{position:sticky!important;top:0!important;z-index:1000!important}"
+    # Transparent header with a single glowing green underline pinned at its
+    # bottom edge; the glow casts downward so content scrolls up into it.
+    ".st-key-noizetopnav{background:rgba(6,9,4,0.92)!important;backdrop-filter:blur(10px);"
+    "-webkit-backdrop-filter:blur(10px);padding:7px 10px 11px!important;"
+    "border-bottom:2px solid rgba(163,255,18,0.70)!important;"
+    "box-shadow:0 7px 20px -3px rgba(163,255,18,0.40),0 2px 6px rgba(163,255,18,0.30)}</style>",
     unsafe_allow_html=True)
 
 
