@@ -1,72 +1,96 @@
-# TrendCenter
+# 🛰️ Noize — *Signal in the Noise*
 
-A TikTok hashtag intelligence tool that helps creators identify trending hashtags, track velocity (which ones are climbing fast), and generate content ideas — powered by an AI agent.
+**A real-time trend-intelligence command center that turns what's happening across the internet into ready-to-shoot content — fast.**
+
+Built for content creators: pick a trend and instantly get the angle, the script, when to post, how to post, the tools to use, and the AI prompts to generate it — all in one window, so you stop scrolling ten sites and start shipping.
 
 **Live app:** https://imaginative-dedication-production.up.railway.app
 
----
-
-## What it does
-
-- Scrapes the top 20 trending hashtags from TikTok Creative Center every hour
-- Tracks rank movement over time so you can see which hashtags are accelerating
-- Filters hashtags by your niche using GPT (understands context, not just keywords)
-- Generates 3 content ideas per hashtag tailored to your niche
-- Displays everything in a web dashboard with a chat interface
+> Themed as a noir detective dashboard (your AI partner, *Chief Detective Pugson*), Noize reads the static of the internet so you only see the signal.
 
 ---
 
-## How to use it
+## What is Noize?
 
-### Dashboard tab
-1. Hit **Refresh** to pull the latest trending hashtags
-2. Type your niche (e.g. `fitness`, `fashion`, `cooking`) and hit **Analyze**
-3. The agent will filter the trending hashtags for your niche and generate content ideas
-4. The velocity leaderboard shows all trending hashtags ranked — ones marked **Strike now** are climbing fastest
+The internet never shuts up — millions of posts, clips and threads every minute, most of it pure static. Noize listens to all of it across multiple platforms, surfaces what's *actually* trending with **real, linked sources**, and hands creators a finished game plan for turning any trend into content.
 
-### Ask the Agent tab
-Talk to the agent directly in plain English. Examples:
-- "What hashtags are blowing up right now?"
-- "I make sports content, what should I post today?"
-- "Which hashtags are fading that I should avoid?"
+It's part live-news terminal, part content strategist, part curiosities desk — wrapped in a single dark "intelligence dashboard."
+
+### Why it's different
+- **⚡ Faster, more efficient** — go from a trend to a ready-to-shoot piece in minutes, not an afternoon of research.
+- **🗂 Everything in one window** — the news, the script, the timing, the tools, and the AI prompts. No tab-hopping.
+- **✅ Real, grounded intel** — cards link to real publisher articles (Google News redirects are decoded to the true source). No invented headlines.
+- **🎯 Honest by design** — when something is AI-generated, it's clearly labeled.
+
+---
+
+## What's inside
+
+| Feature | What it does |
+|---|---|
+| **🔍 Investigate** | Type any topic → a live cross-platform **Dossier** + a ready content **Blueprint** for it. |
+| **📡 Trending Now** | An image-first live feed of real stories across Politics, Tech, AI, Business, Music, Space, Science & Gaming — each card opens the actual article. |
+| **🎬 Content Blueprint Generator** | Turn any trend into a **multi-platform** game plan (TikTok / Shorts / Reels / YouTube / X) with beat-by-beat script, shot list, on-screen text, posting times, tool stack, and a **copy-paste AI Prompt Pack**. |
+| **🛸 Strange Signals / Classified Files** | The internet's weirdest unsolved files (UFOs, cold cases, glitches), declassified fresh daily with AI-written dossiers + generated art. |
+| **📋 Daily Briefings** | A daily intelligence drop of the top stories, packaged and ready to act on. |
+
+### The AI Prompt Pack
+Every blueprint ships with copy-paste prompts you drop straight into your AI tools:
+- 🖼 **Thumbnail** — a detailed image prompt (Midjourney / DALL·E / GPT-image)
+- ✍️ **Titles & captions** — a GPT prompt that returns 10 scroll-stopping options
+- 📝 **Full script** — a GPT prompt that expands the beats into a word-for-word script
+- 🎙 **Voiceover / AI avatar** — tone + delivery direction (ElevenLabs / HeyGen)
+
+---
+
+## How to use it (the field manual)
+
+1. **Chase a lead** — type a topic into **Investigate** and hit the button. Noize sweeps every platform and builds a Dossier + blueprint on the spot.
+2. **Work a source** — tap **Google · YouTube · Reddit · GPT**, scan the Top 20, select the trends you want, and hit **Generate Blueprint**.
+3. **Read the wire** — scroll **Trending Now** for the live feed; tap a card to open the real story.
+4. **Crack the weird ones** — open **Classified Files** for the daily strange-signal dossiers.
+5. **Steal the AI Prompt Pack** — paste the blueprint's prompts into your AI tools.
+6. **Hit the Briefing Room** — the **Briefings** tab is your daily intelligence drop.
 
 ---
 
 ## How it works
 
-### Architecture
-
 ```
-TikTok Creative Center
-        ↓
-   scraper.py          Pulls top 20 trending hashtags via HTTP + BeautifulSoup
-        ↓
-   database.py         Stores snapshots in SQLite with timestamps
-        ↓
-   agent.py            OpenAI agent with 4 tools:
-                         - get_trending_hashtags
-                         - filter_by_niche (GPT-powered semantic matching)
-                         - generate_content_ideas
-                         - get_velocity (rank movement over time)
-        ↓
-   app.py              Streamlit web UI (dashboard + chat)
+            Google News RSS · YouTube Data API · Reddit · Google Trends · GPT
+                                       │
+                  platforms.py  ── per-source scrapers + the Trending Now engine
+                                     (RSS → decode Google redirect → real og:image),
+                                     parallelized & cached
+                                       │
+                  agent.py      ── OpenAI logic: cross-platform Dossier,
+                                     multi-platform Blueprints + AI Prompt Pack,
+                                     Strange Signals (text + generated images)
+                                       │
+                  database.py   ── SQLite snapshots + rank-velocity tracking
+                                       │
+                  app.py        ── Streamlit dashboard (single dark intelligence UI)
+                                       │
+            Shared server-side caches  ── trending_cache.json (hourly),
+                                          strange_cache.json (daily)
 ```
 
-### Key files
+### A few engineering highlights
+- **Real article resolution (free, no API key):** Google News RSS gives headlines but only redirect links. Noize decodes those via Google's `batchexecute` endpoint to the true publisher URL, then fetches the article's `og:image` — so cards show real photos and link to real stories, with a graceful category-tinted fallback when a publisher blocks server-side fetches.
+- **Shared caching:** the Trending Now feed and the daily Strange Signals drop are generated **once** and shared across all visitors (hourly / daily), so the expensive work happens once per period, not per session.
+- **Velocity tracking:** every scrape is timestamped; rank movement over time powers the "what's accelerating" signals.
+- **Honest AI:** GPT-sourced content is labeled as AI, never disguised as live data.
 
-| File | Purpose |
-|------|---------|
-| `scraper.py` | Scrapes TikTok Creative Center, saves to JSON + SQLite |
-| `database.py` | SQLite storage, velocity calculations, 48h auto-cleanup |
-| `agent.py` | OpenAI tool-calling agent loop |
-| `scheduler.py` | Standalone hourly scheduler (for local use) |
-| `app.py` | Streamlit web app with background scraping thread |
+---
 
-### Velocity tracking
-Every scrape is timestamped. The velocity engine compares each hashtag's current rank to its earliest recorded rank and computes the change. Negative rank change = climbing (lower rank number = more trending). Hashtags are sorted by biggest movers first.
+## Tech stack
 
-### Niche filtering
-Instead of simple keyword matching, `filter_by_niche` sends all current hashtags to GPT and asks it to identify which ones are genuinely relevant to the user's niche — catching semantic matches like `#prom` for fashion even though "fashion" isn't in the name.
+- **Python 3.9+** · **Streamlit** (UI) · **Plotly** (charts)
+- **OpenAI API** — `gpt-4o-mini` (Dossiers, Blueprints, Strange Signals text) + `gpt-image-1-mini` (case-file art)
+- **Google News RSS · YouTube Data API v3 · Reddit · Google Trends** — live data
+- **SQLite** — zero-setup storage + velocity history
+- **requests / ElementTree** — fetching & parsing
+- **Railway** — deployment & hosting
 
 ---
 
@@ -76,35 +100,22 @@ Instead of simple keyword matching, `filter_by_niche` sends all current hashtags
 # Install dependencies
 pip3 install -r requirements.txt
 
-# Add your OpenAI API key
-echo "OPENAI_API_KEY=your_key_here" > .env
+# Add your keys
+echo "OPENAI_API_KEY=your_key_here"  > .env
+echo "YOUTUBE_API_KEY=your_key_here" >> .env   # optional, enables the live YouTube feed
 
-# Run the web app
+# Run the app
 python3 -m streamlit run app.py
-
-# Or run just the CLI agent
-python3 agent.py
-
-# Or run the hourly scheduler in the background
-python3 scheduler.py
 ```
 
----
-
-## Tech stack
-
-- **Python 3.9+**
-- **OpenAI API** (gpt-4o-mini) — agent reasoning + niche filtering + content ideas
-- **BeautifulSoup** — HTML scraping
-- **SQLite** — local database, zero setup
-- **Streamlit** — web UI
-- **Plotly** — velocity chart
-- **Railway** — deployment and hosting
+The first visit warms the shared caches (~10s); after that it's instant for everyone until the next refresh window.
 
 ---
 
-## Cost
+## Notes
+- `strange_cache.json`, `trending_cache.json`, `trends.db` and `.env` are local artifacts and are git-ignored.
+- Costs are tiny: most data is free RSS/API; OpenAI calls run on `gpt-4o-mini`, and the daily Strange Signals art is ~5 images/day total thanks to the shared cache.
 
-- Scraping TikTok Creative Center: free
-- OpenAI API calls: ~$0.0002–0.0005 per agent query (gpt-4o-mini)
-- Railway hosting: free trial, then ~$5/month
+---
+
+*Built as a complete, shipped product — from live data plumbing to a cohesive, themed UI. 🕵️‍♂️*
