@@ -1,1 +1,12 @@
 .env
+
+# Local runtime artifacts — never commit
+strange_cache.json
+trending_cache.json
+trends.db
+hashtags.json
+debug.html
+
+# Python
+__pycache__/
+*.pyc

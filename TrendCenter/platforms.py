@@ -630,3 +630,206 @@ def search_reddit(query, limit=4):
     except Exception as e:
         print(f"[SEARCH-REDDIT] '{query}' failed: {e}", flush=True)
         return []
+
+
+# ── TRENDING NOW (Live Intelligence Feed) ───────────────────────
+# Real, image-first trending stories across general categories (NOT the
+# supernatural Strange Signals). Free, no API key:
+#   Google News RSS  ->  per-category top headlines + real publisher links
+#   batchexecute decode  ->  resolve Google's redirect to the true publisher URL
+#   og:image fetch  ->  the real article photo (falls back gracefully)
+# Designed to run behind a shared hourly cache (one fetch warms it for everyone).
+
+# category key -> (display label, source spec). ("topic", X) uses a Google News
+# topic feed; ("search", q) uses a Google News search feed.
+TRENDING_CATEGORIES = {
+    "politics": ("Politics", ("topic", "NATION"),        "#4da8ff"),
+    "tech":     ("Tech",     ("topic", "TECHNOLOGY"),    "#A3FF12"),
+    "ai":       ("AI",       ("search", "artificial intelligence"), "#c084fc"),
+    "business": ("Business", ("topic", "BUSINESS"),      "#fbbf24"),
+    "music":    ("Music",    ("search", "music"),        "#f472b6"),
+    "space":    ("Space",    ("search", "space exploration NASA"),  "#818cf8"),
+    "science":  ("Science",  ("topic", "SCIENCE"),       "#2dd4bf"),
+    "gaming":   ("Gaming",   ("search", "video games"),  "#fb7185"),
+}
+
+
+def _gn_feed_url(spec):
+    kind, val = spec
+    if kind == "topic":
+        return (f"https://news.google.com/rss/headlines/section/topic/{val}"
+                "?hl=en-US&gl=US&ceid=US:en")
+    q = quote_plus(val)
+    return (f"https://news.google.com/rss/search?q={q}%20when:7d"
+            "&hl=en-US&gl=US&ceid=US:en")
+
+
+@lru_cache(maxsize=512)
+def _gn_decode_url(rss_link):
+    """Resolve a Google News article redirect to the real publisher URL via the
+    DotsSplashUi batchexecute endpoint. Cached; returns '' if it can't decode."""
+    try:
+        if "/articles/" not in rss_link:
+            return ""
+        art_id = rss_link.split("/articles/")[1].split("?")[0]
+        page = requests.get(rss_link, headers=HEADERS, timeout=12).text
+        sig = re.search(r'data-n-a-sg="([^"]+)"', page)
+        ts  = re.search(r'data-n-a-ts="([^"]+)"', page)
+        if not (sig and ts):
+            return ""
+        inner = json.dumps([
+            "garturlreq",
+            [["X", "X", ["X", "X"], None, None, 1, 1, "US:en", None, 1,
+              None, None, None, None, None, 0, 1],
+             "X", "X", 1, [1, 1, 1], 1, 1, None, 0, 0, None, 0],
+            art_id, ts.group(1), sig.group(1),
+        ])
+        payload = [[["Fbv4je", inner, None, "generic"]]]
+        body = "f.req=" + quote_plus(json.dumps(payload))
+        rr = requests.post(
+            "https://news.google.com/_/DotsSplashUi/data/batchexecute",
+            headers={**HEADERS,
+                     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+            data=body, timeout=12)
+        seg = rr.text.split("garturlres")[-1]
+        m = re.search(r'(https?://[^\\"]+)', seg)
+        return m.group(1) if m else ""
+    except Exception:
+        return ""
+
+
+@lru_cache(maxsize=512)
+def _og_image(url):
+    """Fetch a page's og:image / twitter:image. Cached; '' on failure."""
+    if not url:
+        return ""
+    try:
+        t = requests.get(url, headers=HEADERS, timeout=12).text
+        for pat in (
+            r'<meta[^>]+property=["\']og:image(?::secure_url)?["\'][^>]+content=["\']([^"\']+)',
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image',
+            r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)',
+        ):
+            m = re.search(pat, t, re.I)
+            if m:
+                import html as _html
+                img = _html.unescape(m.group(1)).strip()
+                if img.startswith("//"):
+                    img = "https:" + img
+                if img.startswith("http"):
+                    return img
+        return ""
+    except Exception:
+        return ""
+
+
+def _time_ago(pubdate):
+    """'3h ago' / '2d ago' from an RFC822 pubDate string. '' if unparseable."""
+    if not pubdate:
+        return ""
+    from email.utils import parsedate_to_datetime
+    try:
+        dt = parsedate_to_datetime(pubdate)
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        secs = (now - dt.astimezone(timezone.utc)).total_seconds()
+        if secs < 3600:
+            return f"{max(1, int(secs // 60))}m ago"
+        if secs < 86400:
+            return f"{int(secs // 3600)}h ago"
+        return f"{int(secs // 86400)}d ago"
+    except Exception:
+        return ""
+
+
+def _gn_category_items(spec, limit=6):
+    """Raw RSS items for one category: headline, publisher, link, pubDate."""
+    try:
+        r = requests.get(_gn_feed_url(spec), headers=HEADERS, timeout=12)
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        out, seen = [], set()
+        for it in root.findall(".//item"):
+            if len(out) >= limit:
+                break
+            title_el = it.find("title"); link_el = it.find("link")
+            src_el = it.find("source");  date_el = it.find("pubDate")
+            title = (title_el.text or "").strip() if title_el is not None else ""
+            headline = re.split(r"\s+-\s+[^-]+$", title)[0].strip() or title
+            key = headline.lower()
+            if not headline or key in seen:
+                continue
+            seen.add(key)
+            publisher = (src_el.text or "").strip() if src_el is not None else "Google News"
+            domain = ""
+            if src_el is not None:
+                su = (src_el.get("url") or "").strip()
+                domain = re.sub(r"^https?://(www\.)?", "", su).split("/")[0].strip()
+            out.append({
+                "headline": headline[:140],
+                "publisher": publisher,
+                "rss_link": (link_el.text or "").strip() if link_el is not None else "",
+                "published": (date_el.text or "").strip() if date_el is not None else "",
+                "favicon": (f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
+                            if domain else ""),
+            })
+        return out
+    except Exception as e:
+        print(f"[TRENDING] feed {spec} failed: {e}", flush=True)
+        return []
+
+
+def _resolve_card(key, label, color, items):
+    """Walk a category's items until one yields a real photo; build a card dict.
+    Falls back to the top item (no photo) so a category is never empty."""
+    first = None
+    for it in items[:4]:
+        real = _gn_decode_url(it["rss_link"])
+        img = _og_image(real) if real else ""
+        card = {
+            "category_key": key, "category": label, "color": color,
+            "headline": it["headline"], "publisher": it["publisher"],
+            "url": real or it["rss_link"],
+            "time_ago": _time_ago(it["published"]),
+            "image": img, "favicon": it["favicon"],
+        }
+        if first is None:
+            first = card
+        if img:
+            return card
+    return first
+
+
+def fetch_trending_now():
+    """One card per category (8), each pointed at a real article with a real
+    photo where the publisher allows it. Parallelized; meant to be cached."""
+    from concurrent.futures import ThreadPoolExecutor
+    raw = {}
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futs = {ex.submit(_gn_category_items, spec): key
+                for key, (label, spec, color) in TRENDING_CATEGORIES.items()}
+        for fut in futs:
+            try:
+                raw[futs[fut]] = fut.result()
+            except Exception:
+                raw[futs[fut]] = []
+    cards = []
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futs = {}
+        for key, (label, spec, color) in TRENDING_CATEGORIES.items():
+            items = raw.get(key) or []
+            if items:
+                futs[ex.submit(_resolve_card, key, label, color, items)] = key
+        order = list(TRENDING_CATEGORIES.keys())
+        results = {}
+        for fut in futs:
+            try:
+                c = fut.result()
+                if c:
+                    results[futs[fut]] = c
+            except Exception:
+                pass
+    cards = [results[k] for k in TRENDING_CATEGORIES if k in results]
+    n_img = sum(1 for c in cards if c.get("image"))
+    print(f"[TRENDING] {len(cards)} cards, {n_img} with real photos", flush=True)
+    return cards

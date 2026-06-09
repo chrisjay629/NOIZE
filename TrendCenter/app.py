@@ -4,6 +4,7 @@ import time
 import base64
 import io
 import json
+import re
 import streamlit as st
 import streamlit.components.v1 as components
 import plotly.graph_objects as go
@@ -12,7 +13,7 @@ from datetime import datetime
 from agent import run_agent, generate_blueprint, generate_topic_blueprint, research_niche_hashtags, niche_pulse, build_dossier, generate_trend_articles, generate_strange_signals, generate_case_file
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
-from platforms import scrape_google, scrape_youtube, scrape_reddit, scrape_gpt
+from platforms import scrape_google, scrape_youtube, scrape_reddit, scrape_gpt, fetch_trending_now
 
 PLATFORM_CONFIG = {
     "google":  {"label": "Google Trends", "icon": "📈", "scraper": scrape_google,   "link_label": "Google",  "refresh_minutes": 60,  "color": "#4285f4"},
@@ -146,6 +147,7 @@ CASE_FOLDER_DARK_B64 = load_img_b64("static/case_folders_dark.png", max_width=30
 CASE_FOLDER_LIGHT_B64= load_img_b64("static/case_folders_light.png",max_width=300,  quality=85)
 RADAR_BG_B64         = load_img_b64("static/radar_bg.jpg",          max_width=600,  quality=75)
 RADAR_MAP_B64        = load_img_b64("static/alien.png",            max_width=800,  quality=82)
+STRANGE_BG_B64       = load_img_b64("static/getme.png",            max_width=1200, quality=82)
 HUD_BG_B64           = load_img_b64("static/hud_bg.jpg",            max_width=800,  quality=72)
 BG_BODY_B64          = load_img_b64("static/bg_body.jpg",           max_width=1600, quality=70)
 ASPHALT_BG_B64       = load_img_b64("static/asphalt_bg.png",        max_width=900,  quality=68)
@@ -913,6 +915,159 @@ def render_detective_briefing(articles, panel_bg_override=None):
         unsafe_allow_html=True
     )
 
+
+# ── TRENDING NOW (Live Intelligence Feed) ───────────────────────────
+_TN_ICONS = {
+    "politics": "🏛️", "tech": "💻", "ai": "🤖", "business": "📈",
+    "music": "🎵", "space": "🚀", "science": "🔬", "gaming": "🎮",
+}
+
+
+def _tn_esc(s):
+    return (str(s or "").replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace('"', "&quot;"))
+
+
+def _tn_fresh_pct(ago):
+    """Recency → 12-100 bar width (newer = fuller). Honest signal, not invented %."""
+    m = re.match(r"(\d+)\s*([mhd])", ago or "")
+    if not m:
+        return 35
+    n = int(m.group(1)); u = m.group(2)
+    mins = n if u == "m" else n * 60 if u == "h" else n * 1440
+    return max(12, min(100, int(100 - mins / 14.4)))  # ~24h decays to floor
+
+
+def _tn_card_html(c, featured=False):
+    col  = c.get("color", "#A3FF12")
+    cat  = _tn_esc(c.get("category", ""))
+    head = _tn_esc(c.get("headline", ""))
+    pub  = _tn_esc(c.get("publisher", ""))
+    ago  = _tn_esc(c.get("time_ago", ""))
+    url  = _tn_esc(c.get("url", "")) or "#"
+    img  = (c.get("image", "") or "").replace("'", "%27").replace("&", "&amp;")
+    fav  = _tn_esc(c.get("favicon", ""))
+    icon = _TN_ICONS.get(c.get("category_key", ""), "📡")
+    if img:
+        bg = ("background-image:linear-gradient(180deg,rgba(6,9,4,0.10) 0%,"
+              "rgba(6,9,4,0.55) 52%,rgba(6,9,4,0.93) 100%),"
+              f'url("{img}");background-size:cover;background-position:center')
+        wm = ""
+    else:
+        bg = f"background:linear-gradient(150deg,{col}26,rgba(6,9,4,0.94))"
+        wm = f"<span class='tn-wm'>{icon}</span>"
+    meta = pub + (f" &middot; {ago}" if ago else "")
+    favimg = (f"<img class='tn-fav' src='{fav}' loading='lazy' "
+              "onerror=\"this.style.display='none'\">") if fav else ""
+    cls = "tn-feat" if featured else "tn-card"
+    return (
+        f"<a class='{cls}' href='{url}' target='_blank' style='--c:{col};{bg}'>"
+        f"{wm}"
+        f"<span class='tn-badge'>{icon} {cat}</span>"
+        f"<span class='tn-body'>"
+        f"<span class='tn-head'>{head}</span>"
+        f"<span class='tn-meta'>{favimg}<span>{meta}</span></span>"
+        f"</span></a>"
+    )
+
+
+def render_trending_now(cards, panel_bg_override=None):
+    """Image-first 'Trending Now / Live Intelligence Feed': one cinematic
+    featured story + a grid of trending tiles + a real-signal metrics rail.
+    General trending news (NOT the supernatural Strange Signals)."""
+    if not cards:
+        st.markdown("<div style='color:var(--tx4);font-size:12px;padding:14px'>"
+                    "Tuning the intelligence feed…</div>", unsafe_allow_html=True)
+        return
+    featured = cards[0]
+    smalls   = cards[1:7]
+    if panel_bg_override:
+        panel_bg, panel_shad = panel_bg_override, ""
+    else:
+        panel_bg = ("background:rgba(10,14,20,0.55);backdrop-filter:blur(20px);"
+                    "-webkit-backdrop-filter:blur(20px)") if theme == "night" else "background:var(--surface-alt)"
+        panel_shad = (";box-shadow:0 8px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04)"
+                      if theme == "night" else "")
+    cards_html = _tn_card_html(featured, featured=True) + "".join(_tn_card_html(c) for c in smalls)
+    # Metrics rail — honest recency signal per category.
+    met_rows = ""
+    for c in cards:
+        col = c.get("color", "#A3FF12")
+        pct = _tn_fresh_pct(c.get("time_ago", ""))
+        met_rows += (
+            f"<div class='tn-met-row'>"
+            f"<span class='tn-met-dot' style='background:{col}'></span>"
+            f"<span class='tn-met-lbl'>{_tn_esc(c.get('category',''))}</span>"
+            f"<span class='tn-met-bar'><span style='width:{pct}%;background:{col}'></span></span>"
+            f"<span class='tn-met-val'>{_tn_esc(c.get('time_ago','') or 'live')}</span>"
+            f"</div>")
+    css = """
+    <style>
+      .tn-panel{border:1px solid var(--border-2);border-radius:16px;padding:18px 18px 16px;margin-bottom:12px;position:relative;overflow:hidden}
+      .tn-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;gap:10px;flex-wrap:wrap}
+      .tn-ttl{font-family:'Orbitron',sans-serif;font-weight:800;font-size:17px;letter-spacing:0.02em;color:var(--tx1);line-height:1}
+      .tn-sub{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--lime-t);margin-top:5px}
+      .tn-live{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:0.14em;color:var(--lime-t);background:var(--lime-bg);border:1px solid var(--lime-border);padding:4px 10px;border-radius:20px}
+      .tn-live i{width:6px;height:6px;border-radius:50%;background:var(--lime-t);box-shadow:0 0 8px var(--lime-t);animation:tnpulse 1.6s infinite}
+      @keyframes tnpulse{0%,100%{opacity:1}50%{opacity:0.3}}
+      .tn-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr;grid-auto-rows:1fr;gap:11px}
+      .tn-feat{grid-column:1;grid-row:1/span 3;min-height:330px}
+      .tn-feat,.tn-card{position:relative;display:flex;flex-direction:column;justify-content:flex-end;
+        border:1px solid var(--border-2);border-radius:13px;overflow:hidden;text-decoration:none;
+        transition:transform .18s,box-shadow .18s,border-color .18s}
+      .tn-card{min-height:104px}
+      .tn-feat:hover,.tn-card:hover{transform:translateY(-2px);border-color:var(--c);
+        box-shadow:0 0 0 1px var(--c),0 8px 26px color-mix(in srgb,var(--c) 26%,transparent)}
+      .tn-badge{position:absolute;top:9px;left:9px;font-family:'JetBrains Mono',monospace;font-size:8.5px;
+        font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#0a0f05;background:var(--c);
+        padding:3px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+      .tn-wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:46px;opacity:0.22}
+      .tn-body{position:relative;z-index:2;padding:11px 12px 11px}
+      .tn-head{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;
+        font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.95)}
+      .tn-feat .tn-head{font-size:17px;line-height:1.28;-webkit-line-clamp:3;font-family:Poppins,sans-serif}
+      .tn-card .tn-head{font-size:11px;line-height:1.3;-webkit-line-clamp:2}
+      .tn-meta{display:flex;align-items:center;gap:6px;margin-top:7px;font-family:'JetBrains Mono',monospace;
+        font-size:8.5px;font-weight:600;color:rgba(255,255,255,0.78);text-shadow:0 1px 4px rgba(0,0,0,0.9);
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .tn-feat .tn-meta{font-size:9.5px}
+      .tn-fav{width:14px;height:14px;border-radius:3px;flex-shrink:0;background:rgba(255,255,255,0.1)}
+      .tn-metrics{margin-top:12px;border:1px solid var(--border-2);border-radius:12px;padding:11px 14px;background:var(--surface-2)}
+      .tn-met-hd{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:800;letter-spacing:0.16em;
+        text-transform:uppercase;color:var(--amber);margin-bottom:9px}
+      .tn-met-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 20px}
+      .tn-met-row{display:flex;align-items:center;gap:8px}
+      .tn-met-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+      .tn-met-lbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--tx2);width:62px;flex-shrink:0}
+      .tn-met-bar{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,0.07);overflow:hidden}
+      .tn-met-bar span{display:block;height:100%;border-radius:3px}
+      .tn-met-val{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--tx4);width:44px;text-align:right;flex-shrink:0}
+      @media (max-width:640px){
+        .tn-grid{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
+        .tn-feat{grid-column:1/-1;grid-row:auto;min-height:188px}
+        .tn-card{min-height:126px}
+        .tn-feat .tn-head{font-size:15px;-webkit-line-clamp:3}
+        .tn-metrics{display:none}
+      }
+    </style>"""
+    html = (
+        f"{css}"
+        f"<div class='tn-panel' style='{panel_bg}{panel_shad}'>"
+        f"<div class='tn-hd'>"
+        f"<div><div class='tn-ttl'>Trending Now</div><div class='tn-sub'>Live Intelligence Feed</div></div>"
+        f"<span class='tn-live'><i></i>LIVE</span>"
+        f"</div>"
+        f"<div class='tn-grid'>{cards_html}</div>"
+        f"<div class='tn-metrics'><div class='tn-met-hd'>▸ Trending Metrics &middot; Freshness</div>"
+        f"<div class='tn-met-grid'>{met_rows}</div></div>"
+        f"</div>"
+    )
+    st.markdown(html, unsafe_allow_html=True)
+    if st.button("VIEW FULL BRIEFING ROOM  →", key="tn_view_all", use_container_width=True):
+        st.session_state.active_nav = "BRIEFINGS"
+        st.rerun()
+
+
 def render_trend_radar(velocity_data, platform="tiktok"):
     categories = ["DOMINATING","BREAKING","TRENDING","EMERGING","QUIET"]
     _rd_lime   = "#2a5200" if theme == "day" else "#A3FF12"
@@ -1106,6 +1261,50 @@ def get_strange_signals(force=False):
         st.session_state.strange_signals = signals
         st.session_state.strange_sel = None
     return signals
+
+
+_TRENDING_CACHE_FILE = "trending_cache.json"
+_TRENDING_TTL_SEC    = 3600  # 1h — ONE shared live feed for all visitors
+
+
+def _load_trending_cache():
+    """Return the shared Trending Now feed if it's <1h old, else None."""
+    try:
+        with open(_TRENDING_CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        ts = datetime.fromisoformat(data.get("generated_at", ""))
+        if data.get("cards") and (datetime.now() - ts).total_seconds() < _TRENDING_TTL_SEC:
+            return data["cards"]
+    except Exception:
+        pass
+    return None
+
+
+def _save_trending_cache(cards):
+    try:
+        with open(_TRENDING_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump({"generated_at": datetime.now().isoformat(), "cards": cards}, f)
+    except Exception as e:
+        print(f"[TRENDING] cache save failed: {e}", flush=True)
+
+
+def get_trending_now(force=False):
+    """The Trending Now feed (one real story per category) — fetched ONCE per
+    hour and SHARED across all visitors via a server-side cache, so the decode +
+    image work happens once an hour total, not per session. force=True rescans."""
+    if not force:
+        if st.session_state.get("trending_now"):
+            return st.session_state.trending_now
+        cached = _load_trending_cache()
+        if cached:
+            st.session_state.trending_now = cached
+            return cached
+    with st.spinner("📡 Pulling today's live intelligence feed…"):
+        cards = fetch_trending_now()
+    if cards:
+        _save_trending_cache(cards)
+        st.session_state.trending_now = cards
+    return st.session_state.get("trending_now", [])
 
 
 def ensure_case_file(idx):
@@ -1387,6 +1586,129 @@ def render_strange_watchlist(signals):
                 st.session_state.strange_sel = i
                 st.session_state.strange_scroll = True
                 st.rerun()
+
+
+def render_classified_dossier(signals):
+    """Unified 'Classified Files' card: a client-side <details> accordion of
+    teaser dossier cards that expand IN PLACE (no rerun, no page jump, one open
+    at a time via <details name>). All 5 stories show image+title+preview by
+    default; clicking opens the full dossier (2-col image/content on desktop,
+    stacked on mobile) inline. Alien art backs the card. Everything is already
+    in the daily cache, so it's pure HTML/CSS — instant and smooth."""
+    if not signals:
+        st.markdown(
+            "<div style='text-align:center;padding:30px 16px;font-size:13px;color:var(--tx4)'>"
+            "No files on the wire yet.</div>", unsafe_allow_html=True)
+        return
+
+    bg = STRANGE_BG_B64  # getme.png — classified radar backdrop (bigfoot + alien)
+    stage_bg = (
+        "linear-gradient(rgba(6,9,4,0.28),rgba(6,9,4,0.52)),"
+        f"url('data:image/jpeg;base64,{bg}')"
+        if bg else "linear-gradient(180deg,#0a0f08,#070b05)"
+    )
+
+    st.markdown("""
+    <style>
+      :root { interpolate-size: allow-keywords; }
+      .cf-stage{ border:1px solid var(--border-2); border-radius:18px; background-size:cover;
+        background-position:center; padding:42px 11% 30px; box-shadow:0 16px 50px rgba(0,0,0,0.55);
+        margin-bottom:12px; }
+      .cf-card{ background:transparent; border:none; box-shadow:none; border-radius:14px;
+        padding:2px 0 0; }
+      .cf-head{ display:flex; justify-content:space-between; align-items:center; margin:6px 2px 14px;
+        font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.16em;
+        text-transform:uppercase; color:var(--tx2); }
+      .cf-head .cf-count{ color:var(--lime-t); }
+      .cf-item{ background:rgba(10,14,20,0.03); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+        border:1px solid var(--border); border-left:3px solid var(--c); border-radius:12px;
+        margin-bottom:10px; overflow:hidden; transition:border-color .25s, box-shadow .25s; }
+      .cf-item[open]{ border-color:var(--c); box-shadow:0 0 0 1px var(--c),
+        0 0 26px color-mix(in srgb, var(--c) 22%, transparent); }
+      .cf-teaser{ display:flex; align-items:center; gap:12px; padding:12px 14px; cursor:pointer;
+        list-style:none; }
+      .cf-teaser::-webkit-details-marker{ display:none; }
+      .cf-thumb{ width:78px; height:62px; border-radius:8px; background-size:cover; background-position:center;
+        flex-shrink:0; border:1px solid rgba(255,255,255,0.08); }
+      .cf-thumb-empty{ display:flex; align-items:center; justify-content:center; font-size:24px;
+        background:rgba(255,255,255,0.04); }
+      .cf-mid{ flex:1; min-width:0; }
+      .cf-title{ font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--tx1);
+        text-transform:uppercase; letter-spacing:0.03em; line-height:1.35;
+        text-shadow:0 1px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8); }
+      .cf-rank{ color:var(--c); }
+      .cf-preview{ font-size:11px; color:var(--tx3); line-height:1.45; margin-top:4px;
+        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+        text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.85); }
+      .cf-chev{ color:var(--c); font-size:13px; flex-shrink:0; transition:transform .3s; }
+      .cf-item[open] .cf-chev{ transform:rotate(180deg); }
+      .cf-item::details-content{ opacity:0; height:0; overflow:hidden;
+        transition:opacity .35s ease, height .35s ease, content-visibility .35s allow-discrete; }
+      .cf-item[open]::details-content{ opacity:1; height:auto; }
+      .cf-grid{ display:flex; gap:16px; padding:2px 16px 16px; border-top:1px solid rgba(255,255,255,0.06);
+        margin-top:2px; }
+      .cf-feature{ width:42%; align-self:stretch; min-height:210px; border-radius:10px;
+        background-size:cover; background-position:center; flex-shrink:0; }
+      .cf-body{ flex:1; min-width:0; padding-top:12px; }
+      .cf-meta{ font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800; letter-spacing:0.08em;
+        color:var(--c); background:color-mix(in srgb,var(--c) 13%,transparent); display:inline-block;
+        padding:3px 9px; border-radius:4px; margin-bottom:11px; }
+      .cf-p{ font-size:13px; color:var(--tx2); line-height:1.75; margin:0 0 10px; }
+      .cf-source{ display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px;
+        font-weight:700; color:var(--c); text-decoration:none; letter-spacing:0.04em; margin-top:2px; }
+      .cf-source:hover{ text-decoration:underline; }
+      @media (max-width:640px){
+        .cf-stage{ padding:16px 7px 12px; border-radius:14px; }
+        .cf-grid{ flex-direction:column; padding:2px 12px 14px; }
+        .cf-feature{ width:100%; height:200px; min-height:0; }
+        .cf-body{ padding-top:10px; }
+      }
+    </style>""", unsafe_allow_html=True)
+
+    items = ""
+    for i, s in enumerate(signals):
+        col   = SIGNAL_TYPE_COLORS.get(s.get("type", ""), "#A3FF12")
+        emoji = SIGNAL_TYPE_EMOJI.get(s.get("type", ""), "❔")
+        rank  = s.get("rank", "")
+        title = (s.get("case_headline") or s.get("title") or "").strip()
+        prev  = (s.get("summary") or "").strip()
+        img   = s.get("image_url") or ""
+        src   = s.get("subreddit") or s.get("source_name") or ""
+        typ   = (s.get("type") or "").upper()
+        link  = s.get("permalink") or "#"
+        body  = "".join(f"<p class='cf-p'>{p}</p>" for p in (s.get("case_body") or [prev]))
+        thumb = (f"<div class='cf-thumb' style=\"background-image:url('{img}')\"></div>" if img
+                 else f"<div class='cf-thumb cf-thumb-empty'>{emoji}</div>")
+        feature = (f"<div class='cf-feature' style=\"background-image:url('{img}')\"></div>" if img else "")
+        items += (
+            f"<details name='cf' class='cf-item' style='--c:{col}'>"
+            f"<summary class='cf-teaser'>{thumb}"
+            f"<div class='cf-mid'>"
+            f"<div class='cf-title'>{emoji} <span class='cf-rank'>#{rank}</span> {title}</div>"
+            f"<div class='cf-preview'>{prev}</div></div>"
+            f"<span class='cf-chev'>▾</span></summary>"
+            f"<div class='cf-grid'>{feature}"
+            f"<div class='cf-body'>"
+            f"<div class='cf-meta'>📡 {typ} · {src}</div>{body}"
+            f"<a class='cf-source' href='{link}' target='_blank'>📄 Read Original Report →</a>"
+            f"</div></div></details>"
+        )
+
+    st.markdown(
+        # Green STRANGE SIGNALS / LIVE title bar (restored).
+        '<div style="display:flex;align-items:center;justify-content:space-between;'
+        'background:rgba(10,14,20,0.55);border:1px solid rgba(163,255,18,0.18);'
+        'border-radius:14px;padding:12px 16px;margin-bottom:10px">'
+        '<span style="font-size:11px;font-weight:700;color:var(--lime-t);letter-spacing:0.16em;'
+        'text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ STRANGE SIGNALS</span>'
+        '<span style="font-size:10px;color:var(--lime-t);font-weight:700;'
+        'font-family:JetBrains Mono,monospace;letter-spacing:0.12em">LIVE</span></div>'
+        # Stage (getme.png radar backdrop) with the dossier card floating over it.
+        f"<div class='cf-stage' style=\"background-image:{stage_bg}\">"
+        f"<div class='cf-card'>"
+        f"<div class='cf-head'><span>🔒 Classified Files</span>"
+        f"<span class='cf-count'>{len(signals)} OPEN</span></div>"
+        f"{items}</div></div>", unsafe_allow_html=True)
 
 
 def render_dossier(dossier):
@@ -1707,16 +2029,10 @@ src_pills = "".join([
 popular_topics = ["AI Tools", "Taylor Swift", "Bitcoin", "Climate Change", "OpenAI", "Gaming"]
 
 # ═════════════════════════════════════════════════════════════════
-# AUTO BRIEFING ARTICLES  (compute before rendering)
+# TRENDING NOW FEED  (real cross-category news, shared hourly cache)
 # ═════════════════════════════════════════════════════════════════
 
-articles_stale = True
-if st.session_state.articles_ts:
-    articles_stale = (datetime.now()-st.session_state.articles_ts).total_seconds() > 1800
-if articles_stale or not st.session_state.trend_articles:
-    st.session_state.trend_articles = generate_trend_articles()
-    st.session_state.articles_ts    = datetime.now()
-articles = st.session_state.trend_articles
+trending_cards = get_trending_now()
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -1912,9 +2228,9 @@ with main_col:
                      "background-image:linear-gradient(155deg,rgba(8,11,6,0.90),rgba(8,11,6,0.84) 45%,rgba(12,20,4,0.88)),"
                      "url('data:image/jpeg;base64," + ASPHALT_BG_B64 + "')!important;"
                      "background-size:cover!important;background-position:center 35%!important;"
-                     "border:1px solid var(--border-2);"
-                     "border-radius:14px;padding:11px 14px 13px;margin-bottom:10px;"
-                     "box-shadow:inset 0 0 60px rgba(0,0,0,0.45),0 0 0 1px rgba(163,255,18,0.06),0 10px 30px rgba(0,0,0,0.4)}")
+                     "border:1px solid rgba(163,255,18,0.32);"
+                     "border-radius:14px;padding:10px 14px 12px;margin-bottom:7px;"
+                     "box-shadow:inset 0 0 60px rgba(0,0,0,0.45),0 0 0 1px rgba(163,255,18,0.10),0 0 18px rgba(163,255,18,0.09),0 10px 30px rgba(0,0,0,0.4)}")
         # keep all 4 columns on one row (no mobile stacking)
         _src_css += ".st-key-srcrow [data-testid=\"stHorizontalBlock\"]{flex-wrap:nowrap!important;gap:8px}"
         _src_css += ".st-key-srcrow [data-testid=\"stColumn\"]{min-width:0!important;flex:1 1 0!important}"
@@ -1936,18 +2252,17 @@ with main_col:
         with st.container(key="srcpanel"):
             # Glowing-green "Content Blueprint Generator" title (Orbitron) + TOP 20 tag + creator tagline.
             st.markdown(
-                "<div style='margin-bottom:12px'>"
-                "<div style='display:flex;align-items:center;gap:8px;flex-wrap:wrap'>"
-                "<span style=\"font-family:'Orbitron',sans-serif;font-weight:800;font-size:12.5px;letter-spacing:0.02em;"
-                "color:#0a0f05;background:linear-gradient(135deg,#c8ff5e,#A3FF12);padding:4px 12px;border-radius:8px;"
-                "box-shadow:0 0 18px rgba(163,255,18,0.55),0 0 5px rgba(163,255,18,0.9);text-shadow:0 1px 0 rgba(255,255,255,0.25);"
-                "text-transform:uppercase\">Content Blueprint Generator</span>"
+                "<div style='margin-bottom:9px'>"
+                "<div style='display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap'>"
+                "<span style=\"font-family:'Orbitron',sans-serif;font-weight:800;font-size:14px;letter-spacing:0.06em;"
+                "color:#A3FF12;text-transform:uppercase;"
+                "text-shadow:0 0 14px rgba(163,255,18,0.55),0 0 3px rgba(163,255,18,0.85)\">Content Blueprint Generator</span>"
                 "<span style=\"font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:0.14em;"
-                "color:var(--lime-t);border:1px solid var(--lime-border);background:var(--lime-bg);padding:3px 8px;"
+                "color:var(--lime-t);border:1px solid var(--lime-border);background:var(--lime-bg);padding:3px 9px;"
                 "border-radius:6px;text-transform:uppercase\">Top 20</span>"
                 "</div>"
                 "<div style=\"font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:500;line-height:1.5;"
-                "letter-spacing:0.03em;color:rgba(233,245,220,0.78);margin-top:7px;text-shadow:0 1px 3px rgba(0,0,0,0.8)\">"
+                "letter-spacing:0.03em;color:rgba(233,245,220,0.78);margin-top:6px;text-shadow:0 1px 3px rgba(0,0,0,0.8)\">"
                 "Top 20 trends from the top 4 feeds &mdash; pick a source to build your next piece of content.</div>"
                 "</div>",
                 unsafe_allow_html=True,
@@ -1962,22 +2277,11 @@ with main_col:
                             st.session_state.active_platform = key
                             st.session_state.do_fetch = True
                             st.rerun()
-        with st.container(key="cf_spacer"):
-            st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-
+        # No "pick a source" placeholder anymore — Trending Now sits flush
+        # below the generator bar when no source is selected, so the blueprint
+        # bar reads as one compact unit right above the feed.
         if not active_platform:
-            # Welcome — today's top leads live in the Detective Briefing (right rail);
-            # this column just prompts the user to pick a source. Wrapped in a keyed
-            # container so it can be hidden on mobile, where the source picker already
-            # sits above the briefing and this placeholder just leaves an awkward gap.
-            with st.container(key="cf_empty"):
-                st.markdown(
-                    "<div style='text-align:center;padding:18px 16px 10px'>"
-                    "<div style='font-size:12px;color:var(--tx3);line-height:1.6'>Pick a source above to open live case files.</div>"
-                    "<div style='font-size:10px;color:var(--tx4);margin-top:7px;font-family:JetBrains Mono,monospace;letter-spacing:0.04em'>Today&rsquo;s top leads are in the briefing.</div>"
-                    "</div>",
-                    unsafe_allow_html=True,
-                )
+            pass
 
         else:
             hashtags      = get_latest_hashtags(platform=active_platform)
@@ -2099,26 +2403,14 @@ with main_col:
                     st.markdown("---")
                     st.markdown(cf_bp)
 
-        # ── Good Morning Detective + Strange Signals ─────────────────
-        # Moved in from the old right rail: now centered in the main feed,
-        # under the generator/case files, on the home view only.
+        # ── Trending Now + Strange Signals ───────────────────────────
+        # Image-first live intelligence feed (general trending news), then the
+        # supernatural Classified Files / Strange Signals below it.
         with st.container(key="briefingwrap"):
-            render_detective_briefing(articles, panel_bg_override=_briefing_panel_bg)
+            render_trending_now(trending_cards, panel_bg_override=_briefing_panel_bg)
         _strange = get_strange_signals()
-        # 'STRANGE SIGNALS / LIVE' header bar above the radar (restored from the
-        # old rail layout — the full radar has no built-in header).
-        st.markdown(
-            '<div style="display:flex;align-items:center;justify-content:space-between;'
-            'background:rgba(10,14,20,0.55);border:1px solid rgba(163,255,18,0.18);'
-            'border-radius:14px;padding:12px 16px;margin-bottom:10px">'
-            '<span style="font-size:11px;font-weight:700;color:var(--lime-t);letter-spacing:0.16em;'
-            'text-transform:uppercase;font-family:JetBrains Mono,monospace">◉ STRANGE SIGNALS</span>'
-            '<span style="font-size:10px;color:var(--lime-t);font-weight:700;'
-            'font-family:JetBrains Mono,monospace;letter-spacing:0.12em">LIVE</span>'
-            '</div>',
-            unsafe_allow_html=True)
-        render_strange_radar(_strange)
-        render_strange_watchlist(_strange)
+        # Unified Classified Files dossier accordion (replaces radar + story panel).
+        render_classified_dossier(_strange)
 
         # Signal-strength index + quote banner (page footer / radar legend).
         with st.container(key="cf_bottom"):
@@ -2148,7 +2440,7 @@ with main_col:
                 "text-transform:uppercase;margin-bottom:2px'>Trend Radar — Strange Signals</div>"
                 "<div style='font-size:12px;color:var(--tx3);line-height:1.5'>Live sweep of the internet's "
                 "weirdest corners — UFOs, the paranormal, unsolved mysteries &amp; glitches in the matrix. "
-                "Click a blip to open the case.</div>",
+                "Tap a file to crack it open.</div>",
                 unsafe_allow_html=True)
         with bcol:
             if st.button("🔄 Rescan", key="strange_rescan", use_container_width=True):
@@ -2157,7 +2449,7 @@ with main_col:
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
         signals = get_strange_signals()
         if signals:
-            render_strange_radar(signals)
+            render_classified_dossier(signals)
         else:
             st.markdown(
                 "<div style='text-align:center;padding:40px 16px;font-size:13px;color:var(--tx4)'>"
@@ -2206,36 +2498,41 @@ with main_col:
                 f'</div></div>',
                 unsafe_allow_html=True
             )
-        # Article cards
-        _gaming_col_b = "#2a5200" if theme == "day" else "#A3FF12"
-        cat_colors = {"News":"#4285f4","Music & Film":"#fe2c55","Gaming":_gaming_col_b}
-        cat_icons_b = {"News":"📰","Music & Film":"🎬","Gaming":"🎮"}
-        for i, art in enumerate(articles):
-            cat   = art.get("category","")
-            head  = art.get("headline","")
-            summ  = art.get("summary","")
-            tag   = art.get("tag","")
-            color = art.get("color", cat_colors.get(cat, _gaming_col_b))
-            url   = art.get("url","#")
-            icon  = cat_icons_b.get(cat,"📡")
+        # Article cards — the full Trending Now feed, with thumbnails.
+        for i, art in enumerate(trending_cards):
+            cat   = _tn_esc(art.get("category",""))
+            head  = _tn_esc(art.get("headline",""))
+            pub   = _tn_esc(art.get("publisher",""))
+            ago   = _tn_esc(art.get("time_ago",""))
+            color = art.get("color", "#A3FF12")
+            url   = _tn_esc(art.get("url","")) or "#"
+            icon  = _TN_ICONS.get(art.get("category_key",""),"📡")
+            img   = (art.get("image","") or "").replace("'", "%27").replace("&","&amp;")
+            meta  = pub + (f" &middot; {ago}" if ago else "")
+            if img:
+                thumb = (f'<div style="width:120px;flex-shrink:0;background-image:url(\'{img}\');'
+                         f'background-size:cover;background-position:center;border-radius:9px;align-self:stretch;min-height:84px"></div>')
+            else:
+                thumb = (f'<div style="width:120px;flex-shrink:0;display:flex;align-items:center;justify-content:center;'
+                         f'background:linear-gradient(150deg,{color}26,rgba(6,9,4,0.9));border-radius:9px;align-self:stretch;min-height:84px;font-size:30px">{icon}</div>')
             st.markdown(
                 f'<a href="{url}" target="_blank" style="text-decoration:none">'
-                f'<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid {color};border-radius:12px;padding:16px 18px;margin-bottom:12px">'
-                f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-                f'<div style="display:flex;align-items:center;gap:7px">'
-                f'<div style="width:28px;height:28px;border-radius:7px;background:{color}20;border:1px solid {color}40;display:flex;align-items:center;justify-content:center;font-size:14px">{icon}</div>'
-                f'<div><div style="font-size:9px;font-weight:700;color:{color};letter-spacing:0.1em;text-transform:uppercase">{cat}</div>'
-                f'<div style="font-size:8px;color:var(--tx4)">{tag}</div></div></div>'
+                f'<div style="display:flex;gap:13px;background:var(--surface);border:1px solid var(--border);border-left:3px solid {color};border-radius:12px;padding:13px 15px;margin-bottom:12px">'
+                f'{thumb}'
+                f'<div style="flex:1;min-width:0">'
+                f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+                f'<div style="font-size:9px;font-weight:800;color:{color};letter-spacing:0.1em;text-transform:uppercase">{icon} {cat}</div>'
                 f'<span style="font-size:9px;font-weight:800;color:{color};background:{color}18;padding:2px 8px;border-radius:4px">#{i+1}</span>'
                 f'</div>'
-                f'<div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:7px;font-family:Poppins,sans-serif;line-height:1.35">{head}</div>'
-                f'<div style="font-size:12px;color:var(--tx3);line-height:1.7">{summ}</div>'
-                f'<div style="margin-top:10px;font-size:10px;font-weight:700;color:{color}">READ FULL REPORT →</div>'
-                f'</div></a>',
+                f'<div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:6px;font-family:Poppins,sans-serif;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{head}</div>'
+                f'<div style="font-size:11px;color:var(--tx3);font-family:JetBrains Mono,monospace">{meta}</div>'
+                f'<div style="margin-top:9px;font-size:10px;font-weight:700;color:{color}">READ FULL REPORT →</div>'
+                f'</div></div></a>',
                 unsafe_allow_html=True
             )
         if st.button("🔄 Refresh Briefing", type="secondary"):
-            st.session_state.trend_articles=[]; st.session_state.articles_ts=None; st.rerun()
+            st.session_state.pop("trending_now", None)
+            get_trending_now(force=True); st.rerun()
 
     # ── SOURCES ──────────────────────────────────────────────────
     elif active_nav == "SOURCES":
