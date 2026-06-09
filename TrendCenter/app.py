@@ -236,7 +236,7 @@ for k, v in {
     "strange_ts":      None,
     "strange_sel":     None,
     "radar_nonce":     0,
-    "active_nav":      "CASE FILES",
+    "active_nav":      "HOME",
     "theme":           "night",
 }.items():
     if k not in st.session_state:
@@ -314,9 +314,9 @@ st.markdown("""
   --border:       rgba(255,255,255,0.08);
   --border-2:     rgba(255,255,255,0.06);
   --tx1:          #F5F7FA;
-  --tx2:          #8B93A7;
-  --tx3:          #4a5568;
-  --tx4:          #2d3748;
+  --tx2:          #EDF1F7;
+  --tx3:          #D2D8E3;
+  --tx4:          #B6BECD;
   --sb-bg:        #080C12;
   --sb-border:    rgba(255,255,255,0.06);
   --lime-t:       #A3FF12;
@@ -829,11 +829,11 @@ def render_signal_guide():
         items += (f'<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0">'
                   f'<div style="display:flex;align-items:flex-end;gap:2px;height:36px">{bars}</div>'
                   f'<div style="font-size:7.5px;font-weight:800;color:{col};letter-spacing:0.06em;text-align:center;font-family:JetBrains Mono,monospace;line-height:1.2">{lbl}</div>'
-                  f'<div style="font-size:8px;color:var(--tx4);text-align:center;line-height:1.3">{sub}</div>'
+                  f'<div style="font-size:8px;color:rgba(255,255,255,0.82);text-align:center;line-height:1.3">{sub}</div>'
                   f'</div>')
     st.markdown(
         f'<div style="background:rgba(8,12,7,0.62);border:1px solid rgba(163,255,18,0.16);border-radius:12px;padding:16px 18px;margin:16px 0 8px">'
-        f'<div style="font-size:8px;font-weight:700;color:var(--tx4);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;font-family:JetBrains Mono,monospace">── Signal Strength Index ──</div>'
+        f'<div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.80);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;font-family:JetBrains Mono,monospace">── Signal Strength Index ──</div>'
         f'<div style="display:flex;align-items:flex-end;gap:0">{items}</div>'
         f'</div>',
         unsafe_allow_html=True
@@ -1656,7 +1656,7 @@ def render_classified_dossier(signals):
       .cf-title{ font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--tx1);
         text-transform:uppercase; letter-spacing:0.02em; line-height:1.3;
         text-shadow:0 1px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8); }
-      .cf-preview{ font-size:11px; color:var(--tx3); line-height:1.45; margin-top:4px;
+      .cf-preview{ font-size:11px; color:rgba(255,255,255,0.88); line-height:1.45; margin-top:4px;
         display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
         text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.85); }
       .cf-right{ display:flex; align-items:center; gap:13px; flex-shrink:0; margin-left:6px; }
@@ -1685,7 +1685,7 @@ def render_classified_dossier(signals):
       .cf-source:hover{ text-decoration:underline; }
       .cf-viewall{ display:block; text-align:center; margin-top:4px; padding:13px;
         border:1px solid rgba(163,255,18,0.30); border-radius:12px; background:rgba(8,12,7,0.40);
-        color:var(--lime-t); font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:800;
+        color:var(--lime-t)!important; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:800;
         letter-spacing:0.16em; text-transform:uppercase; text-decoration:none; }
       .cf-viewall:hover{ border-color:var(--lime-t); box-shadow:0 0 16px rgba(163,255,18,0.16); }
       @media (max-width:640px){
@@ -2000,13 +2000,11 @@ def render_niche_pulse(results, query):
 # ═════════════════════════════════════════════════════════════════
 
 NAV_ITEMS = [
-    ("📁","CASE FILES",    "Live trend case cards"),
-    ("📡","TREND RADAR",   "Velocity & momentum"),
-    ("📊","DEEP DIVE",     "Blueprint generator"),
+    ("🏠","HOME",        "Back to the top"),
     ("🗂","SOURCES",       "Platform overview"),
-    ("⭐","WATCHLIST",     "Saved topics"),
     ("📋","BRIEFINGS",     "Daily intelligence"),
-    ("💬","DEBRIEF",       "Chat with Pugson"),
+    ("🛰","WHAT IS NOIZE",   "What this is & why it's different"),
+    ("🧭","HOW TO USE NOIZE","New here? Start the field manual"),
 ]
 
 active_nav = st.session_state.active_nav
@@ -2020,11 +2018,10 @@ with st.container(key="noizetopnav"):
                   if pugson_src else
                   f'<div style="width:40px;height:40px;border-radius:50%;background:var(--surface);border:2px solid {_sb_img_bd};display:flex;align-items:center;justify-content:center;font-size:20px">🐾</div>')
 
-    tog_label = "☀️ DAY" if theme == "night" else "🌙 NIGHT"
-    tog_tip   = "Switch to Day" if theme == "night" else "Switch to Night"
-
-    # avatar | 8 nav buttons | theme toggle | upgrade
-    top_cols = st.columns([1.6] + [1] * len(NAV_ITEMS) + [1, 1])
+    # avatar | nav buttons | (trailing spacer keeps the buttons compact on the left)
+    # widths scale with label length so longer tabs (WHAT IS NOIZE…) don't wrap
+    _navw = [max(0.9, len(_lbl) * 0.12) for _, _lbl, _ in NAV_ITEMS]
+    top_cols = st.columns([1.6] + _navw + [0.4])
 
     with top_cols[0]:
         st.markdown(f"""
@@ -2046,16 +2043,24 @@ with st.container(key="noizetopnav"):
                 st.session_state.active_nav = label
                 st.rerun()
 
-    with top_cols[-2]:
-        if st.button(tog_label, key="theme_toggle", help=tog_tip, use_container_width=True, type="secondary"):
-            st.session_state.theme = "day" if theme == "night" else "night"
-            st.rerun()
-
-    with top_cols[-1]:
-        if st.button("🛡️ UPGRADE", key="upgrade_cta", help="Unlock advanced tools, historic data & more", use_container_width=True, type="secondary"):
-            st.toast("Command tier coming soon 🛡️")
-
 st.markdown("<div style='border-bottom:1px solid var(--sb-border);margin:2px 0 10px 0'></div>", unsafe_allow_html=True)
+# Blueprint output: force the body text white (Streamlit's default markdown grey
+# reads too dim on the dark map). Any container keyed *bpout* gets white text.
+st.markdown(
+    "<style>[class*='bpout'] p,[class*='bpout'] li,[class*='bpout'] ul,"
+    "[class*='bpout'] ol,[class*='bpout'] strong{color:#F5F7FA!important}"
+    # Filled lime/primary buttons (nav active, INVESTIGATE, Generate Blueprint)
+    # use BLACK text so the label isn't drowned out on the bright green.
+    "button[kind=\"primary\"],button[kind=\"primary\"] p,button[kind=\"primary\"] div,"
+    "button[kind=\"primary\"] span{color:#0a0f05!important}"
+    # …except the source-picker's active pill, which is transparent — keep it lime.
+    ".st-key-srcrow button[kind=\"primary\"] p,.st-key-srcrow button[kind=\"primary\"] div"
+    "{color:var(--lime-t)!important}"
+    # Green outline on the header nav buttons so they match the rest of the UI.
+    ".st-key-noizetopnav button[kind=\"secondary\"]{border:1px solid rgba(163,255,18,0.28)!important}"
+    ".st-key-noizetopnav button[kind=\"secondary\"]:hover{border-color:var(--lime-t)!important;"
+    "box-shadow:0 0 12px rgba(163,255,18,0.16)!important}</style>",
+    unsafe_allow_html=True)
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -2093,7 +2098,18 @@ src_pills = "".join([
     for c in PLATFORM_CONFIG.values()
 ])
 
-popular_topics = ["AI Tools", "Taylor Swift", "Bitcoin", "Climate Change", "OpenAI", "Gaming"]
+# POPULAR chips: real, live trending search terms from Google Trends (short
+# ones, deduped). Falls back to a curated list if Trends hasn't populated yet.
+_POPULAR_FALLBACK = ["AI Tools", "Taylor Swift", "Bitcoin", "Climate Change", "OpenAI", "Gaming"]
+try:
+    _seen = set(); _pop = []
+    for _h in get_latest_hashtags(platform="google"):
+        _nm = (_h.get("name") or "").strip()
+        if _nm and len(_nm) <= 22 and _nm.lower() not in _seen:
+            _seen.add(_nm.lower()); _pop.append(_nm)
+except Exception:
+    _pop = []
+popular_topics = _pop[:6] if len(_pop) >= 3 else _POPULAR_FALLBACK
 
 # ═════════════════════════════════════════════════════════════════
 # TRENDING NOW FEED  (real cross-category news, shared hourly cache)
@@ -2157,7 +2173,7 @@ st.markdown(
 )
 
 # Single centered column: the old right rail (briefing + strange signals) now
-# stacks inline in the main feed on the home view (see end of CASE FILES block).
+# stacks inline in the main feed on the home view (see end of HOME block).
 main_col = st.container()
 
 # ── MAIN CONTENT ──────────────────────────────────────────────────
@@ -2176,8 +2192,8 @@ with main_col:
     st.markdown(
         f"<style>.st-key-herowrap{{{_hero_bg_css}"
         "border-radius:14px;padding:20px 26px 18px 26px;"
-        "border:1px solid rgba(255,255,255,0.06);"
-        "box-shadow:0 16px 50px rgba(0,0,0,0.45);margin-bottom:12px}</style>",
+        "border:1px solid rgba(163,255,18,0.30);"
+        "box-shadow:0 0 0 1px rgba(163,255,18,0.05),0 16px 50px rgba(0,0,0,0.45);margin-bottom:12px}</style>",
         unsafe_allow_html=True,
     )
     with st.container(key="herowrap"):
@@ -2247,7 +2263,8 @@ with main_col:
                     if st.button("✕ Close blueprint", key="bp_close_top", use_container_width=True):
                         st.session_state.topic_blueprint = None
                         st.rerun()
-                    st.markdown(st.session_state.topic_blueprint)
+                    with st.container(key="bpout_topic"):
+                        st.markdown(st.session_state.topic_blueprint)
                     if st.button("✕ Close blueprint", key="bp_close_bottom", use_container_width=True):
                         st.session_state.topic_blueprint = None
                         st.rerun()
@@ -2284,8 +2301,8 @@ with main_col:
             st.rerun()
         st.markdown("---")
 
-    # ── CASE FILES ───────────────────────────────────────────────
-    if active_nav == "CASE FILES":
+    # ── HOME ───────────────────────────────────────────────
+    if active_nav == "HOME":
         # Square, icon-only brand buttons inside a themed "TrendFeeds" panel.
         # CSS keeps all 4 on ONE row on both mobile and desktop.
         _bgsel = ".st-key-srcrow [data-testid=\"stColumn\"] button[kind]"  # high specificity + !important to beat Streamlit's `background:` shorthand
@@ -2482,7 +2499,8 @@ with main_col:
                     with st.spinner("Building intelligence file..."):
                         cf_bp = generate_blueprint(cf_selected, cf_niche.strip() or "content creator")
                     st.markdown("---")
-                    st.markdown(cf_bp)
+                    with st.container(key="bpout_cf"):
+                        st.markdown(cf_bp)
 
         # ── Trending Now + Strange Signals ───────────────────────────
         # Image-first live intelligence feed (general trending news), then the
@@ -2504,8 +2522,8 @@ with main_col:
                     f'<div style="display:flex;align-items:stretch;border-radius:16px;overflow:hidden;margin:8px 0 4px;min-height:130px;border:1px solid rgba(163,255,18,0.16)">'
                     f'<div style="flex:1;background:rgba(8,12,7,0.72);padding:28px 32px;display:flex;flex-direction:column;justify-content:center">'
                     f'<div style="font-size:32px;color:var(--amber);line-height:0.7;margin-bottom:12px;font-family:Georgia,serif;opacity:0.8">"</div>'
-                    f'<div style="font-size:14px;color:var(--tx2);line-height:1.75;font-style:italic">In a world of infinite noise,<br>we find the signal that shapes tomorrow.</div>'
-                    f'<div style="font-size:10px;color:var(--tx4);margin-top:10px;letter-spacing:0.04em">— Chief Detective Pugson</div>'
+                    f'<div style="font-size:14px;color:rgba(255,255,255,0.92);line-height:1.75;font-style:italic">In a world of infinite noise,<br>we find the signal that shapes tomorrow.</div>'
+                    f'<div style="font-size:10px;color:rgba(255,255,255,0.70);margin-top:10px;letter-spacing:0.04em">— Chief Detective Pugson</div>'
                     f'</div>'
                     f'<div style="width:42%;background-image:url(\'{np_src}\');background-size:cover;background-position:center 30%"></div>'
                     f'</div>',
@@ -2560,10 +2578,15 @@ with main_col:
                 if st.button("🎬 Generate Blueprint",type="primary",use_container_width=True,disabled=len(selected)==0):
                     with st.spinner("Building intelligence file..."):
                         bp=generate_blueprint(selected,bp_niche.strip() or "content creator")
-                    st.markdown("---"); st.markdown(bp)
+                    st.markdown("---")
+                    with st.container(key="bpout_dd"):
+                        st.markdown(bp)
 
     # ── BRIEFINGS ────────────────────────────────────────────────
     elif active_nav == "BRIEFINGS":
+        if st.button("✕  Exit Briefing Room", key="briefing_exit", use_container_width=True):
+            st.session_state.active_nav = "HOME"
+            st.rerun()
         # Newspaper hero banner
         np_src = f"data:image/jpeg;base64,{NEWSPAPER_B64}" if NEWSPAPER_B64 else ""
         date_str = datetime.now().strftime("%B %d, %Y").upper()
@@ -2597,23 +2620,163 @@ with main_col:
                 thumb = (f'<div style="width:120px;flex-shrink:0;display:flex;align-items:center;justify-content:center;'
                          f'background:linear-gradient(150deg,{color}26,rgba(6,9,4,0.9));border-radius:9px;align-self:stretch;min-height:84px;font-size:30px">{icon}</div>')
             st.markdown(
-                f'<a href="{url}" target="_blank" style="text-decoration:none">'
-                f'<div style="display:flex;gap:13px;background:var(--surface);border:1px solid var(--border);border-left:3px solid {color};border-radius:12px;padding:13px 15px;margin-bottom:12px">'
+                f'<a href="{url}" target="_blank" style="text-decoration:none;color:inherit">'
+                f'<div style="display:flex;gap:13px;background:rgba(8,12,7,0.62);border:1px solid rgba(163,255,18,0.16);border-left:3px solid {color};border-radius:12px;padding:13px 15px;margin-bottom:12px">'
                 f'{thumb}'
                 f'<div style="flex:1;min-width:0">'
                 f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-                f'<div style="font-size:9px;font-weight:800;color:{color};letter-spacing:0.1em;text-transform:uppercase">{icon} {cat}</div>'
-                f'<span style="font-size:9px;font-weight:800;color:{color};background:{color}18;padding:2px 8px;border-radius:4px">#{i+1}</span>'
+                f'<div style="font-size:9px;font-weight:800;color:{color}!important;letter-spacing:0.1em;text-transform:uppercase">{icon} {cat}</div>'
+                f'<span style="font-size:9px;font-weight:800;color:{color}!important;background:{color}18;padding:2px 8px;border-radius:4px">#{i+1}</span>'
                 f'</div>'
-                f'<div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:6px;font-family:Poppins,sans-serif;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{head}</div>'
-                f'<div style="font-size:11px;color:var(--tx3);font-family:JetBrains Mono,monospace">{meta}</div>'
-                f'<div style="margin-top:9px;font-size:10px;font-weight:700;color:{color}">READ FULL REPORT →</div>'
+                f'<div style="font-size:15px;font-weight:700;color:#F5F7FA!important;margin-bottom:6px;font-family:Poppins,sans-serif;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{head}</div>'
+                f'<div style="font-size:11px;color:var(--tx3)!important;font-family:JetBrains Mono,monospace">{meta}</div>'
+                f'<div style="margin-top:9px;font-size:10px;font-weight:700;color:{color}!important">READ FULL REPORT →</div>'
                 f'</div></div></a>',
                 unsafe_allow_html=True
             )
         if st.button("🔄 Refresh Briefing", type="secondary"):
             st.session_state.pop("trending_now", None)
             get_trending_now(force=True); st.rerun()
+
+    # ── WHAT IS NOIZE ────────────────────────────────────────────
+    elif active_nav == "WHAT IS NOIZE":
+        _panel = ("background:rgba(8,12,7,0.62);border:1px solid rgba(163,255,18,0.16);"
+                  "border-radius:14px;padding:24px 26px;margin-bottom:14px")
+        _feat = [
+            ("🔍","Investigate","Type any topic and Noize sweeps every platform, then hands you a live cross-platform dossier <i>plus</i> a ready-to-shoot content blueprint."),
+            ("📡","Trending Now","A live intelligence feed of real stories across Politics, Tech, AI, Business, Music, Space, Science &amp; Gaming — every card opens the actual source."),
+            ("🎬","Blueprint Generator","Turn any trend into a multi-platform game plan — TikTok, Shorts, Reels, YouTube &amp; X — with a copy-paste AI Prompt Pack baked in."),
+            ("🛸","Strange Signals","The internet's weirdest unsolved files — UFOs, cold cases, glitches — declassified fresh every day."),
+            ("📋","Daily Briefings","Your morning intelligence drop: the top stories that matter, ready to act on."),
+            ("🌐","One Command Center","Google, YouTube, Reddit and AI — all in a single dark, focused war room instead of ten open tabs."),
+        ]
+        _cards = "".join(
+            f"<div style='background:rgba(10,14,12,0.55);border:1px solid var(--border);border-radius:12px;padding:16px 18px'>"
+            f"<div style='font-size:24px'>{e}</div>"
+            f"<div style='font-weight:800;color:#F5F7FA;margin:8px 0 5px;font-family:Poppins,sans-serif;font-size:15px'>{t}</div>"
+            f"<div style='font-size:12.5px;color:rgba(255,255,255,0.82);line-height:1.65'>{d}</div></div>"
+            for e, t, d in _feat
+        )
+        _edge = [
+            ("📰","All the news, one place","Every trend across Google, YouTube, Reddit &amp; AI — stop scrolling ten different sites."),
+            ("📝","What to say","A scroll-stopping hook plus a beat-by-beat script, written for you."),
+            ("⏰","When to post","The best posting window for each platform, and the reason why."),
+            ("🎬","How to post","Shot list, visual style, on-screen text and the right format per platform."),
+            ("🛠","What tech to use","The exact tools for filming, editing, thumbnails and voice."),
+            ("🤖","AI prompts included","Copy-paste prompts for thumbnails, titles, full scripts and voiceover."),
+        ]
+        _edge = "".join(
+            f"<div style='background:rgba(10,14,12,0.5);border:1px solid rgba(163,255,18,0.18);border-radius:10px;padding:13px 15px'>"
+            f"<div style='font-size:19px'>{e}</div>"
+            f"<div style='font-weight:800;color:#F5F7FA;margin:6px 0 4px;font-family:Poppins,sans-serif;font-size:13.5px'>{t}</div>"
+            f"<div style='font-size:12px;color:rgba(255,255,255,0.82);line-height:1.6'>{d}</div></div>"
+            for e, t, d in _edge
+        )
+        _diff = [
+            ("⚡","Faster, more efficient","Go from a trend to a finished, ready-to-shoot piece in minutes — not an afternoon of research."),
+            ("🗂","Everything in one window","The news, the script, the timing, the tools and the AI prompts in one place. No tab-hopping."),
+            ("✅","Real, grounded intel","Every card links to a real source. No invented headlines, no hallucinated nonsense."),
+            ("🕵️","Built like an op","Hunting trends should feel like cracking a case, not scrolling a feed — and it's honest: AI content is always labeled."),
+        ]
+        _diffs = "".join(
+            f"<div style='display:flex;gap:12px;align-items:flex-start;margin-bottom:13px'>"
+            f"<div style='font-size:18px;flex-shrink:0'>{e}</div>"
+            f"<div><span style='color:#F5F7FA;font-weight:700'>{t}</span> — "
+            f"<span style='color:rgba(255,255,255,0.82)'>{d}</span></div></div>"
+            for e, t, d in _diff
+        )
+        st.markdown(
+            f"<div style='{_panel};background-image:linear-gradient(135deg,rgba(163,255,18,0.06),rgba(8,12,7,0.62))'>"
+            "<div style=\"font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.2em;"
+            "color:var(--lime-t);text-transform:uppercase\">◉ Dossier · About</div>"
+            "<div style=\"font-family:'Orbitron',sans-serif;font-size:32px;font-weight:800;color:#fff;margin:8px 0 4px;"
+            "text-shadow:0 0 22px rgba(163,255,18,0.35)\">WHAT IS NOIZE?</div>"
+            "<div style='font-size:14px;color:var(--lime-t);font-family:JetBrains Mono,monospace;letter-spacing:0.04em;margin-bottom:14px'>Your signal in the noise.</div>"
+            "<div style='font-size:14.5px;color:rgba(255,255,255,0.88);line-height:1.8'>"
+            "The internet never shuts up. Millions of posts, clips and threads every minute — a wall of pure static. "
+            "<b style='color:#fff'>Noize</b> is the detective that listens to <i>all</i> of it so you don't have to — "
+            "then hands content creators a finished game plan: the trend, the angle, the <i>script</i>, the timing, the tools, and the AI prompts. "
+            "All the news <i>and</i> all the how-to in one place, so you stop scrolling ten sites and start shipping.</div></div>"
+            # ★ Big content-creator selling point
+            f"<div style='{_panel};background-image:linear-gradient(135deg,rgba(163,255,18,0.10),rgba(8,12,7,0.62));border-color:rgba(163,255,18,0.30)'>"
+            "<div style=\"font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.18em;"
+            "color:var(--lime-t);text-transform:uppercase;margin-bottom:6px\">★ Built for content creators</div>"
+            "<div style=\"font-family:Poppins,sans-serif;font-size:19px;font-weight:800;color:#fff;margin-bottom:9px\">Your all-in-one content engine.</div>"
+            "<div style='font-size:14px;color:rgba(255,255,255,0.88);line-height:1.8;margin-bottom:15px'>"
+            "The fastest way to go from &ldquo;I need to post something&rdquo; to a ready-to-shoot piece. "
+            "Pick a trend and you instantly get the <b style='color:#fff'>full blueprint</b> — make more content, faster, with zero tab-hopping:</div>"
+            f"<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:10px'>{_edge}</div></div>"
+            f"<div style='{_panel}'>"
+            "<div style=\"font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.16em;"
+            "color:var(--lime-t);text-transform:uppercase;margin-bottom:14px\">▸ What's inside the kit</div>"
+            f"<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px'>{_cards}</div></div>"
+            f"<div style='{_panel}'>"
+            "<div style=\"font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.16em;"
+            "color:var(--lime-t);text-transform:uppercase;margin-bottom:16px\">▸ Why Noize hits different</div>"
+            f"{_diffs}</div>"
+            f"<div style='{_panel};text-align:center'>"
+            "<div style='font-size:14px;color:rgba(255,255,255,0.85);line-height:1.7'>"
+            "Made for <b style='color:#fff'>content creators</b> first — plus marketers, founders, and the incurably curious.</div>"
+            "<div style='font-size:13px;color:var(--lime-t);margin-top:10px;font-family:JetBrains Mono,monospace'>Welcome to the case. — Chief Detective Pugson</div></div>",
+            unsafe_allow_html=True,
+        )
+
+    # ── HOW TO USE NOIZE ─────────────────────────────────────────
+    elif active_nav == "HOW TO USE NOIZE":
+        _panel = ("background:rgba(8,12,7,0.62);border:1px solid rgba(163,255,18,0.16);"
+                  "border-radius:14px;padding:24px 26px;margin-bottom:14px")
+        _steps = [
+            ("01","🔍","Chase a lead","See something you want intel on? Type it into the <b>Investigate</b> bar at the top and hit the green button. Noize sweeps every platform and builds you a Dossier <i>and</i> a content blueprint on the spot."),
+            ("02","🗂","Work a source","Want to see what's already exploding? Tap a source — <b>Google · YouTube · Reddit · GPT</b> — scan the Top 20, tick the trends you like, then smash <b>Generate Blueprint</b>."),
+            ("03","📡","Read the wire","Scroll to <b>Trending Now</b> for the live feed across 8 categories. Tap any card to open the real story; the metrics rail tells you how fresh each lead is."),
+            ("04","🛸","Crack the weird ones","<b>Classified Files / Strange Signals</b> is the fringe desk — UFOs, cold cases, glitches. Click a file to open the full dossier. (Yes, it's as fun as it sounds.)"),
+            ("05","🤖","Steal the AI Prompt Pack","Every blueprint comes loaded with copy-paste prompts — a thumbnail image prompt, 10 title ideas, a full script expander, and voiceover direction. Paste them straight into your AI tools."),
+            ("06","📋","Hit the Briefing Room","The <b>Briefings</b> tab is your daily intelligence drop — the top stories, packaged and ready to act on."),
+        ]
+        _stepcards = "".join(
+            f"<div style='display:flex;gap:16px;align-items:flex-start;background:rgba(10,14,12,0.55);"
+            f"border:1px solid var(--border);border-left:3px solid var(--lime-t);border-radius:12px;padding:16px 18px;margin-bottom:11px'>"
+            f"<div style=\"font-family:'Orbitron',sans-serif;font-size:22px;font-weight:800;color:var(--lime-t);"
+            f"opacity:0.55;flex-shrink:0;line-height:1\">{n}</div>"
+            f"<div><div style='font-weight:800;color:#F5F7FA;font-size:15px;font-family:Poppins,sans-serif;margin-bottom:4px'>{e} {t}</div>"
+            f"<div style='font-size:13px;color:rgba(255,255,255,0.84);line-height:1.7'>{d}</div></div></div>"
+            for n, e, t, d in _steps
+        )
+        _tips = [
+            "🔥 The POPULAR chips under the search bar are <b>live trending terms</b> — tap one for instant intel.",
+            "⏱ Everything refreshes on its own. Come back tomorrow for a fresh case load.",
+            "🏠 Lost in the weeds? Hit <b>HOME</b> to snap back to base.",
+        ]
+        _tiprows = "".join(
+            f"<div style='font-size:13px;color:rgba(255,255,255,0.84);line-height:1.7;margin-bottom:8px'>{t}</div>"
+            for t in _tips
+        )
+        st.markdown(
+            f"<div style='{_panel};background-image:linear-gradient(135deg,rgba(163,255,18,0.06),rgba(8,12,7,0.62))'>"
+            "<div style=\"font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.2em;"
+            "color:var(--lime-t);text-transform:uppercase\">◉ Classified · Field Manual</div>"
+            "<div style=\"font-family:'Orbitron',sans-serif;font-size:30px;font-weight:800;color:#fff;margin:8px 0 4px;"
+            "text-shadow:0 0 22px rgba(163,255,18,0.35)\">HOW TO USE NOIZE</div>"
+            "<div style='font-size:14px;color:rgba(255,255,255,0.88);line-height:1.7;margin-top:6px'>"
+            "Your badge is ready, Detective. Here's how to turn today's trends into <b style='color:#fff'>finished content — fast</b>. "
+            "Six steps, no training academy required.</div></div>"
+            f"<div>{_stepcards}</div>"
+            f"<div style='{_panel}'>"
+            "<div style=\"font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.16em;"
+            "color:var(--lime-t);text-transform:uppercase;margin-bottom:14px\">▸ Pro tips from the chief</div>"
+            f"{_tiprows}"
+            "<div style='font-size:13px;color:var(--lime-t);margin-top:12px;font-family:JetBrains Mono,monospace'>"
+            "Now get out there and find the signal. — Pugson</div></div>"
+            # Why creators love it
+            f"<div style='{_panel};background-image:linear-gradient(135deg,rgba(163,255,18,0.10),rgba(8,12,7,0.62));border-color:rgba(163,255,18,0.30);text-align:center'>"
+            "<div style=\"font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.18em;"
+            "color:var(--lime-t);text-transform:uppercase;margin-bottom:8px\">★ Why creators love it</div>"
+            "<div style='font-size:14.5px;color:rgba(255,255,255,0.90);line-height:1.85'>"
+            "One window gives you the <b style='color:#fff'>idea</b>, the <b style='color:#fff'>script</b>, the <b style='color:#fff'>timing</b>, the "
+            "<b style='color:#fff'>tools</b> and the <b style='color:#fff'>AI prompts</b> — so you make more content, faster, "
+            "without scrolling ten different websites to figure out what to post.</div></div>",
+            unsafe_allow_html=True,
+        )
 
     # ── SOURCES ──────────────────────────────────────────────────
     elif active_nav == "SOURCES":

@@ -99,34 +99,45 @@ def generate_blueprint(hashtag_names, niche="content creator"):
     hashtag_list = ", ".join([f"#{n}" for n in hashtag_names])
 
     prompt = (
-        f"You are an expert TikTok content strategist. A {niche} creator wants to post today "
-        f"using these trending hashtags: {hashtag_list}\n\n"
-        "For EACH hashtag, write a complete production blueprint using exactly this format:\n\n"
+        f"You are an elite multi-platform content strategist and creative director for a {niche}. "
+        f"The creator wants to capitalize on these trending topics TODAY: {hashtag_list}\n\n"
+        "For EACH topic, write a complete, genuinely useful production blueprint in EXACTLY this "
+        "markdown format. Be concrete and specific — no filler, no generic advice. Every AI prompt "
+        "must be copy-paste ready.\n\n"
         "---\n"
-        "## #[hashtag name]\n\n"
-        "**Hook (first 3 seconds)**\n"
-        "[What to say or show in the opening 3 seconds to stop the scroll — be specific]\n\n"
-        "**Script Outline**\n"
-        "[4-5 bullet points of what to cover in order — keep it under 60 seconds total]\n\n"
-        "**Visual Style**\n"
-        "[Describe the setting, camera angle, text overlays, pacing, and vibe]\n\n"
-        "**Caption + Hashtags**\n"
-        "[A ready-to-paste caption with the trending hashtag plus 4-5 supporting hashtags]\n\n"
-        "**Best Time to Post**\n"
-        "[Specific recommendation based on when this trend is peaking]\n\n"
-        "**Recommended Tool**\n"
-        "[Pick one: Phone camera / CapCut / HeyGen (AI avatar) / Runway (AI video) — and explain in one sentence why this format fits the trend]\n"
+        "## #[topic]\n\n"
+        "**📈 Why it's hot** — 1-2 sentences on the current angle.\n\n"
+        "**🎯 3 Content Angles** — three distinct, punchy ideas (one line each).\n\n"
+        "**🏆 Top Pick — Full Breakdown**\n"
+        "- **Hook (first 3s):** the exact line + visual that stops the scroll\n"
+        "- **Beat-by-beat script:** 5-7 timestamped beats (0-3s, 3-8s, …) with what's said/shown\n"
+        "- **Shot list / B-roll:** 4-5 concrete shots to film or source\n"
+        "- **On-screen text:** 3-4 exact caption overlays to put on screen\n"
+        "- **Sound:** the kind of trending audio / music to use\n\n"
+        "**📱 Platform Cuts** — adapt the Top Pick for each (ideal length + hook tweak + ready caption + hashtag set):\n"
+        "- **TikTok:**\n"
+        "- **YouTube Shorts:**\n"
+        "- **Instagram Reels:**\n"
+        "- **YouTube (long-form):** a title + 3-bullet outline IF the topic supports a longer video, else write 'Skip'\n"
+        "- **X / Twitter:** a single post or a 3-tweet thread hook\n\n"
+        "**🤖 AI Prompt Pack** — copy-paste ready:\n"
+        "- **🖼 Thumbnail (Midjourney / DALL·E / GPT-image):** a vivid, detailed image prompt — composition, subject, lighting, style, colors, and where bold title text goes\n"
+        "- **✍️ Titles & captions (GPT):** a prompt that makes GPT output 10 scroll-stopping titles/captions\n"
+        "- **📝 Full script (GPT):** a prompt that expands the beats into a word-for-word script in the creator's voice\n"
+        "- **🎙 Voiceover / AI avatar (ElevenLabs / HeyGen):** the exact tone + delivery direction to paste in\n\n"
+        "**🛠 Tool Stack** — which tool for which job (film, edit, thumbnail, captions, voice).\n\n"
+        "**⏰ Best time to post** — per platform, with a one-line reason.\n"
         "---\n\n"
-        "Write a blueprint for every hashtag listed. Be specific, actionable, and punchy — this creator is ready to make content today."
+        "Write a full blueprint for EVERY topic listed."
     )
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": f"You are a TikTok content strategist creating production blueprints for a {niche} creator. Be specific and actionable."},
+            {"role": "system", "content": f"You are an elite multi-platform content strategist and creative director for a {niche}. Output detailed, specific, copy-paste-ready blueprints with real AI prompts. Never be generic or vague."},
             {"role": "user", "content": prompt}
         ],
-        max_tokens=2000
+        max_tokens=4000
     )
     return response.choices[0].message.content
 
@@ -150,30 +161,39 @@ def generate_topic_blueprint(topic, dossier=None):
         if ctx else ""
     )
     prompt = (
-        f'You are an expert short-form content strategist. A creator wants to make content '
-        f'about "{topic}" right now.{ctx_block}\n'
-        "Produce ONE focused, ready-to-shoot content blueprint for this topic, in exactly "
-        "this markdown format:\n\n"
+        f'You are an elite multi-platform content strategist and creative director. A creator '
+        f'wants to make content about "{topic}" right now.{ctx_block}\n'
+        "Produce ONE deep, ready-to-shoot blueprint in EXACTLY this markdown format. Be concrete "
+        "and specific (lean on the trending items above). Every AI prompt must be copy-paste ready.\n\n"
         f"## 📐 Blueprint: {topic}\n\n"
-        "**Why now** — 1-2 sentences on the current angle / why this is hot (lean on the trending items above).\n\n"
-        "**3 Content Angles** — three punchy video ideas, one line each.\n\n"
-        "**Top Pick — Full Breakdown**\n"
-        "- **Hook (first 3s):** what stops the scroll\n"
-        "- **Script outline:** 4-5 bullets, under 60s total\n"
-        "- **Visual style:** setting, camera, text overlays, pacing\n"
-        "- **Caption + hashtags:** ready to paste\n\n"
-        "**Best platform & format** — TikTok / YouTube Shorts / Reels, why, and best time to post.\n\n"
-        "**Recommended tool** — one of: Phone camera / CapCut / HeyGen / Runway — one sentence why.\n\n"
-        "Be specific, current, and actionable."
+        "**📈 Why now** — 1-2 sentences on the current angle / why this is hot.\n\n"
+        "**🎯 3 Content Angles** — three punchy ideas, one line each.\n\n"
+        "**🏆 Top Pick — Full Breakdown**\n"
+        "- **Hook (first 3s):** the exact line + visual that stops the scroll\n"
+        "- **Beat-by-beat script:** 5-7 timestamped beats (0-3s, 3-8s, …)\n"
+        "- **Shot list / B-roll:** 4-5 concrete shots\n"
+        "- **On-screen text:** 3-4 exact overlays\n"
+        "- **Sound:** the kind of trending audio to use\n\n"
+        "**📱 Platform Cuts** — adapt the Top Pick (ideal length + hook tweak + ready caption + hashtags):\n"
+        "- **TikTok:**\n- **YouTube Shorts:**\n- **Instagram Reels:**\n"
+        "- **YouTube (long-form):** title + 3-bullet outline IF it supports a longer video, else 'Skip'\n"
+        "- **X / Twitter:** a post or 3-tweet thread hook\n\n"
+        "**🤖 AI Prompt Pack** — copy-paste ready:\n"
+        "- **🖼 Thumbnail (Midjourney / DALL·E / GPT-image):** a vivid detailed image prompt incl. composition, lighting, style, colors, and where bold title text goes\n"
+        "- **✍️ Titles & captions (GPT):** a prompt that outputs 10 scroll-stopping titles/captions\n"
+        "- **📝 Full script (GPT):** a prompt to expand the beats into a word-for-word script\n"
+        "- **🎙 Voiceover / AI avatar (ElevenLabs / HeyGen):** the exact tone + delivery direction\n\n"
+        "**🛠 Tool Stack** — which tool for which job.\n\n"
+        "**⏰ Best time to post** — per platform, one-line reason."
     )
     try:
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a sharp short-form content strategist. Be specific, timely, and actionable."},
+                {"role": "system", "content": "You are an elite multi-platform content strategist and creative director. Output detailed, specific, copy-paste-ready blueprints with real AI prompts. Never be generic."},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=1400,
+            max_tokens=2600,
         )
         return resp.choices[0].message.content
     except Exception as e:
