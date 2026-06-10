@@ -903,9 +903,113 @@ def _pregen_case_images(signals):
     return signals
 
 
+# ── VoiceBeat: noir-narrator audio for each case ──────────────────────────
+# Each case gets a dramatized AAC narration, cached on disk (small, regenerated
+# per daily drop). At render time app.py reads the bytes and registers them with
+# Streamlit's media manager, which serves them lazily (browser only fetches on
+# play) with the correct MIME — so there's no page-weight cost.
+VOICE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice_cache")
+# MP3 so Streamlit's /media URL gets a real extension (.mp3) and the correct
+# Content-Type (audio/mpeg) — plays in every browser incl. Safari/iOS. Size is
+# irrelevant since the clip is lazy-loaded (only fetched when the user hits play).
+VOICE_MIME = "audio/mpeg"
+VOICE_INSTRUCTIONS = (
+    "Read like a gravelly, ominous late-night noir radio narrator delivering a "
+    "classified case file. Slow, deliberate and cinematic, with dramatic weight, "
+    "quiet menace and the occasional knowing pause. Never rushed."
+)
+
+
+def _voice_filename(signal):
+    """Stable file name from the case's headline/title (so the cache + the file
+    on disk always line up within a daily drop)."""
+    import hashlib
+    key = (signal.get("case_headline") or signal.get("title") or "case").encode("utf-8")
+    return f"vb_{hashlib.md5(key).hexdigest()[:12]}.mp3"
+
+
+def _voice_script(signal):
+    """The narration text: a short case-file intro, then Pugson's write-up read
+    aloud — i.e. the article itself, voiced."""
+    rank = signal.get("rank")
+    headline = (signal.get("case_headline") or signal.get("title") or "").strip().rstrip(".")
+    intro = f"Case file {rank}. " if rank else ""
+    intro += f"{headline}. " if headline else ""
+    body = " ".join(p.strip() for p in (signal.get("case_body") or []) if isinstance(p, str) and p.strip())
+    if not body:
+        body = (signal.get("summary") or signal.get("title") or "").strip()
+    return (intro + body).strip()
+
+
+def get_case_voice_bytes(signal):
+    """Return the cached narration audio bytes for a case, or None. Used by the
+    UI to register the clip with Streamlit's media manager at render time."""
+    fname = signal.get("voice_file")
+    if not fname:
+        return None
+    path = os.path.join(VOICE_DIR, fname)
+    try:
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                return f.read()
+    except Exception:
+        pass
+    return None
+
+
+def _generate_case_voice(signal):
+    """Generate the noir narration audio for one case and set signal['voice_file'].
+    Idempotent; safe to skip on failure (the player just won't show)."""
+    fname = _voice_filename(signal)
+    if signal.get("voice_file") and os.path.exists(os.path.join(VOICE_DIR, fname)):
+        return signal
+    text = _voice_script(signal)
+    if not text:
+        return signal
+    try:
+        os.makedirs(VOICE_DIR, exist_ok=True)
+        resp = client.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            voice="onyx",
+            input=text[:3500],  # safety cap
+            instructions=VOICE_INSTRUCTIONS,
+            response_format="mp3",
+        )
+        with open(os.path.join(VOICE_DIR, fname), "wb") as f:
+            f.write(resp.read())
+        signal["voice_file"] = fname
+        print(f"[STRANGE] VoiceBeat narration ready: {fname}", flush=True)
+    except Exception as e:
+        print(f"[STRANGE] voice gen failed: {e}", flush=True)
+    return signal
+
+
+def _pregen_case_voices(signals):
+    """Generate all narrations in parallel during the daily scan. Clears stale
+    audio first so the cache dir only holds the current drop."""
+    import concurrent.futures
+    try:
+        if os.path.isdir(VOICE_DIR):
+            keep = {_voice_filename(s) for s in signals}
+            for old in os.listdir(VOICE_DIR):
+                if old.endswith(".mp3") and old not in keep:
+                    try:
+                        os.remove(os.path.join(VOICE_DIR, old))
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+            list(ex.map(_generate_case_voice, signals))
+    except Exception as e:
+        print(f"[STRANGE] voice pre-gen failed: {e}", flush=True)
+    return signals
+
+
 def _finalize_cases(signals):
-    """Make the daily drop fully ready: all write-ups + all images."""
-    return _pregen_case_images(_pregen_case_texts(signals))
+    """Make the daily drop fully ready: all write-ups + images + narrations."""
+    return _pregen_case_voices(_pregen_case_images(_pregen_case_texts(signals)))
 
 
 def generate_case_file(signal):

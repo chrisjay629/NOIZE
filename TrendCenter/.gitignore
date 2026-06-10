@@ -6,6 +6,7 @@ trending_cache.json
 trends.db
 hashtags.json
 debug.html
+voice_cache/
 
 # Python
 __pycache__/

@@ -12,7 +12,8 @@ import streamlit.components.v1 as components
 import plotly.graph_objects as go
 from datetime import datetime
 
-from agent import run_agent, generate_blueprint, generate_topic_blueprint, build_dossier, generate_strange_signals
+from agent import run_agent, generate_blueprint, generate_topic_blueprint, build_dossier, generate_strange_signals, get_case_voice_bytes, VOICE_MIME
+from streamlit import runtime as _st_runtime
 from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH, save_snapshot, cleanup_old_snapshots, get_data_age_minutes
 from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit, scrape_gpt, fetch_trending_now
@@ -1119,6 +1120,20 @@ def render_classified_dossier(signals):
             "No files on the wire yet.</div>", unsafe_allow_html=True)
         return
 
+    def _voice_url(signal, idx):
+        """Register a case's narration with Streamlit's media manager and return
+        a lazy /media/ URL (correct MIME, fetched only on play). '' on any issue."""
+        try:
+            if not _st_runtime.exists():
+                return ""
+            audio = get_case_voice_bytes(signal)
+            if not audio:
+                return ""
+            coords = f"vbvoice.{idx}.{signal.get('voice_file','')}"
+            return _st_runtime.get_instance().media_file_mgr.add(audio, VOICE_MIME, coords)
+        except Exception:
+            return ""
+
     bg = STRANGE_BG_B64  # getme.png — classified radar backdrop (bigfoot + alien)
     stage_bg = (
         "linear-gradient(rgba(6,9,5,0.86),rgba(5,8,4,0.93)),"
@@ -1192,6 +1207,13 @@ def render_classified_dossier(signals):
       .cf-meta{ font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800; letter-spacing:0.08em;
         color:var(--c); background:color-mix(in srgb,var(--c) 13%,transparent); display:inline-block;
         padding:3px 9px; border-radius:4px; margin-bottom:11px; }
+      .cf-voice{ display:flex; align-items:center; gap:11px; margin:0 0 14px; padding:9px 12px;
+        border:1px solid rgba(163,255,18,0.24); border-radius:10px; background:rgba(8,12,7,0.45); }
+      .cf-voice-lbl{ font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:800;
+        letter-spacing:0.13em; text-transform:uppercase; color:var(--lime-t); white-space:nowrap; flex-shrink:0; }
+      .cf-audio{ flex:1; min-width:0; height:34px; }
+      @media (max-width:640px){ .cf-voice{ flex-direction:column; align-items:stretch; gap:7px; }
+        .cf-audio{ width:100%; } }
       .cf-p{ font-size:13px; color:var(--tx2); line-height:1.75; margin:0 0 10px; }
       .cf-source{ display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px;
         font-weight:700; color:var(--c); text-decoration:none; letter-spacing:0.04em; margin-top:2px; }
@@ -1243,6 +1265,13 @@ def render_classified_dossier(signals):
         typ   = typ_raw.upper()
         link  = s.get("permalink") or "#"
         body  = "".join(f"<p class='cf-p'>{p}</p>" for p in (s.get("case_body") or [prev]))
+        vurl = _voice_url(s, i)
+        voice_html = (
+            "<div class='cf-voice'>"
+            "<span class='cf-voice-lbl'>&#9654; VoiceBeat &middot; Pugson reads the file</span>"
+            f"<audio class='cf-audio' controls preload='none' src='{vurl}'></audio>"
+            "</div>"
+        ) if vurl else ""
         thumb = (f"<div class='cf-thumb' style=\"background-image:url('{img}')\"></div>" if img
                  else f"<div class='cf-thumb cf-thumb-empty'>{emoji}</div>")
         feature = (f"<div class='cf-feature' style=\"background-image:url('{img}')\"></div>" if img else "")
@@ -1262,7 +1291,7 @@ def render_classified_dossier(signals):
             f"<span class='cf-chev'>▾</span></div></summary>"
             f"<div class='cf-grid'>{feature}"
             f"<div class='cf-body'>"
-            f"<div class='cf-meta'>📡 {typ} · {src}</div>{body}"
+            f"<div class='cf-meta'>📡 {typ} · {src}</div>{voice_html}{body}"
             f"<a class='cf-source' href='{link}' target='_blank'>📄 Read Original Report →</a>"
             f"</div></div></details>"
         )
