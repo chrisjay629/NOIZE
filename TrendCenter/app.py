@@ -17,6 +17,15 @@ from database import get_latest_hashtags, get_hashtag_velocity, init_db, DB_PATH
 from scraper import scrape_hashtags
 from platforms import scrape_google, scrape_youtube, scrape_reddit, scrape_gpt, fetch_trending_now
 
+# Inject Open Graph / Twitter share-card meta tags into Streamlit's static
+# index.html so shared links render a rich preview. Runs here (in-process) so it
+# never depends on the Procfile/shell; idempotent and non-fatal.
+try:
+    import og_patch
+    og_patch.patch()
+except Exception as _e:
+    print(f"[OG] inline patch skipped: {_e}", flush=True)
+
 PLATFORM_CONFIG = {
     "google":  {"label": "Google Trends", "icon": "📈", "scraper": scrape_google,   "link_label": "Google",  "refresh_minutes": 60,  "color": "#4285f4"},
     "youtube": {"label": "YouTube",       "icon": "📺", "scraper": scrape_youtube,  "link_label": "YouTube", "refresh_minutes": 240, "color": "#ff4444"},
