@@ -1650,11 +1650,10 @@ st.markdown(
     ".st-key-srcrow button[kind=\"primary\"] p,.st-key-srcrow button[kind=\"primary\"] div"
     "{color:var(--lime-t)!important}"
     # Space the nav tabs out so the bar reads balanced (avatar | tabs | status).
-    ".st-key-noizetopnav [data-testid=\"stHorizontalBlock\"]{gap:1.7rem!important;flex-wrap:nowrap!important}"
-    # Lock vertical scroll inside the fixed bar (keep horizontal free) so the
-    # nav buttons don't drift up/down as the page scrolls.
-    ".st-key-noizetopnav,.st-key-noizetopnav [data-testid=\"stHorizontalBlock\"],"
-    ".st-key-noizetopnav [data-testid=\"stVerticalBlock\"]{overflow-y:hidden!important}"
+    # The nav-buttons row is the scroll container — lock its VERTICAL scroll (the
+    # up/down drift on hover) while keeping horizontal free; nowrap so it stays one row.
+    ".st-key-noizetopnav [data-testid=\"stHorizontalBlock\"]{gap:1.7rem!important;flex-wrap:nowrap!important;"
+    "overflow-x:auto!important;overflow-y:hidden!important}"
     # Green outline + green label on the inactive header tabs (the active tab
     # stays black-on-green via the primary-button rule above).
     ".st-key-noizetopnav button[kind=\"secondary\"]{border:1px solid rgba(163,255,18,0.28)!important}"
@@ -1665,7 +1664,8 @@ st.markdown(
     # Fixed full-width header pinned just below the ticker (32px). position:fixed
     # is immune to Streamlit's column width clamp, so it truly spans the screen.
     ".st-key-noizetopnav{position:fixed!important;top:32px!important;left:0!important;"
-    "right:0!important;width:100vw!important;z-index:1000!important}"
+    "right:0!important;width:100vw!important;z-index:1000!important;"
+    "overflow-x:auto!important;overflow-y:hidden!important}"
     # Transparent header with a single glowing green underline pinned at its
     # bottom edge; the glow casts downward so content scrolls up into it.
     ".st-key-noizetopnav{background:rgba(6,9,4,0.96)!important;"
