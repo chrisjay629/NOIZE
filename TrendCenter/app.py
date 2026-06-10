@@ -1213,7 +1213,7 @@ def render_classified_dossier(signals):
         letter-spacing:0.13em; text-transform:uppercase; color:var(--lime-t); white-space:nowrap; flex-shrink:0; }
       .cf-audio{ flex:1; min-width:0; height:34px; }
       @media (max-width:640px){ .cf-voice{ flex-direction:column; align-items:stretch; gap:7px; }
-        .cf-audio{ width:100%; } }
+        .cf-audio{ flex:none; width:100%; height:40px; } }
       .cf-p{ font-size:13px; color:var(--tx2); line-height:1.75; margin:0 0 10px; }
       .cf-source{ display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px;
         font-weight:700; color:var(--c); text-decoration:none; letter-spacing:0.04em; margin-top:2px; }
