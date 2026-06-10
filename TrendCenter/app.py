@@ -930,8 +930,9 @@ def render_trending_now(cards, panel_bg_override=None):
         padding:3px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
       .tn-wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:46px;opacity:0.22}
       .tn-body{position:relative;z-index:2;padding:11px 12px 11px}
+      .tn-feat,.tn-card,.tn-feat *,.tn-card *{text-decoration:none!important}
       .tn-head{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;
-        font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.95)}
+        font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.95);text-decoration:none!important}
       .tn-feat .tn-head{font-size:17px;line-height:1.28;-webkit-line-clamp:3;font-family:Poppins,sans-serif}
       .tn-card .tn-head{font-size:11px;line-height:1.3;-webkit-line-clamp:2}
       .tn-meta{display:flex;align-items:center;gap:6px;margin-top:7px;font-family:'JetBrains Mono',monospace;
