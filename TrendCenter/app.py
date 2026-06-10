@@ -1547,7 +1547,7 @@ with st.container(key="noizeticker"):
         "box-sizing:border-box!important}"
         ".noize-ticker{width:100%}"
         ".noize-ticker{display:flex;align-items:center;height:32px;overflow:hidden;"
-        "background-color:rgba(4,7,3,0.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);"
+        "background-color:rgba(4,7,3,0.97);transform:translateZ(0);will-change:transform;"
         # CRT scanlines for a staticky broadcast feel
         "background-image:repeating-linear-gradient(0deg,rgba(0,60,0,0.16) 0,rgba(0,60,0,0.16) 1px,transparent 1px,transparent 3px);"
         "border-bottom:1px solid rgba(163,255,18,0.22);box-shadow:0 2px 14px rgba(163,255,18,0.12)}"
@@ -1650,7 +1650,11 @@ st.markdown(
     ".st-key-srcrow button[kind=\"primary\"] p,.st-key-srcrow button[kind=\"primary\"] div"
     "{color:var(--lime-t)!important}"
     # Space the nav tabs out so the bar reads balanced (avatar | tabs | status).
-    ".st-key-noizetopnav [data-testid=\"stHorizontalBlock\"]{gap:1.7rem!important}"
+    ".st-key-noizetopnav [data-testid=\"stHorizontalBlock\"]{gap:1.7rem!important;flex-wrap:nowrap!important}"
+    # Lock vertical scroll inside the fixed bar (keep horizontal free) so the
+    # nav buttons don't drift up/down as the page scrolls.
+    ".st-key-noizetopnav,.st-key-noizetopnav [data-testid=\"stHorizontalBlock\"],"
+    ".st-key-noizetopnav [data-testid=\"stVerticalBlock\"]{overflow-y:hidden!important}"
     # Green outline + green label on the inactive header tabs (the active tab
     # stays black-on-green via the primary-button rule above).
     ".st-key-noizetopnav button[kind=\"secondary\"]{border:1px solid rgba(163,255,18,0.28)!important}"
@@ -1664,8 +1668,8 @@ st.markdown(
     "right:0!important;width:100vw!important;z-index:1000!important}"
     # Transparent header with a single glowing green underline pinned at its
     # bottom edge; the glow casts downward so content scrolls up into it.
-    ".st-key-noizetopnav{background:rgba(6,9,4,0.92)!important;backdrop-filter:blur(10px);"
-    "-webkit-backdrop-filter:blur(10px);box-sizing:border-box!important;"
+    ".st-key-noizetopnav{background:rgba(6,9,4,0.96)!important;"
+    "transform:translateZ(0)!important;will-change:transform;box-sizing:border-box!important;"
     "padding:7px max(24px,calc(50vw - 600px)) 11px!important;"
     "border-bottom:2px solid rgba(163,255,18,0.70)!important;"
     "box-shadow:0 7px 20px -3px rgba(163,255,18,0.40),0 2px 6px rgba(163,255,18,0.30)}"
