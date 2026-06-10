@@ -146,6 +146,13 @@ def _prewarm_caches():
 
 def _background_scheduler():
     print("[SCHEDULER] started", flush=True)
+    # Ensure the snapshots table exists before the loop touches it. The thread
+    # starts at import time, which can race ahead of the init_db() call further
+    # down in the script — on a fresh container that meant "no such table".
+    try:
+        init_db()
+    except Exception as e:
+        print(f"[SCHEDULER] init_db failed: {e}", flush=True)
     while True:
         for key, cfg in PLATFORM_CONFIG.items():
             try:
