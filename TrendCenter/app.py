@@ -2,6 +2,7 @@ import sqlite3
 import threading
 import time
 import os
+import random
 import base64
 import io
 import json
@@ -343,7 +344,7 @@ if _SITE_BG_B64:
 # ── CSS — Bloomberg Terminal × Palantir × Intelligence Agency ────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@600;700;800;900&family=VT323&family=Creepster&family=Rubik+Glitch&family=Noto+Sans+Egyptian+Hieroglyphs&display=swap');
 
 /* ══════════════════════════════════════════════════════════════
    NIGHT MODE  —  Bloomberg Terminal × Palantir × Ops Center
@@ -1504,6 +1505,90 @@ NAV_ITEMS = [
 
 active_nav = st.session_state.active_nav
 
+# ── Intercepted-signal ticker — eerie messages scroll above the header ──
+_TICKER_MSGS = [
+    "you are being watched", "we have arrived", "Area 51 is real",
+    "they walk among us", "do not trust the broadcast",
+    "the signal is coming from inside the house", "check the sky at 3:33 AM",
+    "it remembers you", "transmission origin: unknown", "we never left",
+    "the dead still post", "look behind you", "the static is speaking",
+    "they know what you searched", "coordinates received — do not go",
+    "the third moon is not ours", "your reflection blinked first",
+    "nothing is classified anymore", "the frequency hides in the noise",
+    "we are already inside", "the lights over Phoenix were not flares",
+    "stop recording. they can hear it too", "the basement was never empty",
+    "you opened the file. now it opens you",
+]
+try:
+    _sc = json.load(open(_STRANGE_CACHE_FILE, encoding="utf-8"))
+    _heads = [s.get("case_headline", "") for s in _sc.get("signals", []) if s.get("case_headline")]
+except Exception:
+    _heads = []
+_ticker_all = _TICKER_MSGS + _heads
+random.Random(datetime.now().strftime("%Y%m%d")).shuffle(_ticker_all)  # daily-stable order
+# Bursts of "static" (hieroglyphs + block noise) flicker between each phrase.
+_TICKER_STATIC = [
+    "𓂀 ░▒▓█▓▒░ 𓁹", "▓▒░ 𓆼𓃥 ░▒▓ ⌁", "𓇼 █▓▒ ⏃ ▒▓█ 𓉐",
+    "░▒ 𓊽 𓋹 ▒░ ⌖", "𓀿 ▓█▓ ⌁ 𓂭 ▒▓", "▒▓█ 𓏏𓏏 █▓▒",
+]
+_ticker_seq = "".join(
+    f"<span class='nt-item'>{_tn_esc(m)}</span>"
+    f"<span class='nt-static'>{_TICKER_STATIC[i % len(_TICKER_STATIC)]}</span>"
+    for i, m in enumerate(_ticker_all)
+)
+
+with st.container(key="noizeticker"):
+    st.markdown(
+        "<style>"
+        # fixed to the viewport (immune to Streamlit's column width constraints) so
+        # it truly spans the full screen and stays pinned at the very top.
+        ".st-key-noizeticker{position:fixed!important;top:0!important;left:0!important;"
+        "right:0!important;width:100vw!important;z-index:1002!important;padding:0!important;"
+        "box-sizing:border-box!important}"
+        ".noize-ticker{width:100%}"
+        ".noize-ticker{display:flex;align-items:center;height:32px;overflow:hidden;"
+        "background-color:rgba(4,7,3,0.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);"
+        # CRT scanlines for a staticky broadcast feel
+        "background-image:repeating-linear-gradient(0deg,rgba(0,60,0,0.16) 0,rgba(0,60,0,0.16) 1px,transparent 1px,transparent 3px);"
+        "border-bottom:1px solid rgba(163,255,18,0.22);box-shadow:0 2px 14px rgba(163,255,18,0.12)}"
+        ".nt-label{flex-shrink:0;display:flex;align-items:center;height:100%;padding:0 13px;"
+        "font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:0.16em;"
+        "color:var(--lime-t);background:rgba(163,255,18,0.10);border-right:1px solid rgba(163,255,18,0.22);"
+        "text-transform:uppercase;white-space:nowrap}"
+        ".nt-dot{width:6px;height:6px;border-radius:50%;background:var(--lime-t);"
+        "box-shadow:0 0 8px var(--lime-t);margin-right:7px;animation:nt-pulse 1.4s infinite}"
+        "@keyframes nt-pulse{0%,100%{opacity:1}50%{opacity:0.25}}"
+        ".nt-mask{flex:1;overflow:hidden}"
+        # slower crawl
+        ".nt-track{display:flex;width:max-content;animation:nt-scroll 210s linear infinite}"
+        ".nt-track:hover{animation-play-state:paused}"
+        "@keyframes nt-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}"
+        ".nt-seq{display:flex;align-items:center;flex-shrink:0}"
+        # phrases: glitch display font + periodic chromatic-split jitter
+        ".nt-item{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;font-style:normal;"
+        "letter-spacing:0.04em;color:rgba(196,255,140,0.92);white-space:nowrap;padding:0 6px;"
+        "text-shadow:0 0 8px rgba(163,255,18,0.40);animation:nt-glitch 4s steps(1,end) infinite}"
+        "@keyframes nt-glitch{0%,90%,100%{transform:translate(0,0);text-shadow:0 0 8px rgba(163,255,18,0.40)}"
+        "91%{transform:translate(-2px,0);text-shadow:-2px 0 rgba(255,0,90,0.75),2px 0 rgba(0,210,255,0.75)}"
+        "93%{transform:translate(2px,0);text-shadow:2px 0 rgba(255,0,90,0.75),-2px 0 rgba(0,210,255,0.75)}"
+        "95%{transform:translate(-1px,0);text-shadow:0 0 11px rgba(163,255,18,0.65)}"
+        "97%{transform:translate(1px,0);text-shadow:1px 0 rgba(255,0,90,0.6),-1px 0 rgba(0,210,255,0.6)}}"
+        # static bursts: flickering hieroglyph + block noise, big gaps between phrases
+        ".nt-static{font-family:'Noto Sans Egyptian Hieroglyphs','VT323',monospace;font-size:15px;"
+        "color:rgba(163,255,18,0.55);padding:0 40px;letter-spacing:3px;white-space:nowrap;"
+        "animation:nt-flicker 0.45s steps(2,end) infinite}"
+        "@keyframes nt-flicker{0%,18%,55%,100%{opacity:0.7}19%{opacity:0.12}40%{opacity:1}"
+        "56%{opacity:0.25}80%{opacity:0.9}}"
+        "</style>"
+        "<div class='noize-ticker'>"
+        "<span class='nt-label'><span class='nt-dot'></span>Intercepted</span>"
+        "<div class='nt-mask'><div class='nt-track'>"
+        f"<div class='nt-seq'>{_ticker_seq}</div>"
+        f"<div class='nt-seq' aria-hidden='true'>{_ticker_seq}</div>"
+        "</div></div></div>",
+        unsafe_allow_html=True,
+    )
+
 with st.container(key="noizetopnav"):
     pugson_src = f"data:image/jpeg;base64,{PUGSON_B64}" if PUGSON_B64 else ""
     _sb_lime   = "#2a5200" if theme == "day" else "#A3FF12"
@@ -1513,20 +1598,20 @@ with st.container(key="noizetopnav"):
                   if pugson_src else
                   f'<div style="width:40px;height:40px;border-radius:50%;background:var(--surface);border:2px solid {_sb_img_bd};display:flex;align-items:center;justify-content:center;font-size:20px">🐾</div>')
 
-    # avatar | nav buttons | (trailing spacer keeps the buttons compact on the left)
+    # avatar | nav buttons | ops-console status readout (right)
     # widths scale with label length so longer tabs (WHAT IS NOIZE…) don't wrap
-    _navw = [max(0.9, len(_lbl) * 0.12) for _, _lbl, _ in NAV_ITEMS]
-    top_cols = st.columns([1.6] + _navw + [0.4])
+    _navw = [max(1.05, len(_lbl) * 0.145) for _, _lbl, _ in NAV_ITEMS]
+    top_cols = st.columns([1.5] + _navw + [2.0], gap="medium", vertical_alignment="center")
 
     with top_cols[0]:
         st.markdown(f"""
         <div style="display:flex;align-items:center;gap:9px;padding:2px 0">
           {img_tag}
           <div style="line-height:1.1">
-            <div style="font-size:14px;font-weight:900;color:var(--tx1);font-family:Inter,sans-serif;letter-spacing:-0.3px">PUGSON</div>
+            <div style="font-size:14px;font-weight:900;color:var(--tx1);font-family:Inter,sans-serif;letter-spacing:-0.3px">NOIZE</div>
             <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
               <span style="width:6px;height:6px;border-radius:50%;background:{_sb_lime};display:inline-block;box-shadow:{_sb_glow}"></span>
-              <span style="font-size:8px;color:{_sb_lime};font-weight:700;letter-spacing:0.06em">ONLINE</span>
+              <span style="font-size:8px;color:{_sb_lime};font-weight:700;letter-spacing:0.06em">.online</span>
             </div>
           </div>
         </div>""", unsafe_allow_html=True)
@@ -1538,7 +1623,20 @@ with st.container(key="noizetopnav"):
                 st.session_state.active_nav = label
                 st.rerun()
 
-st.markdown("<div style='border-bottom:1px solid var(--sb-border);margin:2px 0 10px 0'></div>", unsafe_allow_html=True)
+    # Right-side ops-console readout (in its own column, aligned with the nav row).
+    with top_cols[-1]:
+        _utc = datetime.utcnow().strftime("%H:%M")
+        st.markdown(
+            "<div class='nt-status'>"
+            "<div class='nt-stat-row'><span class='nt-stat-dot'></span>Secure Channel</div>"
+            f"<div class='nt-stat-sub'>33.0&deg;N &middot; 96.7&deg;W &middot; {_utc} UTC</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+# Spacer: the ticker + header are position:fixed (out of flow), so push the page
+# content just below them (ticker 32px + header ~64px) — kept tight to the header.
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 # Blueprint output: force the body text white (Streamlit's default markdown grey
 # reads too dim on the dark map). Any container keyed *bpout* gets white text.
 st.markdown(
@@ -1551,21 +1649,39 @@ st.markdown(
     # …except the source-picker's active pill, which is transparent — keep it lime.
     ".st-key-srcrow button[kind=\"primary\"] p,.st-key-srcrow button[kind=\"primary\"] div"
     "{color:var(--lime-t)!important}"
-    # Green outline on the header nav buttons so they match the rest of the UI.
+    # Space the nav tabs out so the bar reads balanced (avatar | tabs | status).
+    ".st-key-noizetopnav [data-testid=\"stHorizontalBlock\"]{gap:1.7rem!important}"
+    # Green outline + green label on the inactive header tabs (the active tab
+    # stays black-on-green via the primary-button rule above).
     ".st-key-noizetopnav button[kind=\"secondary\"]{border:1px solid rgba(163,255,18,0.28)!important}"
+    ".st-key-noizetopnav button[kind=\"secondary\"] p,"
+    ".st-key-noizetopnav button[kind=\"secondary\"] div{color:var(--lime-t)!important}"
     ".st-key-noizetopnav button[kind=\"secondary\"]:hover{border-color:var(--lime-t)!important;"
     "box-shadow:0 0 12px rgba(163,255,18,0.16)!important}"
-    # Sticky header: pin the wrapper (flex child of the main scroll column) + the
-    # inner block. Transparent — the tabs float over the map like before; a light
-    # backdrop blur just softens content that scrolls behind it (no dark bar).
-    "[data-testid=\"stVerticalBlock\"]>div:has(.st-key-noizetopnav),"
-    ".st-key-noizetopnav{position:sticky!important;top:0!important;z-index:1000!important}"
+    # Fixed full-width header pinned just below the ticker (32px). position:fixed
+    # is immune to Streamlit's column width clamp, so it truly spans the screen.
+    ".st-key-noizetopnav{position:fixed!important;top:32px!important;left:0!important;"
+    "right:0!important;width:100vw!important;z-index:1000!important}"
     # Transparent header with a single glowing green underline pinned at its
     # bottom edge; the glow casts downward so content scrolls up into it.
     ".st-key-noizetopnav{background:rgba(6,9,4,0.92)!important;backdrop-filter:blur(10px);"
-    "-webkit-backdrop-filter:blur(10px);padding:7px 10px 11px!important;"
+    "-webkit-backdrop-filter:blur(10px);box-sizing:border-box!important;"
+    "padding:7px max(24px,calc(50vw - 600px)) 11px!important;"
     "border-bottom:2px solid rgba(163,255,18,0.70)!important;"
-    "box-shadow:0 7px 20px -3px rgba(163,255,18,0.40),0 2px 6px rgba(163,255,18,0.30)}</style>",
+    "box-shadow:0 7px 20px -3px rgba(163,255,18,0.40),0 2px 6px rgba(163,255,18,0.30)}"
+    # Right-side ops-console status readout (right-aligned in its own nav column).
+    ".nt-status{text-align:right;font-family:'JetBrains Mono',monospace;"
+    "line-height:1.2;pointer-events:none}"
+    ".nt-stat-row{display:flex;align-items:center;justify-content:flex-end;gap:6px;"
+    "font-size:9px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--lime-t)}"
+    ".nt-stat-dot{width:6px;height:6px;border-radius:50%;background:var(--lime-t);"
+    "box-shadow:0 0 8px var(--lime-t);animation:nt-pulse 1.4s infinite}"
+    ".nt-stat-sub{font-size:8.5px;letter-spacing:0.08em;color:rgba(190,235,150,0.6);margin-top:3px}"
+    "@media(max-width:1150px){.nt-status{display:none}}"
+    # Pull the page content up closer under the fixed header (trims the stacked
+    # empty-element gaps Streamlit leaves above the first visible section).
+    "[data-testid=\"stVerticalBlock\"]>div:has(.st-key-herowrap),"
+    ".st-key-herowrap{margin-top:-20px!important}</style>",
     unsafe_allow_html=True)
 
 
@@ -1809,6 +1925,10 @@ with main_col:
 
     # ── HOME ───────────────────────────────────────────────
     if active_nav == "HOME":
+        # Trending Now feed first — sits above the Content Blueprint Generator.
+        with st.container(key="briefingwrap"):
+            render_trending_now(trending_cards)
+
         # Square, icon-only brand buttons inside a themed "TrendFeeds" panel.
         # CSS keeps all 4 on ONE row on both mobile and desktop.
         _bgsel = ".st-key-srcrow [data-testid=\"stColumn\"] button[kind]"  # high specificity + !important to beat Streamlit's `background:` shorthand
@@ -2008,11 +2128,7 @@ with main_col:
                     with st.container(key="bpout_cf"):
                         st.markdown(cf_bp)
 
-        # ── Trending Now + Strange Signals ───────────────────────────
-        # Image-first live intelligence feed (general trending news), then the
-        # supernatural Classified Files / Strange Signals below it.
-        with st.container(key="briefingwrap"):
-            render_trending_now(trending_cards)
+        # ── Strange Signals / Classified Files ───────────────────────
         _strange = get_strange_signals()
         # Unified Classified Files dossier accordion (replaces radar + story panel).
         render_classified_dossier(_strange)
