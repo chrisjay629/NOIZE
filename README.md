@@ -4,7 +4,7 @@
 
 Built for content creators: pick a trend and instantly get the angle, the script, when to post, how to post, the tools to use, and the AI prompts to generate it — all in one window, so you stop scrolling ten sites and start shipping.
 
-**Live app:** https://imaginative-dedication-production.up.railway.app
+**Live app:** https://noize-production.up.railway.app
 
 > Themed as a noir detective dashboard (your AI partner, *Chief Detective Pugson*), Noize reads the static of the internet so you only see the signal.
 
