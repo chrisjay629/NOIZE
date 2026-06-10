@@ -1681,7 +1681,11 @@ st.markdown(
     # Pull the page content up closer under the fixed header (trims the stacked
     # empty-element gaps Streamlit leaves above the first visible section).
     "[data-testid=\"stVerticalBlock\"]>div:has(.st-key-herowrap),"
-    ".st-key-herowrap{margin-top:-20px!important}</style>",
+    ".st-key-herowrap{margin-top:-20px!important}"
+    # Mobile: the header/spacing differ, so don't pull content up (it tucks under
+    # the fixed header). Give it a small positive gap instead.
+    "@media(max-width:640px){[data-testid=\"stVerticalBlock\"]>div:has(.st-key-herowrap),"
+    ".st-key-herowrap{margin-top:12px!important}}</style>",
     unsafe_allow_html=True)
 
 
