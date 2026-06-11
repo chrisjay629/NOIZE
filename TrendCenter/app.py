@@ -2493,3 +2493,19 @@ with main_col:
     # ── WATCHLIST ────────────────────────────────────────────────
     elif active_nav == "WATCHLIST":
         st.markdown('<div style="text-align:center;padding:40px 20px"><div style="font-size:36px;margin-bottom:10px">⭐</div><div style="font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:6px;font-family:Poppins,sans-serif">Watchlist</div><div style="font-size:12px;color:var(--tx4)">Save topics to track — coming soon.</div></div>', unsafe_allow_html=True)
+
+    # ── FOOTER — creator signature (shows on every view) ──────────
+    st.markdown(
+        '<div style="margin:46px 0 6px;padding:18px 16px 6px;border-top:1px solid rgba(163,255,18,0.14);'
+        'text-align:center;font-family:\'JetBrains Mono\',monospace">'
+        '<div style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;'
+        'color:rgba(163,255,18,0.82)">Designed &amp; Built by Christopher Lee Jauregui</div>'
+        '<div style="margin-top:9px;font-size:11px;letter-spacing:0.06em">'
+        '<a href="https://www.linkedin.com/in/christopherjauregui/" target="_blank" rel="noopener" '
+        'style="color:rgba(163,255,18,0.7);text-decoration:none">LinkedIn</a>'
+        '<span style="color:rgba(255,255,255,0.22);margin:0 11px">&middot;</span>'
+        '<a href="https://github.com/chrisjay629" target="_blank" rel="noopener" '
+        'style="color:rgba(163,255,18,0.7);text-decoration:none">GitHub</a>'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
