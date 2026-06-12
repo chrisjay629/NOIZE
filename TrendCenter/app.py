@@ -304,6 +304,38 @@ for k, v in {
     if k not in st.session_state:
         st.session_state[k] = v
 
+# ── Rate limiting for paid AI generations ─────────────────────────
+# Two layers protect the OpenAI bill once the site is public:
+#   • GLOBAL hourly cap across all visitors (the wallet guard) — in-memory and
+#     shared by every session in this process; resets on restart.
+#   • PER-SESSION short-window cap (anti-spam) so one user can't hammer it.
+# Each "unit" of cost = one paid generation. Expensive actions (a full Strange
+# re-scan = 5 texts + 5 images + 5 narrations) pass a higher cost.
+_GEN_TIMES = []                 # module-level: timestamps of recent global gens
+_GEN_LOCK = threading.Lock()
+_GEN_GLOBAL_MAX_PER_HOUR = 120  # total paid generations/hour across everyone
+_GEN_SESSION_MAX = 12           # per-session generations …
+_GEN_SESSION_WINDOW = 600       # … within this many seconds (10 min)
+
+
+def _rate_ok(cost=1):
+    """Return (allowed, message). Call BEFORE any paid OpenAI generation; if it
+    returns False, show the message and skip the call."""
+    now = time.time()
+    sess = st.session_state.setdefault("_gen_times", [])
+    sess[:] = [t for t in sess if now - t < _GEN_SESSION_WINDOW]
+    if len(sess) + cost > _GEN_SESSION_MAX:
+        return False, ("⏳ Easy, detective — you've run a lot of requests in a short "
+                       "window. Give it a minute, then try again.")
+    with _GEN_LOCK:
+        _GEN_TIMES[:] = [t for t in _GEN_TIMES if now - t < 3600]
+        if len(_GEN_TIMES) + cost > _GEN_GLOBAL_MAX_PER_HOUR:
+            return False, ("📡 The wire's overloaded right now — too many requests "
+                           "across the network this hour. Try again shortly.")
+        _GEN_TIMES.extend([now] * cost)
+    sess.extend([now] * cost)
+    return True, ""
+
 theme = st.session_state.theme
 
 # ── Body background texture injection ────────────────────────────
@@ -1912,18 +1944,26 @@ with main_col:
     elif chip_clicked:
         _hero_query = chip_clicked
     if _hero_query:
-        with st.spinner(f'Scanning all platforms for "{_hero_query}"...'):
-            dossier = build_dossier(_hero_query)
-            st.session_state.dossier       = dossier
-            st.session_state.pulse_results = dossier["cards"]
-            st.session_state.pulse_query   = _hero_query
-        st.rerun()
+        _ok, _msg = _rate_ok(cost=2)
+        if not _ok:
+            st.warning(_msg)
+        else:
+            with st.spinner(f'Scanning all platforms for "{_hero_query}"...'):
+                dossier = build_dossier(_hero_query)
+                st.session_state.dossier       = dossier
+                st.session_state.pulse_results = dossier["cards"]
+                st.session_state.pulse_query   = _hero_query
+            st.rerun()
 
     # Show investigation results right under the hero, on any tab.
     if st.session_state.pulse_results and st.session_state.pulse_query:
         _q = st.session_state.pulse_query
 
         def _make_topic_blueprint():
+            _ok, _msg = _rate_ok()
+            if not _ok:
+                st.warning(_msg)
+                return
             with st.spinner(f'Building a content blueprint for "{_q}"...'):
                 st.session_state.topic_blueprint = generate_topic_blueprint(_q, st.session_state.dossier)
                 st.session_state.topic_bp_query  = _q
@@ -2176,6 +2216,10 @@ with main_col:
                             )
                 if st.button("🎬 Generate Blueprint", type="primary", use_container_width=True,
                              disabled=len(cf_selected) == 0, key=f"cf_gen_bp_{active_platform}"):
+                    _ok, _msg = _rate_ok()
+                    if not _ok:
+                        st.warning(_msg)
+                        st.stop()
                     with st.spinner("Building intelligence file..."):
                         cf_bp = generate_blueprint(cf_selected, cf_niche.strip() or "content creator")
                     st.markdown("---")
@@ -2219,8 +2263,12 @@ with main_col:
                 unsafe_allow_html=True)
         with bcol:
             if st.button("🔄 Rescan", key="strange_rescan", use_container_width=True):
-                get_strange_signals(force=True)
-                st.rerun()
+                _ok, _msg = _rate_ok(cost=10)   # a full re-scan = 5 texts + 5 images + 5 narrations
+                if not _ok:
+                    st.warning(_msg)
+                else:
+                    get_strange_signals(force=True)
+                    st.rerun()
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
         signals = get_strange_signals()
         if signals:
@@ -2252,6 +2300,10 @@ with main_col:
                         if st.checkbox(f"{pfx}{h['name']}",key=f"bp_{active_platform}_{i}"): selected.append(h["name"])
                 st.markdown("---")
                 if st.button("🎬 Generate Blueprint",type="primary",use_container_width=True,disabled=len(selected)==0):
+                    _ok, _msg = _rate_ok()
+                    if not _ok:
+                        st.warning(_msg)
+                        st.stop()
                     with st.spinner("Building intelligence file..."):
                         bp=generate_blueprint(selected,bp_niche.strip() or "content creator")
                     st.markdown("---")
@@ -2482,10 +2534,15 @@ with main_col:
         if user_msg:
             st.session_state.chat_history.append({"role":"user","content":user_msg})
             with st.chat_message("user"): st.markdown(user_msg)
+            _ok, _msg = _rate_ok()
             with st.chat_message("assistant"):
-                with st.spinner("Pugson is on it..."):
-                    resp = run_agent(user_msg)
-                st.markdown(resp)
+                if not _ok:
+                    resp = _msg
+                    st.markdown(resp)
+                else:
+                    with st.spinner("Pugson is on it..."):
+                        resp = run_agent(user_msg)
+                    st.markdown(resp)
             st.session_state.chat_history.append({"role":"assistant","content":resp})
         if st.session_state.chat_history:
             if st.button("Clear debrief",key="clear_chat"): st.session_state.chat_history=[]; st.rerun()
